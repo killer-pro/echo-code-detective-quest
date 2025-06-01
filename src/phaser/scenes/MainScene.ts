@@ -1,132 +1,234 @@
 
 import Phaser from 'phaser';
 import { Character } from '../../types';
+import { assetManager } from '../../utils/assetManager';
 
 export class MainScene extends Phaser.Scene {
-  private player!: Phaser.Physics.Arcade.Sprite;
-  private characters: Phaser.Physics.Arcade.Group;
-  private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
-  private charactersData: Character[] = [];
-  private onCharacterClick?: (character: Character) => void;
+  private characters: Character[] = [];
+  private characterSprites: Phaser.GameObjects.Sprite[] = [];
+  private player: Phaser.GameObjects.Rectangle | null = null;
+  private background: Phaser.GameObjects.Image | null = null;
+  private characterClickHandler: ((character: Character) => void) | null = null;
+  private cursors: Phaser.Types.Input.Keyboard.CursorKeys | null = null;
 
   constructor() {
     super({ key: 'MainScene' });
   }
 
-  init() {
-    this.characters = this.physics.add.group();
-  }
-
   preload() {
-    // Chargement des assets de base
-    this.load.image('player', 'data:image/svg+xml;base64,' + btoa(`
-      <svg width="32" height="32" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="16" cy="16" r="12" fill="#3498db" stroke="#2c3e50" stroke-width="2"/>
-        <circle cx="12" cy="12" r="2" fill="#2c3e50"/>
-        <circle cx="20" cy="12" r="2" fill="#2c3e50"/>
-        <path d="M 10 20 Q 16 24 22 20" stroke="#2c3e50" stroke-width="2" fill="none"/>
-      </svg>
-    `));
+    console.log('MainScene: Chargement des assets...');
+    
+    // Créer des sprites par défaut simples
+    this.load.image('default_bg', 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjYwMCIgdmlld0JveD0iMCAwIDgwMCA2MDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI4MDAiIGhlaWdodD0iNjAwIiBmaWxsPSIjMmMzZTUwIi8+CjxyZWN0IHg9IjEwMCIgeT0iNTAwIiB3aWR0aD0iNjAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iIzM0NDk1ZSIvPgo8Y2lyY2xlIGN4PSI2NTAiIGN5PSIxNTAiIHI9IjUwIiBmaWxsPSIjZjM5YzEyIi8+Cjx0ZXh0IHg9IjQwMCIgeT0iMzAwIiBmaWxsPSIjZWNmMGYxIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkVjaG9Db2RlIEVudmlyb25tZW50PC90ZXh0Pgo8L3N2Zz4=');
+    
+    // Charger les assets téléchargés s'ils existent
+    const backgrounds = assetManager.getBackgrounds();
+    if (backgrounds.length > 0) {
+      this.load.image('custom_bg', backgrounds[0]);
+    }
 
-    this.load.image('character', 'data:image/svg+xml;base64,' + btoa(`
-      <svg width="32" height="32" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="16" cy="16" r="12" fill="#e74c3c" stroke="#2c3e50" stroke-width="2"/>
-        <circle cx="12" cy="12" r="2" fill="#2c3e50"/>
-        <circle cx="20" cy="12" r="2" fill="#2c3e50"/>
-        <ellipse cx="16" cy="20" rx="4" ry="2" fill="#2c3e50"/>
-      </svg>
-    `));
+    const characterSprites = assetManager.getCharacterSprites();
+    characterSprites.forEach((url, index) => {
+      this.load.image(`character_${index}`, url);
+    });
 
-    this.load.image('background', 'data:image/svg+xml;base64,' + btoa(`
-      <svg width="800" height="600" xmlns="http://www.w3.org/2000/svg">
-        <rect width="800" height="600" fill="#34495e"/>
-        <pattern id="grid" width="50" height="50" patternUnits="userSpaceOnUse">
-          <path d="M 50 0 L 0 0 0 50" fill="none" stroke="#2c3e50" stroke-width="1" opacity="0.3"/>
-        </pattern>
-        <rect width="800" height="600" fill="url(#grid)"/>
-      </svg>
-    `));
+    // Props
+    const props = assetManager.getProps();
+    props.forEach((url, index) => {
+      this.load.image(`prop_${index}`, url);
+    });
   }
 
   create() {
-    // Fond
-    this.add.image(400, 300, 'background');
-
-    // Joueur
-    this.player = this.physics.add.sprite(400, 300, 'player');
-    this.player.setCollideWorldBounds(true);
-
-    // Contrôles
-    this.cursors = this.input.keyboard!.createCursorKeys();
-
-    // Interaction avec les personnages
-    this.input.on('gameobjectdown', (pointer: Phaser.Input.Pointer, gameObject: Phaser.GameObjects.GameObject) => {
-      if (gameObject.name === 'character') {
-        const character = this.charactersData.find(c => c.id === gameObject.getData('characterId'));
-        if (character && this.onCharacterClick) {
-          this.onCharacterClick(character);
-        }
-      }
-    });
-
     console.log('MainScene initialisée');
+    
+    // Arrière-plan
+    const bgKey = this.textures.exists('custom_bg') ? 'custom_bg' : 'default_bg';
+    this.background = this.add.image(400, 300, bgKey);
+    this.background.setDisplaySize(800, 600);
+
+    // Joueur (carré bleu simple pour l'instant)
+    this.player = this.add.rectangle(400, 300, 20, 20, 0x3498db);
+    this.player.setInteractive();
+
+    // Contrôles clavier
+    this.cursors = this.input.keyboard?.createCursorKeys() || null;
+
+    // Créer les personnages si disponibles
+    this.updateCharacterSprites();
+
+    // Gestion des clics
+    this.input.on('pointerdown', this.handleClick, this);
   }
 
   update() {
-    // Déplacement du joueur
-    const speed = 200;
-    
-    if (this.cursors.left.isDown) {
-      this.player.setVelocityX(-speed);
-    } else if (this.cursors.right.isDown) {
-      this.player.setVelocityX(speed);
-    } else {
-      this.player.setVelocityX(0);
-    }
+    // Mouvement du joueur avec les flèches
+    if (this.cursors && this.player) {
+      const speed = 150;
+      const deltaTime = this.game.loop.delta / 1000;
 
-    if (this.cursors.up.isDown) {
-      this.player.setVelocityY(-speed);
-    } else if (this.cursors.down.isDown) {
-      this.player.setVelocityY(speed);
-    } else {
-      this.player.setVelocityY(0);
+      if (this.cursors.left?.isDown) {
+        this.player.x -= speed * deltaTime;
+      } else if (this.cursors.right?.isDown) {
+        this.player.x += speed * deltaTime;
+      }
+
+      if (this.cursors.up?.isDown) {
+        this.player.y -= speed * deltaTime;
+      } else if (this.cursors.down?.isDown) {
+        this.player.y += speed * deltaTime;
+      }
+
+      // Garder le joueur dans les limites
+      this.player.x = Phaser.Math.Clamp(this.player.x, 10, 790);
+      this.player.y = Phaser.Math.Clamp(this.player.y, 10, 590);
     }
   }
 
   setCharacters(characters: Character[]) {
-    this.charactersData = characters;
-    
-    // Supprime les anciens personnages
-    this.characters.clear(true, true);
-
-    // Ajoute les nouveaux personnages
-    characters.forEach(character => {
-      const sprite = this.physics.add.sprite(character.position.x, character.position.y, 'character');
-      sprite.setInteractive();
-      sprite.name = 'character';
-      sprite.setData('characterId', character.id);
-      
-      // Texte nom au-dessus
-      const nameText = this.add.text(character.position.x, character.position.y - 25, character.name, {
-        fontSize: '12px',
-        color: '#ffffff',
-        backgroundColor: '#000000',
-        padding: { x: 4, y: 2 },
-      });
-      nameText.setOrigin(0.5);
-
-      this.characters.add(sprite);
-    });
+    console.log('Mise à jour des personnages:', characters);
+    this.characters = characters;
+    this.updateCharacterSprites();
   }
 
   setCharacterClickHandler(handler: (character: Character) => void) {
-    this.onCharacterClick = handler;
+    this.characterClickHandler = handler;
   }
 
-  getPlayerPosition() {
-    return {
-      x: this.player.x,
-      y: this.player.y,
-    };
+  private updateCharacterSprites() {
+    // Nettoyer les sprites existants
+    this.characterSprites.forEach(sprite => sprite.destroy());
+    this.characterSprites = [];
+
+    // Créer les nouveaux sprites
+    this.characters.forEach((character, index) => {
+      // Utiliser un sprite personnalisé s'il existe, sinon un rectangle coloré
+      let sprite: Phaser.GameObjects.Sprite | Phaser.GameObjects.Rectangle;
+      
+      const customSpriteKey = `character_${index}`;
+      if (this.textures.exists(customSpriteKey)) {
+        sprite = this.add.sprite(character.position.x, character.position.y, customSpriteKey) as any;
+        sprite.setDisplaySize(40, 60);
+      } else {
+        // Sprite par défaut basé sur le rôle
+        const colors = {
+          'témoin': 0x2ecc71,
+          'suspect': 0xe74c3c,
+          'enquêteur': 0x3498db,
+          'innocent': 0x95a5a6
+        };
+        
+        const color = colors[character.role] || 0x95a5a6;
+        sprite = this.add.rectangle(character.position.x, character.position.y, 30, 40, color) as any;
+      }
+
+      // Rendre interactif
+      sprite.setInteractive();
+      sprite.setData('character', character);
+
+      // Animation de hover
+      sprite.on('pointerover', () => {
+        sprite.setTint(0xffff00);
+        this.tweens.add({
+          targets: sprite,
+          scaleX: 1.1,
+          scaleY: 1.1,
+          duration: 200,
+          ease: 'Power2'
+        });
+      });
+
+      sprite.on('pointerout', () => {
+        sprite.clearTint();
+        this.tweens.add({
+          targets: sprite,
+          scaleX: 1,
+          scaleY: 1,
+          duration: 200,
+          ease: 'Power2'
+        });
+      });
+
+      // Nom du personnage
+      const nameText = this.add.text(
+        character.position.x,
+        character.position.y - 30,
+        character.name,
+        {
+          fontSize: '12px',
+          color: '#ffffff',
+          backgroundColor: '#000000',
+          padding: { x: 4, y: 2 }
+        }
+      );
+      nameText.setOrigin(0.5);
+
+      // Badge de rôle
+      const roleColors = {
+        'témoin': '#2ecc71',
+        'suspect': '#e74c3c',
+        'enquêteur': '#3498db',
+        'innocent': '#95a5a6'
+      };
+      
+      const roleText = this.add.text(
+        character.position.x,
+        character.position.y + 30,
+        character.role,
+        {
+          fontSize: '10px',
+          color: '#ffffff',
+          backgroundColor: roleColors[character.role] || '#95a5a6',
+          padding: { x: 3, y: 1 }
+        }
+      );
+      roleText.setOrigin(0.5);
+
+      this.characterSprites.push(sprite as any);
+    });
+  }
+
+  private handleClick(pointer: Phaser.Input.Pointer) {
+    // Vérifier si on a cliqué sur un personnage
+    const clickedObjects = this.input.hitTestPointer(pointer);
+    
+    for (const obj of clickedObjects) {
+      const character = obj.getData('character');
+      if (character && this.characterClickHandler) {
+        this.characterClickHandler(character);
+        break;
+      }
+    }
+  }
+
+  // Méthodes pour ajouter des effets visuels
+  addInvestigationEffect(x: number, y: number) {
+    const particles = this.add.particles(x, y, 'default_bg', {
+      scale: { start: 0.3, end: 0 },
+      speed: { min: 50, max: 100 },
+      lifespan: 600,
+      quantity: 5
+    });
+
+    this.time.delayedCall(1000, () => {
+      particles.destroy();
+    });
+  }
+
+  highlightCharacter(characterId: string) {
+    const characterSprite = this.characterSprites.find(sprite => {
+      const char = sprite.getData('character');
+      return char && char.id === characterId;
+    });
+
+    if (characterSprite) {
+      this.tweens.add({
+        targets: characterSprite,
+        alpha: 0.5,
+        duration: 500,
+        yoyo: true,
+        repeat: 2
+      });
+    }
   }
 }
