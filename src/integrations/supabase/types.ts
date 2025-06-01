@@ -9,6 +9,100 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      characters: {
+        Row: {
+          alerted: boolean | null
+          created_at: string | null
+          expression_state: string | null
+          id: string
+          investigation_id: string | null
+          knowledge: string
+          name: string
+          personality: Json
+          position: Json
+          reputation_score: number | null
+          role: string
+          sprite: string | null
+        }
+        Insert: {
+          alerted?: boolean | null
+          created_at?: string | null
+          expression_state?: string | null
+          id?: string
+          investigation_id?: string | null
+          knowledge?: string
+          name: string
+          personality?: Json
+          position?: Json
+          reputation_score?: number | null
+          role: string
+          sprite?: string | null
+        }
+        Update: {
+          alerted?: boolean | null
+          created_at?: string | null
+          expression_state?: string | null
+          id?: string
+          investigation_id?: string | null
+          knowledge?: string
+          name?: string
+          personality?: Json
+          position?: Json
+          reputation_score?: number | null
+          role?: string
+          sprite?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "characters_investigation_id_fkey"
+            columns: ["investigation_id"]
+            isOneToOne: false
+            referencedRelation: "investigations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dialogs: {
+        Row: {
+          character_id: string | null
+          character_reply: string
+          clickable_keywords: Json | null
+          id: string
+          reputation_impact: number | null
+          timestamp: string | null
+          truth_likelihood: number | null
+          user_input: string
+        }
+        Insert: {
+          character_id?: string | null
+          character_reply: string
+          clickable_keywords?: Json | null
+          id?: string
+          reputation_impact?: number | null
+          timestamp?: string | null
+          truth_likelihood?: number | null
+          user_input: string
+        }
+        Update: {
+          character_id?: string | null
+          character_reply?: string
+          clickable_keywords?: Json | null
+          id?: string
+          reputation_impact?: number | null
+          timestamp?: string | null
+          truth_likelihood?: number | null
+          user_input?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dialogs_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       equipment_data: {
         Row: {
           created_at: string
@@ -56,6 +150,78 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      investigations: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          id: string
+          prompt: string
+          status: string | null
+          title: string
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          prompt: string
+          status?: string | null
+          title: string
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          prompt?: string
+          status?: string | null
+          title?: string
+        }
+        Relationships: []
+      }
+      leads: {
+        Row: {
+          confidence_level: number | null
+          description: string
+          discovered_at: string | null
+          id: string
+          investigation_id: string | null
+          resolved: boolean | null
+          source_pnj: string | null
+        }
+        Insert: {
+          confidence_level?: number | null
+          description: string
+          discovered_at?: string | null
+          id?: string
+          investigation_id?: string | null
+          resolved?: boolean | null
+          source_pnj?: string | null
+        }
+        Update: {
+          confidence_level?: number | null
+          description?: string
+          discovered_at?: string | null
+          id?: string
+          investigation_id?: string | null
+          resolved?: boolean | null
+          source_pnj?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leads_investigation_id_fkey"
+            columns: ["investigation_id"]
+            isOneToOne: false
+            referencedRelation: "investigations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_source_pnj_fkey"
+            columns: ["source_pnj"]
+            isOneToOne: false
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       product_quality_data: {
         Row: {

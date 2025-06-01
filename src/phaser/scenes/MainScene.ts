@@ -11,7 +11,10 @@ export class MainScene extends Phaser.Scene {
 
   constructor() {
     super({ key: 'MainScene' });
-    this.characters = new Phaser.Physics.Arcade.Group(this);
+  }
+
+  init() {
+    this.characters = this.physics.add.group();
   }
 
   preload() {
@@ -55,9 +58,6 @@ export class MainScene extends Phaser.Scene {
 
     // Contrôles
     this.cursors = this.input.keyboard!.createCursorKeys();
-
-    // Groupes pour les personnages
-    this.characters = this.physics.add.group();
 
     // Interaction avec les personnages
     this.input.on('gameobjectdown', (pointer: Phaser.Input.Pointer, gameObject: Phaser.GameObjects.GameObject) => {

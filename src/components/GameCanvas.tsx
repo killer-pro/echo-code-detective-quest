@@ -1,55 +1,51 @@
 
 import React, { useEffect, useRef } from 'react';
 import { GameManager } from '../phaser/Game';
-import { MainScene } from '../phaser/scenes/MainScene';
 import { Character } from '../types';
 
 interface GameCanvasProps {
   characters: Character[];
   onCharacterClick: (character: Character) => void;
-  className?: string;
 }
 
-const GameCanvas: React.FC<GameCanvasProps> = ({ characters, onCharacterClick, className }) => {
+const GameCanvas: React.FC<GameCanvasProps> = ({ characters, onCharacterClick }) => {
   const gameRef = useRef<HTMLDivElement>(null);
-  const gameManager = useRef<GameManager | null>(null);
+  const gameInstanceRef = useRef<Phaser.Game | null>(null);
 
   useEffect(() => {
-    if (gameRef.current) {
-      gameManager.current = GameManager.getInstance();
-      const game = gameManager.current.init(gameRef.current.id);
-      
-      // Configuration de la scène une fois qu'elle est prête
-      const mainScene = game.scene.getScene('MainScene') as MainScene;
-      if (mainScene) {
-        mainScene.setCharacterClickHandler(onCharacterClick);
-      }
+    if (gameRef.current && !gameInstanceRef.current) {
+      const gameManager = GameManager.getInstance();
+      gameInstanceRef.current = gameManager.init(gameRef.current.id);
 
-      return () => {
-        gameManager.current?.destroy();
-      };
+      // Configuration du handler de clic
+      const scene = gameInstanceRef.current.scene.getScene('MainScene');
+      if (scene && typeof (scene as any).setCharacterClickHandler === 'function') {
+        (scene as any).setCharacterClickHandler(onCharacterClick);
+      }
     }
+
+    return () => {
+      // Pas de cleanup automatique - on garde l'instance pour éviter les recreations
+    };
   }, [onCharacterClick]);
 
   useEffect(() => {
-    if (gameManager.current) {
-      const game = gameManager.current.getGame();
-      if (game) {
-        const mainScene = game.scene.getScene('MainScene') as MainScene;
-        if (mainScene && mainScene.scene.isVisible()) {
-          mainScene.setCharacters(characters);
-        }
+    if (gameInstanceRef.current && characters.length > 0) {
+      const scene = gameInstanceRef.current.scene.getScene('MainScene');
+      if (scene && typeof (scene as any).setCharacters === 'function') {
+        (scene as any).setCharacters(characters);
       }
     }
   }, [characters]);
 
   return (
-    <div 
-      ref={gameRef} 
-      id="phaser-game" 
-      className={`border border-gray-700 rounded-lg overflow-hidden ${className}`}
-      style={{ width: '800px', height: '600px' }}
-    />
+    <div className="w-full h-full flex items-center justify-center bg-slate-800 rounded-lg overflow-hidden">
+      <div 
+        ref={gameRef} 
+        id="game-container"
+        className="w-[800px] h-[600px] border border-slate-600 rounded"
+      />
+    </div>
   );
 };
 

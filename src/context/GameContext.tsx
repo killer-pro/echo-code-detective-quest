@@ -49,7 +49,7 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         reputation: {
           ...state.reputation,
           [action.payload.characterId]: Math.max(0, Math.min(100, 
-            state.reputation[action.payload.characterId] + action.payload.change
+            (state.reputation[action.payload.characterId] || 50) + action.payload.change
           )),
         },
       };

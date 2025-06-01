@@ -6,35 +6,27 @@ interface GeminiResponse {
   truthLikelihood: number;
 }
 
-export class GeminiAPI {
-  private apiKey: string;
-  private baseUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent';
+interface InvestigationData {
+  title: string;
+  description: string;
+  characters: Array<{
+    id: string;
+    name: string;
+    role: string;
+    personality: Record<string, any>;
+    knowledge: string;
+    position: { x: number; y: number };
+    reputation_score: number;
+  }>;
+}
 
-  constructor(apiKey: string) {
-    this.apiKey = apiKey;
-  }
+const GEMINI_API_KEY = "AIzaSyDTz4uts8cIeNp9D2IxK1Zyk8sfu2X_Ybo";
+const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
 
-  async generateCharacterResponse(
-    characterName: string,
-    role: string,
-    personality: any,
-    knowledge: string,
-    reputationScore: number,
-    userInput: string,
-    conversationHistory: string[]
-  ): Promise<GeminiResponse> {
-    const prompt = this.buildCharacterPrompt(
-      characterName,
-      role,
-      personality,
-      knowledge,
-      reputationScore,
-      userInput,
-      conversationHistory
-    );
-
+class GeminiAPI {
+  private async makeRequest(prompt: string): Promise<any> {
     try {
-      const response = await fetch(`${this.baseUrl}?key=${this.apiKey}`, {
+      const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -46,159 +38,149 @@ export class GeminiAPI {
             }]
           }],
           generationConfig: {
-            temperature: 0.8,
+            temperature: 0.7,
             topK: 40,
             topP: 0.95,
-            maxOutputTokens: 300,
-          },
-        }),
+            maxOutputTokens: 1024,
+          }
+        })
       });
 
       if (!response.ok) {
-        throw new Error(`Gemini API error: ${response.status}`);
+        throw new Error(`Erreur API: ${response.status} ${response.statusText}`);
       }
 
       const data = await response.json();
-      const text = data.candidates[0]?.content?.parts[0]?.text || "Je préfère ne pas répondre.";
-
-      return this.parseResponse(text, reputationScore);
+      return data.candidates[0].content.parts[0].text;
     } catch (error) {
-      console.error('Erreur API Gemini:', error);
-      return {
-        text: "Je ne peux pas vous répondre pour le moment.",
-        keywords: [],
-        reputationImpact: -5,
-        truthLikelihood: 0.5,
-      };
+      console.error('Erreur lors de l\'appel à l\'API Gemini:', error);
+      throw error;
     }
   }
 
-  private buildCharacterPrompt(
-    name: string,
-    role: string,
-    personality: any,
-    knowledge: string,
-    reputation: number,
-    userInput: string,
-    history: string[]
-  ): string {
-    return `Tu es ${name}, un(e) ${role} dans une enquête policière.
+  async generateInvestigation(userPrompt: string): Promise<InvestigationData> {
+    const prompt = `
+Crée une enquête procédurale basée sur ce prompt utilisateur: "${userPrompt}"
 
-PERSONNALITÉ: ${personality.traits.join(', ')}
-ÉTAT ÉMOTIONNEL: ${personality.emotional_state}
-NIVEAU DE COOPÉRATION: ${personality.cooperation_level}/10
-
-RÉPUTATION avec l'enquêteur: ${reputation}/100
-${reputation < 30 ? "Tu es méfiant(e) et peu coopératif/ve." : ""}
-${reputation > 70 ? "Tu fais confiance à l'enquêteur." : ""}
-
-CE QUE TU SAIS:
-${knowledge}
-
-HISTORIQUE RÉCENT:
-${history.slice(-3).join('\n')}
-
-L'enquêteur te dit: "${userInput}"
-
-Réponds de manière naturelle selon ta personnalité et ta relation avec l'enquêteur. Tu peux:
-- Être coopératif(ve) ou méfiant(e)
-- Donner des informations vraies, partielles ou fausses
-- Refuser de répondre si ta réputation est trop basse
-- Mentionner des détails que tu as remarqués
-
-Réponds en français, de manière conversationnelle.`;
-  }
-
-  private parseResponse(text: string, reputation: number): GeminiResponse {
-    // Extraction des mots-clés potentiels (noms propres, lieux, objets)
-    const keywords = text.match(/\b[A-Z][a-zA-Z]*\b/g)?.slice(0, 5) || [];
-    
-    // Impact sur la réputation basé sur le contenu
-    let reputationImpact = 0;
-    if (text.includes("ne sais pas") || text.includes("refuse")) {
-      reputationImpact = -2;
-    } else if (text.length > 100) {
-      reputationImpact = 1; // Réponse détaillée = coopération
-    }
-
-    // Probabilité de vérité basée sur la réputation et le rôle
-    const truthLikelihood = Math.min(0.95, Math.max(0.1, reputation / 100 + Math.random() * 0.3));
-
-    return {
-      text,
-      keywords,
-      reputationImpact,
-      truthLikelihood,
-    };
-  }
-
-  async generateInvestigationFromPrompt(prompt: string): Promise<any> {
-    const investigationPrompt = `Crée une enquête policière basée sur ce scénario: "${prompt}"
-
-Génère au format JSON:
+Tu dois répondre uniquement en JSON valide avec cette structure exacte:
 {
   "title": "Titre de l'enquête",
-  "description": "Description détaillée",
+  "description": "Description détaillée du mystère",
   "characters": [
     {
+      "id": "unique_id",
       "name": "Nom du personnage",
-      "role": "témoin/suspect/innocent",
+      "role": "témoin",
       "personality": {
         "traits": ["trait1", "trait2"],
-        "emotional_state": "nerveux/calme/en_colère",
-        "cooperation_level": 7
+        "secrets": "secrets du personnage",
+        "motivations": "motivations"
       },
-      "knowledge": "Ce que ce personnage sait",
-      "secrets": "Ce qu'il cache",
-      "position": {"x": 200, "y": 300}
-    }
-  ],
-  "locations": [
-    {
-      "name": "Lieu",
-      "description": "Description du lieu",
-      "clues": ["indice1", "indice2"]
+      "knowledge": "Ce que le personnage sait sur l'enquête",
+      "position": {"x": 200, "y": 150},
+      "reputation_score": 50
     }
   ]
 }
 
-Assure-toi que l'enquête soit cohérente et engageante.`;
+Crée 3-5 personnages avec des rôles variés (témoin, suspect, innocent). 
+Assure-toi que chaque personnage ait des informations uniques et des secrets.
+Les positions doivent être entre x:100-700 et y:100-500.
+`;
 
     try {
-      const response = await fetch(`${this.baseUrl}?key=${this.apiKey}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          contents: [{
-            parts: [{
-              text: investigationPrompt
-            }]
-          }],
-          generationConfig: {
-            temperature: 0.9,
-            maxOutputTokens: 1000,
-          },
-        }),
-      });
-
-      const data = await response.json();
-      const text = data.candidates[0]?.content?.parts[0]?.text || "{}";
-      
-      // Extraction du JSON depuis la réponse
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        return JSON.parse(jsonMatch[0]);
+      const response = await this.makeRequest(prompt);
+      // Nettoie la réponse pour extraire le JSON
+      const jsonMatch = response.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        throw new Error('Réponse JSON invalide');
       }
       
-      throw new Error('Impossible de parser la réponse JSON');
+      return JSON.parse(jsonMatch[0]);
     } catch (error) {
-      console.error('Erreur génération enquête:', error);
-      return null;
+      console.error('Erreur lors de la génération d\'enquête:', error);
+      // Enquête de fallback
+      return {
+        title: "Mystère au Manoir",
+        description: "Un vol mystérieux s'est produit au manoir. Interrogez les témoins pour découvrir la vérité.",
+        characters: [
+          {
+            id: "butler_1",
+            name: "James le Majordome",
+            role: "témoin",
+            personality: { traits: ["discret", "loyal"], secrets: "Connaît tous les secrets de la famille" },
+            knowledge: "A vu quelqu'un rôder près du coffre-fort",
+            position: { x: 200, y: 200 },
+            reputation_score: 60
+          },
+          {
+            id: "maid_1", 
+            name: "Sarah la Femme de chambre",
+            role: "suspect",
+            personality: { traits: ["nerveuse", "cachottière"], secrets: "A des dettes importantes" },
+            knowledge: "Avait accès à toutes les pièces",
+            position: { x: 400, y: 300 },
+            reputation_score: 40
+          }
+        ]
+      };
+    }
+  }
+
+  async generateCharacterResponse(
+    characterName: string,
+    role: string,
+    personality: Record<string, any>,
+    knowledge: string,
+    reputation: number,
+    userMessage: string,
+    conversationHistory: string[]
+  ): Promise<GeminiResponse> {
+    const prompt = `
+Tu incarnes ${characterName}, un ${role} dans une enquête.
+
+Personnalité: ${JSON.stringify(personality)}
+Connaissances: ${knowledge}
+Réputation actuelle: ${reputation}/100
+Historique: ${conversationHistory.slice(-3).join('\n')}
+
+L'enquêteur te dit: "${userMessage}"
+
+Tu dois répondre en JSON avec cette structure:
+{
+  "text": "Ta réponse en tant que personnage",
+  "keywords": ["mot1", "mot2"],
+  "reputationImpact": 0,
+  "truthLikelihood": 0.5
+}
+
+Règles:
+- Reste dans le caractère
+- Si réputation < 30, sois méfiant
+- Si réputation > 70, sois coopératif
+- reputationImpact: -5 à +5 selon l'interaction
+- truthLikelihood: 0.0 (mensonge) à 1.0 (vérité)
+- keywords: 2-4 mots-clés importants de ta réponse
+`;
+
+    try {
+      const response = await this.makeRequest(prompt);
+      const jsonMatch = response.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        throw new Error('Réponse JSON invalide');
+      }
+      
+      return JSON.parse(jsonMatch[0]);
+    } catch (error) {
+      console.error('Erreur lors de la génération de réponse:', error);
+      return {
+        text: "Je ne peux pas vous répondre maintenant...",
+        keywords: ["silence", "mystère"],
+        reputationImpact: -1,
+        truthLikelihood: 0.1
+      };
     }
   }
 }
 
-// Instance singleton avec clé d'API depuis l'environnement
-export const geminiAPI = new GeminiAPI(import.meta.env.VITE_GEMINI_API_KEY || '');
+export const geminiAPI = new GeminiAPI();

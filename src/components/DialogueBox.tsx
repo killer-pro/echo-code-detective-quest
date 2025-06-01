@@ -3,17 +3,16 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Character, DialogEntry } from '../types';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { Badge } from './ui/badge';
 import { ScrollArea } from './ui/scroll-area';
-import { MessageSquare, User } from 'lucide-react';
+import { Badge } from './ui/badge';
+import { X, Send, Loader2 } from 'lucide-react';
 
 interface DialogueBoxProps {
   character: Character;
   dialogHistory: DialogEntry[];
-  onSendMessage: (message: string) => Promise<void>;
+  onSendMessage: (message: string) => void;
   onClose: () => void;
-  isLoading?: boolean;
+  isLoading: boolean;
 }
 
 const DialogueBox: React.FC<DialogueBoxProps> = ({
@@ -21,12 +20,14 @@ const DialogueBox: React.FC<DialogueBoxProps> = ({
   dialogHistory,
   onSendMessage,
   onClose,
-  isLoading = false,
+  isLoading
 }) => {
   const [message, setMessage] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const characterDialogs = dialogHistory.filter(d => d.character_id === character.id);
+  const characterDialogs = dialogHistory.filter(
+    dialog => dialog.character_id === character.id
+  );
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -34,9 +35,9 @@ const DialogueBox: React.FC<DialogueBoxProps> = ({
     }
   }, [characterDialogs]);
 
-  const handleSend = async () => {
+  const handleSend = () => {
     if (message.trim() && !isLoading) {
-      await onSendMessage(message.trim());
+      onSendMessage(message.trim());
       setMessage('');
     }
   };
@@ -48,151 +49,128 @@ const DialogueBox: React.FC<DialogueBoxProps> = ({
     }
   };
 
-  const getReputationColor = (score: number) => {
-    if (score >= 70) return 'bg-green-500';
-    if (score >= 40) return 'bg-yellow-500';
+  const getTruthColor = (likelihood: number) => {
+    if (likelihood > 0.7) return 'bg-green-500';
+    if (likelihood > 0.4) return 'bg-yellow-500';
     return 'bg-red-500';
   };
 
-  const getExpressionEmoji = (expression: string) => {
-    const expressions = {
-      neutre: '😐',
-      nerveux: '😰',
-      en_colère: '😠',
-      coopératif: '😊',
-      méfiant: '🤨',
-    };
-    return expressions[expression as keyof typeof expressions] || '😐';
+  const getReputationColor = (score: number) => {
+    if (score > 70) return 'text-green-400';
+    if (score > 30) return 'text-yellow-400';
+    return 'text-red-400';
   };
 
   return (
-    <Card className="w-full max-w-2xl bg-slate-900 border-slate-700">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-white flex items-center gap-2">
-            <MessageSquare className="w-5 h-5" />
-            Dialogue avec {character.name}
-          </CardTitle>
-          <Button variant="ghost" onClick={onClose} className="text-gray-400 hover:text-white">
-            ✕
-          </Button>
-        </div>
-        
-        <div className="flex items-center gap-4 text-sm">
-          <Badge variant="outline" className="text-white border-slate-600">
-            {character.role}
-          </Badge>
-          <div className="flex items-center gap-2">
-            <span className="text-gray-400">Réputation:</span>
-            <div className={`w-3 h-3 rounded-full ${getReputationColor(character.reputation_score)}`} />
-            <span className="text-white">{character.reputation_score}/100</span>
+    <div className="h-full flex flex-col bg-slate-800">
+      {/* Header */}
+      <div className="flex items-center justify-between p-4 border-b border-slate-700">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 bg-purple-600 rounded-full flex items-center justify-center text-white font-bold">
+            {character.name.charAt(0)}
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-gray-400">État:</span>
-            <span className="text-xl">{getExpressionEmoji(character.expression_state)}</span>
-            <span className="text-white">{character.expression_state}</span>
+          <div>
+            <h3 className="text-white font-semibold">{character.name}</h3>
+            <div className="flex items-center gap-2">
+              <Badge variant="secondary" className="text-xs">
+                {character.role}
+              </Badge>
+              <span className={`text-xs ${getReputationColor(character.reputation_score)}`}>
+                Réputation: {character.reputation_score}%
+              </span>
+            </div>
           </div>
         </div>
-      </CardHeader>
+        <Button variant="ghost" size="sm" onClick={onClose}>
+          <X className="w-4 h-4" />
+        </Button>
+      </div>
 
-      <CardContent className="space-y-4">
-        <ScrollArea className="h-80 w-full" ref={scrollRef}>
-          <div className="space-y-3 pr-4">
-            {characterDialogs.length === 0 ? (
-              <div className="text-center text-gray-400 py-8">
-                Aucune conversation encore commencée.<br />
-                Posez votre première question à {character.name}.
-              </div>
-            ) : (
-              characterDialogs.map((dialog) => (
-                <div key={dialog.id} className="space-y-3">
-                  {/* Message du joueur */}
-                  <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-                      <User className="w-4 h-4 text-white" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="bg-blue-600 text-white p-3 rounded-lg rounded-tl-none">
-                        {dialog.user_input}
-                      </div>
-                    </div>
+      {/* Messages */}
+      <ScrollArea className="flex-1 p-4" ref={scrollRef}>
+        <div className="space-y-4">
+          {characterDialogs.length === 0 ? (
+            <div className="text-center text-gray-400 py-8">
+              <p>Commencez la conversation avec {character.name}</p>
+              <p className="text-sm mt-2">Posez des questions sur l'enquête...</p>
+            </div>
+          ) : (
+            characterDialogs.map((dialog) => (
+              <div key={dialog.id} className="space-y-3">
+                {/* Message utilisateur */}
+                <div className="flex justify-end">
+                  <div className="bg-blue-600 text-white p-3 rounded-lg max-w-[80%]">
+                    {dialog.user_input}
                   </div>
+                </div>
 
-                  {/* Réponse du personnage */}
-                  <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 bg-slate-600 rounded-full flex items-center justify-center text-lg">
-                      {getExpressionEmoji(character.expression_state)}
-                    </div>
-                    <div className="flex-1">
-                      <div className="bg-slate-700 text-white p-3 rounded-lg rounded-tl-none">
-                        {dialog.character_reply}
-                        
-                        {dialog.clickable_keywords.length > 0 && (
-                          <div className="mt-2 flex flex-wrap gap-1">
-                            {dialog.clickable_keywords.map((keyword, index) => (
-                              <Badge 
-                                key={index} 
-                                variant="secondary" 
-                                className="text-xs cursor-pointer hover:bg-slate-500"
-                                onClick={() => setMessage(keyword)}
-                              >
-                                {keyword}
-                              </Badge>
-                            ))}
-                          </div>
-                        )}
-                      </div>
+                {/* Réponse personnage */}
+                <div className="flex justify-start">
+                  <div className="bg-slate-700 text-white p-3 rounded-lg max-w-[80%]">
+                    <p>{dialog.character_reply}</p>
+                    
+                    {/* Indicateurs */}
+                    <div className="flex items-center gap-2 mt-2 pt-2 border-t border-slate-600">
+                      <div className={`w-2 h-2 rounded-full ${getTruthColor(dialog.truth_likelihood)}`} />
+                      <span className="text-xs text-gray-400">
+                        Fiabilité: {Math.round(dialog.truth_likelihood * 100)}%
+                      </span>
                       
-                      <div className="mt-1 flex items-center gap-2 text-xs text-gray-400">
-                        <span>Fiabilité: {Math.round(dialog.truth_likelihood * 100)}%</span>
-                        {dialog.reputation_impact !== 0 && (
-                          <span className={dialog.reputation_impact > 0 ? 'text-green-400' : 'text-red-400'}>
-                            {dialog.reputation_impact > 0 ? '+' : ''}{dialog.reputation_impact} réputation
-                          </span>
-                        )}
-                      </div>
+                      {dialog.reputation_impact !== 0 && (
+                        <Badge 
+                          variant={dialog.reputation_impact > 0 ? "default" : "destructive"}
+                          className="text-xs"
+                        >
+                          {dialog.reputation_impact > 0 ? '+' : ''}{dialog.reputation_impact} rep
+                        </Badge>
+                      )}
                     </div>
+
+                    {/* Mots-clés cliquables */}
+                    {dialog.clickable_keywords && dialog.clickable_keywords.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {dialog.clickable_keywords.map((keyword, index) => (
+                          <Button
+                            key={index}
+                            variant="outline"
+                            size="sm"
+                            className="text-xs h-6 px-2"
+                            onClick={() => setMessage(keyword)}
+                          >
+                            {keyword}
+                          </Button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
-              ))
-            )}
-            
-            {isLoading && (
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-slate-600 rounded-full flex items-center justify-center">
-                  <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
-                </div>
-                <div className="bg-slate-700 text-gray-400 p-3 rounded-lg rounded-tl-none">
-                  {character.name} réfléchit...
-                </div>
               </div>
-            )}
-          </div>
-        </ScrollArea>
+            ))
+          )}
+        </div>
+      </ScrollArea>
 
+      {/* Input */}
+      <div className="p-4 border-t border-slate-700">
         <div className="flex gap-2">
           <Input
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder={`Posez une question à ${character.name}...`}
+            placeholder="Tapez votre message..."
             disabled={isLoading}
-            className="bg-slate-800 border-slate-600 text-white placeholder-gray-400"
+            className="flex-1"
           />
-          <Button 
-            onClick={handleSend} 
-            disabled={!message.trim() || isLoading}
-            className="bg-blue-600 hover:bg-blue-700"
-          >
-            Envoyer
+          <Button onClick={handleSend} disabled={!message.trim() || isLoading}>
+            {isLoading ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Send className="w-4 h-4" />
+            )}
           </Button>
         </div>
-
-        <div className="text-xs text-gray-400">
-          Astuce: Cliquez sur les mots-clés dans les réponses pour les réutiliser dans vos questions.
-        </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 };
 
