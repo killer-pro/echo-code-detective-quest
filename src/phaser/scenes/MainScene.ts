@@ -5,11 +5,12 @@ import { assetManager } from '../../utils/assetManager';
 
 export class MainScene extends Phaser.Scene {
   private characters: Character[] = [];
-  private characterSprites: Phaser.GameObjects.Sprite[] = [];
+  private characterSprites: (Phaser.GameObjects.Sprite | Phaser.GameObjects.Rectangle)[] = [];
   private player: Phaser.GameObjects.Rectangle | null = null;
   private background: Phaser.GameObjects.Image | null = null;
   private characterClickHandler: ((character: Character) => void) | null = null;
   private cursors: Phaser.Types.Input.Keyboard.CursorKeys | null = null;
+  private proximityIndicators: Map<string, Phaser.GameObjects.Text> = new Map();
 
   constructor() {
     super({ key: 'MainScene' });
@@ -19,7 +20,7 @@ export class MainScene extends Phaser.Scene {
     console.log('MainScene: Chargement des assets...');
     
     // Créer des sprites par défaut simples
-    this.load.image('default_bg', 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjYwMCIgdmlld0JveD0iMCAwIDgwMCA2MDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI4MDAiIGhlaWdodD0iNjAwIiBmaWxsPSIjMmMzZTUwIi8+CjxyZWN0IHg9IjEwMCIgeT0iNTAwIiB3aWR0aD0iNjAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iIzM0NDk1ZSIvPgo8Y2lyY2xlIGN4PSI2NTAiIGN5PSIxNTAiIHI9IjUwIiBmaWxsPSIjZjM5YzEyIi8+Cjx0ZXh0IHg9IjQwMCIgeT0iMzAwIiBmaWxsPSIjZWNmMGYxIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkVjaG9Db2RlIEVudmlyb25tZW50PC90ZXh0Pgo8L3N2Zz4=');
+    this.load.image('default_bg', 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjYwMCIgdmlld0JveD0iMCAwIDgwMCA2MDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI4MDAiIGhlaWdodD0iNjAwIiBmaWxsPSIjMmMzZTUwIi8+CjxyZWN0IHg9IjEwMCIgeT0iNTAwIiB3aWR0aD0iNjAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iIzM0NDk1ZSIvPgo8Y2lyY2xlIGN4PSI2NTAiIGN5PSIxNTAiIHI9IjUwIiBmaWxsPSIjZjM5YzEyIi8+Cjx0ZXh0IHg9IjQwMCIgeT0iMzAwIiBmaWxsPSIjZWNmMGYxIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiPk1hbm9pciBNeXN0w6lyaWV1eDwvdGV4dD4KPC9zdmc+');
     
     // Charger les assets téléchargés s'ils existent
     const backgrounds = assetManager.getBackgrounds();
@@ -82,7 +83,57 @@ export class MainScene extends Phaser.Scene {
       // Garder le joueur dans les limites
       this.player.x = Phaser.Math.Clamp(this.player.x, 10, 790);
       this.player.y = Phaser.Math.Clamp(this.player.y, 10, 590);
+
+      // Vérifier la proximité avec les personnages
+      this.checkProximity();
     }
+  }
+
+  private checkProximity() {
+    if (!this.player) return;
+
+    this.characters.forEach((character, index) => {
+      const sprite = this.characterSprites[index];
+      if (!sprite) return;
+
+      const distance = Phaser.Math.Distance.Between(
+        this.player!.x, this.player!.y,
+        sprite.x, sprite.y
+      );
+
+      const isClose = distance < 80;
+      const indicatorKey = `proximity_${character.id}`;
+
+      if (isClose && !this.proximityIndicators.has(indicatorKey)) {
+        // Afficher indicateur de proximité
+        const indicator = this.add.text(
+          sprite.x, sprite.y - 50,
+          'Appuyez sur ESPACE pour parler',
+          {
+            fontSize: '10px',
+            color: '#ffffff',
+            backgroundColor: '#3498db',
+            padding: { x: 4, y: 2 }
+          }
+        );
+        indicator.setOrigin(0.5);
+        this.proximityIndicators.set(indicatorKey, indicator);
+
+        // Gestion de la touche espace
+        this.input.keyboard?.once('keydown-SPACE', () => {
+          if (this.characterClickHandler) {
+            this.characterClickHandler(character);
+          }
+        });
+      } else if (!isClose && this.proximityIndicators.has(indicatorKey)) {
+        // Supprimer l'indicateur
+        const indicator = this.proximityIndicators.get(indicatorKey);
+        if (indicator) {
+          indicator.destroy();
+          this.proximityIndicators.delete(indicatorKey);
+        }
+      }
+    });
   }
 
   setCharacters(characters: Character[]) {
@@ -99,6 +150,8 @@ export class MainScene extends Phaser.Scene {
     // Nettoyer les sprites existants
     this.characterSprites.forEach(sprite => sprite.destroy());
     this.characterSprites = [];
+    this.proximityIndicators.forEach(indicator => indicator.destroy());
+    this.proximityIndicators.clear();
 
     // Créer les nouveaux sprites
     this.characters.forEach((character, index) => {
@@ -107,7 +160,7 @@ export class MainScene extends Phaser.Scene {
       
       const customSpriteKey = `character_${index}`;
       if (this.textures.exists(customSpriteKey)) {
-        sprite = this.add.sprite(character.position.x, character.position.y, customSpriteKey) as any;
+        sprite = this.add.sprite(character.position.x, character.position.y, customSpriteKey);
         sprite.setDisplaySize(40, 60);
       } else {
         // Sprite par défaut basé sur le rôle
@@ -119,16 +172,18 @@ export class MainScene extends Phaser.Scene {
         };
         
         const color = colors[character.role] || 0x95a5a6;
-        sprite = this.add.rectangle(character.position.x, character.position.y, 30, 40, color) as any;
+        sprite = this.add.rectangle(character.position.x, character.position.y, 30, 40, color);
       }
 
       // Rendre interactif
       sprite.setInteractive();
       sprite.setData('character', character);
 
-      // Animation de hover
+      // Animation de hover avec vérification de type
       sprite.on('pointerover', () => {
-        sprite.setTint(0xffff00);
+        if ('setTint' in sprite) {
+          sprite.setTint(0xffff00);
+        }
         this.tweens.add({
           targets: sprite,
           scaleX: 1.1,
@@ -139,7 +194,9 @@ export class MainScene extends Phaser.Scene {
       });
 
       sprite.on('pointerout', () => {
-        sprite.clearTint();
+        if ('clearTint' in sprite) {
+          sprite.clearTint();
+        }
         this.tweens.add({
           targets: sprite,
           scaleX: 1,
@@ -184,7 +241,7 @@ export class MainScene extends Phaser.Scene {
       );
       roleText.setOrigin(0.5);
 
-      this.characterSprites.push(sprite as any);
+      this.characterSprites.push(sprite);
     });
   }
 

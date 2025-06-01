@@ -6,9 +6,11 @@ import DialogueBox from '../components/DialogueBox';
 import Journal from '../components/Journal';
 import { Character, DialogEntry } from '../types';
 import { geminiAPI } from '../api/gemini';
+import { supabase } from '../integrations/supabase/client';
 import { Button } from '../components/ui/button';
 import { ArrowLeft, Book } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 
 const Game: React.FC = () => {
   const { state, dispatch } = useGame();
@@ -17,9 +19,73 @@ const Game: React.FC = () => {
   const [isJournalOpen, setIsJournalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Charger l'historique des dialogues au démarrage
+  useEffect(() => {
+    if (state.currentInvestigation) {
+      loadDialogHistory();
+    }
+  }, [state.currentInvestigation]);
+
+  const loadDialogHistory = async () => {
+    if (!state.currentInvestigation) return;
+
+    try {
+      const { data: dialogData, error } = await supabase
+        .from('dialog_history')
+        .select('*')
+        .eq('investigation_id', state.currentInvestigation.id)
+        .order('timestamp', { ascending: true });
+
+      if (error) throw error;
+
+      if (dialogData) {
+        dialogData.forEach(dialog => {
+          const dialogEntry: DialogEntry = {
+            id: dialog.id,
+            character_id: dialog.character_id,
+            user_input: dialog.user_input,
+            character_reply: dialog.character_reply,
+            timestamp: dialog.timestamp,
+            clickable_keywords: dialog.clickable_keywords || [],
+            reputation_impact: dialog.reputation_impact || 0,
+            truth_likelihood: dialog.truth_likelihood || 0.5,
+          };
+          dispatch({ type: 'ADD_DIALOG', payload: dialogEntry });
+        });
+      }
+    } catch (error) {
+      console.error('Erreur lors du chargement de l\'historique:', error);
+    }
+  };
+
+  const saveDialogToDatabase = async (dialog: DialogEntry) => {
+    if (!state.currentInvestigation) return;
+
+    try {
+      const { error } = await supabase
+        .from('dialog_history')
+        .insert({
+          investigation_id: state.currentInvestigation.id,
+          character_id: dialog.character_id,
+          user_input: dialog.user_input,
+          character_reply: dialog.character_reply,
+          timestamp: dialog.timestamp,
+          clickable_keywords: dialog.clickable_keywords,
+          reputation_impact: dialog.reputation_impact,
+          truth_likelihood: dialog.truth_likelihood,
+        });
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('Erreur lors de la sauvegarde du dialogue:', error);
+      toast.error('Erreur lors de la sauvegarde du dialogue');
+    }
+  };
+
   const handleCharacterClick = (character: Character) => {
     dispatch({ type: 'SET_ACTIVE_CHARACTER', payload: character });
     setIsDialogueOpen(true);
+    setIsJournalOpen(false);
   };
 
   const handleSendMessage = async (message: string) => {
@@ -59,6 +125,9 @@ const Game: React.FC = () => {
 
       // Met à jour l'état global
       dispatch({ type: 'ADD_DIALOG', payload: dialogEntry });
+      
+      // Sauvegarde en base de données
+      await saveDialogToDatabase(dialogEntry);
       
       if (response.reputationImpact !== 0) {
         dispatch({ 
@@ -101,6 +170,7 @@ const Game: React.FC = () => {
       };
       
       dispatch({ type: 'ADD_DIALOG', payload: fallbackDialog });
+      await saveDialogToDatabase(fallbackDialog);
     } finally {
       setIsLoading(false);
     }
@@ -145,7 +215,10 @@ const Game: React.FC = () => {
           </div>
           
           <Button
-            onClick={() => setIsJournalOpen(!isJournalOpen)}
+            onClick={() => {
+              setIsJournalOpen(!isJournalOpen);
+              if (isDialogueOpen) setIsDialogueOpen(false);
+            }}
             variant={isJournalOpen ? "default" : "outline"}
             className="bg-blue-600 hover:bg-blue-700"
           >
@@ -196,7 +269,7 @@ const Game: React.FC = () => {
       {/* Instructions en bas */}
       <div className="bg-slate-800 border-t border-slate-700 p-2">
         <div className="max-w-7xl mx-auto text-center text-sm text-gray-400">
-          Utilisez les flèches du clavier pour vous déplacer • Cliquez sur un personnage pour interagir
+          Utilisez les flèches du clavier pour vous déplacer • Cliquez sur un personnage ou approchez-vous et appuyez sur ESPACE pour interagir
         </div>
       </div>
     </div>
