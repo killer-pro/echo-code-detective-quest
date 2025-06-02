@@ -77,8 +77,11 @@ const SceneGenerator: React.FC<SceneGeneratorProps> = ({ investigation, onAssets
     try {
       console.log(`Régénération de l'asset: ${asset.name}`);
       
+      // Ajouter un paramètre aléatoire pour forcer une nouvelle génération
+      const enhancedPrompt = `${asset.prompt}, variation ${Math.floor(Math.random() * 1000)}`;
+      
       const imageUrl = await generateAssetImage({
-        description: asset.prompt,
+        description: enhancedPrompt,
         style: 'cartoon' as any,
         type: asset.type as any
       });
@@ -92,6 +95,13 @@ const SceneGenerator: React.FC<SceneGeneratorProps> = ({ investigation, onAssets
         
         setGeneratedAssets(updatedAssets);
         onAssetsGenerated(updatedAssets);
+        
+        // Mettre à jour l'asset manager
+        assetManager.addAsset({
+          name: asset.name,
+          url: imageUrl,
+          type: asset.type as any
+        });
       }
     } catch (error) {
       console.error(`Erreur lors de la régénération de ${asset.name}:`, error);

@@ -39,27 +39,28 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ characters, onCharacterClick })
     }
   }, [characters]);
 
-  // Recharger les assets quand ils sont générés
+  // Surveiller les changements d'assets et recharger automatiquement
   useEffect(() => {
-    const reloadAssets = () => {
-      if (gameInstanceRef.current) {
+    const reloadAssetsWhenAvailable = () => {
+      const assets = assetManager.getAllAssets();
+      console.log('Assets disponibles pour rechargement:', assets);
+      
+      if (assets.length > 0 && gameInstanceRef.current) {
         const scene = gameInstanceRef.current.scene.getScene('MainScene');
         if (scene && typeof (scene as any).reloadAssets === 'function') {
+          console.log('Rechargement des assets dans la scène...');
           (scene as any).reloadAssets();
         }
       }
     };
 
-    // Surveiller les changements d'assets
-    const checkAssets = setInterval(() => {
-      const assets = assetManager.getAllAssets();
-      if (assets.length > 0) {
-        reloadAssets();
-        clearInterval(checkAssets);
-      }
-    }, 1000);
+    // Vérifier immédiatement
+    reloadAssetsWhenAvailable();
 
-    return () => clearInterval(checkAssets);
+    // Puis vérifier périodiquement
+    const checkInterval = setInterval(reloadAssetsWhenAvailable, 2000);
+
+    return () => clearInterval(checkInterval);
   }, []);
 
   return (

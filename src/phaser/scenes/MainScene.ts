@@ -12,6 +12,7 @@ export class MainScene extends Phaser.Scene {
   private cursors: Phaser.Types.Input.Keyboard.CursorKeys | null = null;
   private proximityIndicators: Map<string, Phaser.GameObjects.Text> = new Map();
   private spaceKey: Phaser.Input.Keyboard.Key | null = null;
+  private nearbyCharacter: Character | null = null;
 
   constructor() {
     super({ key: 'MainScene' });
@@ -30,6 +31,9 @@ export class MainScene extends Phaser.Scene {
   private loadGeneratedAssets() {
     console.log('Chargement des assets générés...');
     
+    const allAssets = assetManager.getAllAssets();
+    console.log('Assets disponibles:', allAssets);
+
     // Charger l'arrière-plan généré
     const backgroundUrl = assetManager.getBackgroundUrl();
     if (backgroundUrl) {
@@ -101,10 +105,21 @@ export class MainScene extends Phaser.Scene {
       // Vérifier la proximité avec les personnages
       this.checkProximity();
     }
+
+    // Gérer l'interaction avec la touche ESPACE
+    if (this.spaceKey && Phaser.Input.Keyboard.JustDown(this.spaceKey)) {
+      if (this.nearbyCharacter && this.characterClickHandler) {
+        console.log(`Interaction avec ${this.nearbyCharacter.name} via ESPACE`);
+        this.characterClickHandler(this.nearbyCharacter);
+      }
+    }
   }
 
   private checkProximity() {
     if (!this.player) return;
+
+    let closestCharacter: Character | null = null;
+    let closestDistance = Infinity;
 
     this.characters.forEach((character, index) => {
       const sprite = this.characterSprites[index];
@@ -115,8 +130,13 @@ export class MainScene extends Phaser.Scene {
         sprite.x, sprite.y
       );
 
-      const isClose = distance < 100;
+      if (distance < 100 && distance < closestDistance) {
+        closestCharacter = character;
+        closestDistance = distance;
+      }
+
       const indicatorKey = `proximity_${character.id}`;
+      const isClose = distance < 100;
 
       if (isClose && !this.proximityIndicators.has(indicatorKey)) {
         // Afficher indicateur de proximité
@@ -127,27 +147,11 @@ export class MainScene extends Phaser.Scene {
             fontSize: '12px',
             color: '#ffffff',
             backgroundColor: '#3498db',
-            padding: { x: 6, y: 3 },
-            borderRadius: 4
+            padding: { x: 6, y: 3 }
           }
         );
         indicator.setOrigin(0.5);
         this.proximityIndicators.set(indicatorKey, indicator);
-
-        // Gestion de la touche espace pour ce personnage spécifique
-        const spaceHandler = () => {
-          if (this.spaceKey?.isDown && this.characterClickHandler) {
-            console.log(`Interaction avec ${character.name} via ESPACE`);
-            this.characterClickHandler(character);
-          }
-        };
-
-        this.time.addEvent({
-          delay: 100,
-          callback: spaceHandler,
-          repeat: -1,
-          startAt: 0
-        });
 
       } else if (!isClose && this.proximityIndicators.has(indicatorKey)) {
         // Supprimer l'indicateur
@@ -158,6 +162,8 @@ export class MainScene extends Phaser.Scene {
         }
       }
     });
+
+    this.nearbyCharacter = closestCharacter;
   }
 
   setCharacters(characters: Character[]) {
@@ -233,7 +239,7 @@ export class MainScene extends Phaser.Scene {
         });
       });
 
-      // Nom du personnage avec style amélioré
+      // Nom du personnage
       const nameText = this.add.text(
         character.position.x,
         character.position.y - 50,
@@ -242,13 +248,12 @@ export class MainScene extends Phaser.Scene {
           fontSize: '14px',
           color: '#ffffff',
           backgroundColor: '#000000',
-          padding: { x: 6, y: 3 },
-          borderRadius: 4
+          padding: { x: 6, y: 3 }
         }
       );
       nameText.setOrigin(0.5);
 
-      // Badge de rôle avec couleurs améliorées
+      // Badge de rôle
       const roleColors = {
         'témoin': '#2ecc71',
         'suspect': '#e74c3c',
@@ -264,8 +269,7 @@ export class MainScene extends Phaser.Scene {
           fontSize: '10px',
           color: '#ffffff',
           backgroundColor: roleColors[character.role] || '#95a5a6',
-          padding: { x: 4, y: 2 },
-          borderRadius: 3
+          padding: { x: 4, y: 2 }
         }
       );
       roleText.setOrigin(0.5);
@@ -289,58 +293,40 @@ export class MainScene extends Phaser.Scene {
     }
   }
 
-  // Méthodes pour effets visuels
-  addInvestigationEffect(x: number, y: number) {
-    // Effet de particules pour les découvertes
-    const particles = this.add.particles(x, y, 'default_bg', {
-      scale: { start: 0.3, end: 0 },
-      speed: { min: 50, max: 100 },
-      lifespan: 600,
-      quantity: 5,
-      tint: 0xffd700
-    });
-
-    this.time.delayedCall(1000, () => {
-      particles.destroy();
-    });
-  }
-
-  highlightCharacter(characterId: string) {
-    const characterSprite = this.characterSprites.find(sprite => {
-      const char = sprite.getData('character');
-      return char && char.id === characterId;
-    });
-
-    if (characterSprite) {
-      this.tweens.add({
-        targets: characterSprite,
-        alpha: 0.5,
-        duration: 500,
-        yoyo: true,
-        repeat: 2
-      });
-    }
-  }
-
   // Méthode pour recharger les assets après génération
   reloadAssets() {
     console.log('Rechargement des assets...');
     
-    // Recharger l'arrière-plan si disponible
-    const backgroundUrl = assetManager.getBackgroundUrl();
-    if (backgroundUrl && !this.textures.exists('custom_bg')) {
-      this.load.image('custom_bg', backgroundUrl);
-      this.load.start();
-      
-      this.load.once('complete', () => {
-        if (this.background) {
-          this.background.setTexture('custom_bg');
-          console.log('Arrière-plan mis à jour');
-        }
-      });
-    }
+    // Forcer le rechargement des textures
+    const allAssets = assetManager.getAllAssets();
     
-    // Mettre à jour les personnages avec les nouveaux assets
-    this.updateCharacterSprites();
+    allAssets.forEach((asset, index) => {
+      const key = asset.type === 'background' ? 'custom_bg' : 
+                  asset.type === 'character' ? `character_${index}` : 
+                  `prop_${index}`;
+      
+      // Supprimer l'ancienne texture si elle existe
+      if (this.textures.exists(key)) {
+        this.textures.remove(key);
+      }
+      
+      // Recharger la nouvelle texture
+      this.load.image(key, asset.url);
+    });
+    
+    // Démarrer le chargement
+    this.load.start();
+    
+    this.load.once('complete', () => {
+      // Mettre à jour l'arrière-plan
+      if (this.background && this.textures.exists('custom_bg')) {
+        this.background.setTexture('custom_bg');
+        console.log('Arrière-plan mis à jour');
+      }
+      
+      // Mettre à jour les personnages
+      this.updateCharacterSprites();
+      console.log('Assets rechargés et personnages mis à jour');
+    });
   }
 }

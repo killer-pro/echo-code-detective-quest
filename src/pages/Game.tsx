@@ -39,15 +39,23 @@ const Game: React.FC = () => {
 
       if (dialogData && dialogData.length > 0) {
         dialogData.forEach(dialog => {
+          // Convertir les types de base de données vers les types TypeScript
+          const keywords: string[] = [];
+          if (Array.isArray(dialog.clickable_keywords)) {
+            dialog.clickable_keywords.forEach((keyword: any) => {
+              if (typeof keyword === 'string') {
+                keywords.push(keyword);
+              }
+            });
+          }
+
           const dialogEntry: DialogEntry = {
             id: dialog.id,
             character_id: dialog.character_id || '',
             user_input: dialog.user_input,
             character_reply: dialog.character_reply,
             timestamp: dialog.timestamp || new Date().toISOString(),
-            clickable_keywords: Array.isArray(dialog.clickable_keywords) 
-              ? dialog.clickable_keywords.filter((k: any) => typeof k === 'string')
-              : [],
+            clickable_keywords: keywords,
             reputation_impact: dialog.reputation_impact || 0,
             truth_likelihood: dialog.truth_likelihood || 0.5,
           };
