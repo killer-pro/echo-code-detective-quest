@@ -62,6 +62,60 @@ export type Database = {
           },
         ]
       }
+      dialog_history: {
+        Row: {
+          character_id: string | null
+          character_reply: string
+          clickable_keywords: string[] | null
+          created_at: string | null
+          id: string
+          investigation_id: string | null
+          reputation_impact: number | null
+          timestamp: string | null
+          truth_likelihood: number | null
+          user_input: string
+        }
+        Insert: {
+          character_id?: string | null
+          character_reply: string
+          clickable_keywords?: string[] | null
+          created_at?: string | null
+          id?: string
+          investigation_id?: string | null
+          reputation_impact?: number | null
+          timestamp?: string | null
+          truth_likelihood?: number | null
+          user_input: string
+        }
+        Update: {
+          character_id?: string | null
+          character_reply?: string
+          clickable_keywords?: string[] | null
+          created_at?: string | null
+          id?: string
+          investigation_id?: string | null
+          reputation_impact?: number | null
+          timestamp?: string | null
+          truth_likelihood?: number | null
+          user_input?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dialog_history_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dialog_history_investigation_id_fkey"
+            columns: ["investigation_id"]
+            isOneToOne: false
+            referencedRelation: "investigations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dialogs: {
         Row: {
           character_id: string | null
@@ -150,6 +204,44 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      generated_assets: {
+        Row: {
+          asset_name: string
+          asset_type: string
+          created_at: string | null
+          id: string
+          image_url: string
+          investigation_id: string | null
+          prompt: string
+        }
+        Insert: {
+          asset_name: string
+          asset_type: string
+          created_at?: string | null
+          id?: string
+          image_url: string
+          investigation_id?: string | null
+          prompt: string
+        }
+        Update: {
+          asset_name?: string
+          asset_type?: string
+          created_at?: string | null
+          id?: string
+          image_url?: string
+          investigation_id?: string | null
+          prompt?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "generated_assets_investigation_id_fkey"
+            columns: ["investigation_id"]
+            isOneToOne: false
+            referencedRelation: "investigations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       investigations: {
         Row: {

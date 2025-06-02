@@ -180,9 +180,8 @@ export class MainScene extends Phaser.Scene {
     console.log('Mise à jour des personnages:', characters);
     this.characters = characters;
     
-    if (this.assetsLoaded) {
-      this.updateCharacterSprites();
-    }
+    // Toujours essayer de mettre à jour les sprites, même si pas encore chargés
+    this.updateCharacterSprites();
   }
 
   setCharacterClickHandler(handler: (character: Character) => void) {
@@ -206,19 +205,39 @@ export class MainScene extends Phaser.Scene {
       const characterAsset = assetManager.getCharacterAssetByName(character.name);
       let sprite: Phaser.GameObjects.Sprite | Phaser.GameObjects.Rectangle;
       
-      if (characterAsset && this.textures.exists(characterAsset)) {
-        console.log(`Utilisation sprite personnalisé pour ${character.name}:`, characterAsset);
-        sprite = this.add.sprite(0, 0, characterAsset);
-        sprite.setDisplaySize(60, 80);
-      } else {
-        // Essayer avec la clé générique
-        const genericKey = `character_${index}`;
-        if (this.textures.exists(genericKey)) {
-          console.log(`Utilisation sprite générique pour ${character.name}:`, genericKey);
-          sprite = this.add.sprite(0, 0, genericKey);
+      if (characterAsset) {
+        // Créer une clé unique pour ce personnage
+        const spriteKey = `char_${character.id}`;
+        
+        // Si l'asset n'est pas encore chargé dans Phaser, on le charge
+        if (!this.textures.exists(spriteKey)) {
+          this.load.image(spriteKey, characterAsset);
+          this.load.start();
+          
+          // Une fois chargé, on met à jour
+          this.load.once('complete', () => {
+            if (this.textures.exists(spriteKey)) {
+              console.log(`Sprite chargé pour ${character.name}:`, spriteKey);
+              // Recréer le sprite avec la nouvelle texture
+              if (container && container.scene) {
+                const existingSprite = container.list[0];
+                if (existingSprite) {
+                  existingSprite.destroy();
+                }
+                const newSprite = this.add.sprite(0, 0, spriteKey);
+                newSprite.setDisplaySize(60, 80);
+                container.add(newSprite);
+              }
+            }
+          });
+        }
+        
+        if (this.textures.exists(spriteKey)) {
+          console.log(`Utilisation sprite personnalisé pour ${character.name}:`, spriteKey);
+          sprite = this.add.sprite(0, 0, spriteKey);
           sprite.setDisplaySize(60, 80);
         } else {
-          // Sprite par défaut basé sur le rôle
+          // Sprite par défaut en attendant le chargement
           const colors = {
             'témoin': 0x2ecc71,
             'suspect': 0xe74c3c,
@@ -229,8 +248,21 @@ export class MainScene extends Phaser.Scene {
           const color = colors[character.role] || 0x95a5a6;
           sprite = this.add.rectangle(0, 0, 40, 60, color);
           sprite.setStrokeStyle(2, 0xffffff);
-          console.log(`Utilisation sprite par défaut pour ${character.name}`);
+          console.log(`Utilisation sprite par défaut pour ${character.name} (en attente du chargement)`);
         }
+      } else {
+        // Sprite par défaut basé sur le rôle
+        const colors = {
+          'témoin': 0x2ecc71,
+          'suspect': 0xe74c3c,
+          'enquêteur': 0x3498db,
+          'innocent': 0x95a5a6
+        };
+        
+        const color = colors[character.role] || 0x95a5a6;
+        sprite = this.add.rectangle(0, 0, 40, 60, color);
+        sprite.setStrokeStyle(2, 0xffffff);
+        console.log(`Utilisation sprite par défaut pour ${character.name} (aucun asset)`);
       }
 
       // Ajouter le sprite au container
@@ -335,16 +367,16 @@ export class MainScene extends Phaser.Scene {
     }
     
     // Supprimer les anciennes textures et recharger
-    allAssets.forEach((asset, index) => {
+    allAssets.forEach((asset) => {
       let key: string;
       
       if (asset.type === 'background') {
         key = 'custom_bg';
       } else if (asset.type === 'character') {
-        // Utiliser l'ID du personnage s'il existe, sinon l'index
-        key = asset.characterId || `character_${index}`;
+        // Utiliser l'ID du personnage s'il existe
+        key = asset.characterId ? `char_${asset.characterId}` : `character_${asset.name}`;
       } else {
-        key = `prop_${index}`;
+        key = `prop_${asset.name}`;
       }
       
       // Supprimer l'ancienne texture si elle existe

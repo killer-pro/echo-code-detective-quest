@@ -33,6 +33,17 @@ const SceneGenerator: React.FC<SceneGeneratorProps> = ({ investigation, onAssets
   const [isDownloading, setIsDownloading] = useState<string | null>(null);
   const [regeneratingAsset, setRegeneratingAsset] = useState<string | null>(null);
 
+  const validateImageUrl = (url: string): Promise<boolean> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => resolve(true);
+      img.onerror = () => resolve(false);
+      img.src = url;
+      // Timeout après 10 secondes
+      setTimeout(() => resolve(false), 10000);
+    });
+  };
+
   const generateSceneAssets = async () => {
     setIsGenerating(true);
     
@@ -61,13 +72,11 @@ const SceneGenerator: React.FC<SceneGeneratorProps> = ({ investigation, onAssets
             
             if (imageUrl) {
               // Vérifier que l'image se charge
-              await new Promise((resolve, reject) => {
-                const img = new Image();
-                img.onload = resolve;
-                img.onerror = reject;
-                img.src = imageUrl;
-                setTimeout(reject, 10000); // Timeout de 10s
-              });
+              const isValid = await validateImageUrl(imageUrl);
+              if (!isValid) {
+                imageUrl = null;
+                throw new Error('Image validation failed');
+              }
             }
           } catch (error) {
             console.warn(`Tentative ${retryCount + 1} échouée pour ${assetPrompt.name}:`, error);
@@ -138,11 +147,11 @@ const SceneGenerator: React.FC<SceneGeneratorProps> = ({ investigation, onAssets
       let retryCount = 0;
       const maxRetries = 3;
 
-      // Retry logic pour la régénération
+      // Retry logic pour la régénération avec nouveaux paramètres
       while (!newImageUrl && retryCount < maxRetries) {
         try {
-          // Ajouter un paramètre aléatoire pour forcer une nouvelle génération
-          const enhancedPrompt = `${asset.prompt}, variation ${Math.floor(Math.random() * 1000000)}`;
+          // Ajouter une variation au prompt pour forcer une nouvelle génération
+          const enhancedPrompt = `${asset.prompt}, variation ${Date.now()}, style variant`;
           
           newImageUrl = await generateAssetImage({
             description: enhancedPrompt,
@@ -152,13 +161,11 @@ const SceneGenerator: React.FC<SceneGeneratorProps> = ({ investigation, onAssets
           
           if (newImageUrl) {
             // Vérifier que la nouvelle image se charge
-            await new Promise((resolve, reject) => {
-              const img = new Image();
-              img.onload = resolve;
-              img.onerror = reject;
-              img.src = newImageUrl;
-              setTimeout(reject, 10000);
-            });
+            const isValid = await validateImageUrl(newImageUrl);
+            if (!isValid) {
+              newImageUrl = null;
+              throw new Error('New image validation failed');
+            }
           }
         } catch (error) {
           console.warn(`Tentative de régénération ${retryCount + 1} échouée:`, error);
@@ -390,7 +397,8 @@ const SceneGenerator: React.FC<SceneGeneratorProps> = ({ investigation, onAssets
                     onError={(e) => {
                       console.error(`Erreur de chargement pour ${asset.name}:`, asset.url);
                       toast.error(`Erreur de chargement de l'image "${asset.name}"`);
-                      (e.target as HTMLImageElement).src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjgwIiB2aWV3Qm94PSIwIDAgMjAwIDgwIiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgo8cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjMzc0MTUxIi8+Cjx0ZXh0IHg9IjEwMCIgeT0iNDAiIGZpbGw9IiM5Q0EzQUYiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSI+RXJyZXVyIGNoYXJnZW1lbnQ8L3RleHQ+Cjwvc3ZnPg==';
+                      // Régénérer automatiquement en cas d'erreur
+                      regenerateAsset(index);
                     }}
                   />
                 </div>
