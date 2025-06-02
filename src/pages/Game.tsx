@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useGame } from '../context/GameContext';
 import GameCanvas from '../components/GameCanvas';
@@ -39,14 +40,19 @@ const Game: React.FC = () => {
 
       if (dialogData && dialogData.length > 0) {
         dialogData.forEach(dialog => {
-          // Convertir les types de base de données vers les types TypeScript
+          // Conversion sécurisée des clickable_keywords
           const keywords: string[] = [];
-          if (Array.isArray(dialog.clickable_keywords)) {
-            dialog.clickable_keywords.forEach((keyword: any) => {
-              if (typeof keyword === 'string') {
-                keywords.push(keyword);
-              }
-            });
+          try {
+            const keywordData = dialog.clickable_keywords;
+            if (Array.isArray(keywordData)) {
+              keywordData.forEach((item: unknown) => {
+                if (typeof item === 'string') {
+                  keywords.push(item);
+                }
+              });
+            }
+          } catch (error) {
+            console.warn('Erreur lors de la conversion des keywords:', error);
           }
 
           const dialogEntry: DialogEntry = {

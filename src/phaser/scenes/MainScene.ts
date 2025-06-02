@@ -5,7 +5,7 @@ import { assetManager } from '../../utils/assetManager';
 
 export class MainScene extends Phaser.Scene {
   private characters: Character[] = [];
-  private characterSprites: (Phaser.GameObjects.Sprite | Phaser.GameObjects.Rectangle)[] = [];
+  private characterSprites: Phaser.GameObjects.Container[] = [];
   private player: Phaser.GameObjects.Rectangle | null = null;
   private background: Phaser.GameObjects.Image | null = null;
   private characterClickHandler: ((character: Character) => void) | null = null;
@@ -13,6 +13,7 @@ export class MainScene extends Phaser.Scene {
   private proximityIndicators: Map<string, Phaser.GameObjects.Text> = new Map();
   private spaceKey: Phaser.Input.Keyboard.Key | null = null;
   private nearbyCharacter: Character | null = null;
+  private assetsLoaded: boolean = false;
 
   constructor() {
     super({ key: 'MainScene' });
@@ -24,7 +25,7 @@ export class MainScene extends Phaser.Scene {
     // Créer des sprites par défaut
     this.load.image('default_bg', 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjYwMCIgdmlld0JveD0iMCAwIDgwMCA2MDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI4MDAiIGhlaWdodD0iNjAwIiBmaWxsPSIjMmMzZTUwIi8+CjxyZWN0IHg9IjEwMCIgeT0iNTAwIiB3aWR0aD0iNjAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iIzM0NDk1ZSIvPgo8Y2lyY2xlIGN4PSI2NTAiIGN5PSIxNTAiIHI9IjUwIiBmaWxsPSIjZjM5YzEyIi8+Cjx0ZXh0IHg9IjQwMCIgeT0iMzAwIiBmaWxsPSIjZWNmMGYxIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiPk1hbm9pciBNeXN0w6lyaWV1eDwvdGV4dD4KPC9zdmc+');
     
-    // Charger les assets générés par l'IA
+    // Précharger les assets générés
     this.loadGeneratedAssets();
   }
 
@@ -54,10 +55,17 @@ export class MainScene extends Phaser.Scene {
       console.log(`Chargement prop ${key}:`, url);
       this.load.image(key, url);
     });
+
+    // Marquer comme étant en cours de chargement
+    this.load.on('complete', () => {
+      this.assetsLoaded = true;
+      console.log('Tous les assets sont chargés');
+      this.updateCharacterSprites();
+    });
   }
 
   create() {
-    console.log('MainScene initialisée avec assets personnalisés');
+    console.log('MainScene initialisée');
     
     // Arrière-plan - utiliser l'asset généré ou le défaut
     const bgKey = this.textures.exists('custom_bg') ? 'custom_bg' : 'default_bg';
@@ -73,8 +81,10 @@ export class MainScene extends Phaser.Scene {
     this.cursors = this.input.keyboard?.createCursorKeys() || null;
     this.spaceKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE) || null;
 
-    // Créer les personnages
-    this.updateCharacterSprites();
+    // Créer les personnages si les assets sont déjà chargés
+    if (this.assetsLoaded) {
+      this.updateCharacterSprites();
+    }
 
     // Gestion des clics
     this.input.on('pointerdown', this.handleClick, this);
@@ -122,12 +132,12 @@ export class MainScene extends Phaser.Scene {
     let closestDistance = Infinity;
 
     this.characters.forEach((character, index) => {
-      const sprite = this.characterSprites[index];
-      if (!sprite) return;
+      const container = this.characterSprites[index];
+      if (!container) return;
 
       const distance = Phaser.Math.Distance.Between(
         this.player!.x, this.player!.y,
-        sprite.x, sprite.y
+        container.x, container.y
       );
 
       if (distance < 100 && distance < closestDistance) {
@@ -141,7 +151,7 @@ export class MainScene extends Phaser.Scene {
       if (isClose && !this.proximityIndicators.has(indicatorKey)) {
         // Afficher indicateur de proximité
         const indicator = this.add.text(
-          sprite.x, sprite.y - 80,
+          container.x, container.y - 100,
           '⚡ ESPACE pour parler',
           {
             fontSize: '12px',
@@ -167,9 +177,12 @@ export class MainScene extends Phaser.Scene {
   }
 
   setCharacters(characters: Character[]) {
-    console.log('Mise à jour des personnages avec assets:', characters);
+    console.log('Mise à jour des personnages:', characters);
     this.characters = characters;
-    this.updateCharacterSprites();
+    
+    if (this.assetsLoaded) {
+      this.updateCharacterSprites();
+    }
   }
 
   setCharacterClickHandler(handler: (character: Character) => void) {
@@ -177,48 +190,64 @@ export class MainScene extends Phaser.Scene {
   }
 
   private updateCharacterSprites() {
+    console.log('Mise à jour des sprites de personnages...');
+    
     // Nettoyer les sprites existants
-    this.characterSprites.forEach(sprite => sprite.destroy());
+    this.characterSprites.forEach(container => container.destroy());
     this.characterSprites = [];
     this.proximityIndicators.forEach(indicator => indicator.destroy());
     this.proximityIndicators.clear();
 
     // Créer les nouveaux sprites avec assets générés
     this.characters.forEach((character, index) => {
+      const container = this.add.container(character.position.x, character.position.y);
+      
+      // Essayer d'utiliser un sprite personnalisé généré par nom de personnage
+      const characterAsset = assetManager.getCharacterAssetByName(character.name);
       let sprite: Phaser.GameObjects.Sprite | Phaser.GameObjects.Rectangle;
       
-      // Essayer d'utiliser un sprite personnalisé généré
-      const customSpriteKey = `character_${index}`;
-      if (this.textures.exists(customSpriteKey)) {
-        console.log(`Utilisation sprite personnalisé pour ${character.name}:`, customSpriteKey);
-        sprite = this.add.sprite(character.position.x, character.position.y, customSpriteKey);
+      if (characterAsset && this.textures.exists(characterAsset)) {
+        console.log(`Utilisation sprite personnalisé pour ${character.name}:`, characterAsset);
+        sprite = this.add.sprite(0, 0, characterAsset);
         sprite.setDisplaySize(60, 80);
       } else {
-        // Sprite par défaut basé sur le rôle
-        const colors = {
-          'témoin': 0x2ecc71,
-          'suspect': 0xe74c3c,
-          'enquêteur': 0x3498db,
-          'innocent': 0x95a5a6
-        };
-        
-        const color = colors[character.role] || 0x95a5a6;
-        sprite = this.add.rectangle(character.position.x, character.position.y, 40, 60, color);
-        sprite.setStrokeStyle(2, 0xffffff);
-        console.log(`Utilisation sprite par défaut pour ${character.name}`);
+        // Essayer avec la clé générique
+        const genericKey = `character_${index}`;
+        if (this.textures.exists(genericKey)) {
+          console.log(`Utilisation sprite générique pour ${character.name}:`, genericKey);
+          sprite = this.add.sprite(0, 0, genericKey);
+          sprite.setDisplaySize(60, 80);
+        } else {
+          // Sprite par défaut basé sur le rôle
+          const colors = {
+            'témoin': 0x2ecc71,
+            'suspect': 0xe74c3c,
+            'enquêteur': 0x3498db,
+            'innocent': 0x95a5a6
+          };
+          
+          const color = colors[character.role] || 0x95a5a6;
+          sprite = this.add.rectangle(0, 0, 40, 60, color);
+          sprite.setStrokeStyle(2, 0xffffff);
+          console.log(`Utilisation sprite par défaut pour ${character.name}`);
+        }
       }
 
-      // Rendre interactif
-      sprite.setInteractive();
-      sprite.setData('character', character);
+      // Ajouter le sprite au container
+      container.add(sprite);
+
+      // Rendre le container interactif
+      container.setSize(60, 80);
+      container.setInteractive();
+      container.setData('character', character);
 
       // Animation de hover
-      sprite.on('pointerover', () => {
+      container.on('pointerover', () => {
         if ('setTint' in sprite) {
           sprite.setTint(0xffff00);
         }
         this.tweens.add({
-          targets: sprite,
+          targets: container,
           scaleX: 1.1,
           scaleY: 1.1,
           duration: 200,
@@ -226,12 +255,12 @@ export class MainScene extends Phaser.Scene {
         });
       });
 
-      sprite.on('pointerout', () => {
+      container.on('pointerout', () => {
         if ('clearTint' in sprite) {
           sprite.clearTint();
         }
         this.tweens.add({
-          targets: sprite,
+          targets: container,
           scaleX: 1,
           scaleY: 1,
           duration: 200,
@@ -241,8 +270,7 @@ export class MainScene extends Phaser.Scene {
 
       // Nom du personnage
       const nameText = this.add.text(
-        character.position.x,
-        character.position.y - 50,
+        0, -50,
         character.name,
         {
           fontSize: '14px',
@@ -252,6 +280,7 @@ export class MainScene extends Phaser.Scene {
         }
       );
       nameText.setOrigin(0.5);
+      container.add(nameText);
 
       // Badge de rôle
       const roleColors = {
@@ -262,8 +291,7 @@ export class MainScene extends Phaser.Scene {
       };
       
       const roleText = this.add.text(
-        character.position.x,
-        character.position.y + 40,
+        0, 50,
         character.role.toUpperCase(),
         {
           fontSize: '10px',
@@ -273,8 +301,9 @@ export class MainScene extends Phaser.Scene {
         }
       );
       roleText.setOrigin(0.5);
+      container.add(roleText);
 
-      this.characterSprites.push(sprite);
+      this.characterSprites.push(container);
     });
 
     console.log(`${this.characterSprites.length} personnages créés avec assets`);
@@ -300,10 +329,23 @@ export class MainScene extends Phaser.Scene {
     // Forcer le rechargement des textures
     const allAssets = assetManager.getAllAssets();
     
+    if (allAssets.length === 0) {
+      console.log('Aucun asset à recharger');
+      return;
+    }
+    
+    // Supprimer les anciennes textures et recharger
     allAssets.forEach((asset, index) => {
-      const key = asset.type === 'background' ? 'custom_bg' : 
-                  asset.type === 'character' ? `character_${index}` : 
-                  `prop_${index}`;
+      let key: string;
+      
+      if (asset.type === 'background') {
+        key = 'custom_bg';
+      } else if (asset.type === 'character') {
+        // Utiliser l'ID du personnage s'il existe, sinon l'index
+        key = asset.characterId || `character_${index}`;
+      } else {
+        key = `prop_${index}`;
+      }
       
       // Supprimer l'ancienne texture si elle existe
       if (this.textures.exists(key)) {

@@ -4,8 +4,9 @@ import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
 import { Loader2, Image, Download, Palette, Eye, RefreshCw } from 'lucide-react';
-import { generateAssetImage } from '../utils/imageGenerator';
+import { generateAssetImage, saveGeneratedAssetToDatabase } from '../utils/imageGenerator';
 import { assetManager } from '../utils/assetManager';
+import { toast } from 'sonner';
 
 interface AssetPrompt {
   type: 'background' | 'character' | 'prop';
@@ -39,22 +40,76 @@ const SceneGenerator: React.FC<SceneGeneratorProps> = ({ investigation, onAssets
       const assetPrompts: AssetPrompt[] = investigation.assetPrompts || [];
       const generatedAssetsList: GeneratedAsset[] = [];
 
+      // Configurer l'investigation dans l'asset manager
+      assetManager.setCurrentInvestigation(investigation.id);
+
       for (const assetPrompt of assetPrompts) {
         console.log(`Génération de l'asset: ${assetPrompt.name}`);
         
-        const imageUrl = await generateAssetImage({
-          description: assetPrompt.prompt,
-          style: assetPrompt.style as any,
-          type: assetPrompt.type
-        });
+        let imageUrl: string | null = null;
+        let retryCount = 0;
+        const maxRetries = 3;
+
+        // Retry logic pour la génération d'image
+        while (!imageUrl && retryCount < maxRetries) {
+          try {
+            imageUrl = await generateAssetImage({
+              description: assetPrompt.prompt,
+              style: assetPrompt.style as any,
+              type: assetPrompt.type
+            });
+            
+            if (imageUrl) {
+              // Vérifier que l'image se charge
+              await new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload = resolve;
+                img.onerror = reject;
+                img.src = imageUrl;
+                setTimeout(reject, 10000); // Timeout de 10s
+              });
+            }
+          } catch (error) {
+            console.warn(`Tentative ${retryCount + 1} échouée pour ${assetPrompt.name}:`, error);
+            retryCount++;
+            if (retryCount < maxRetries) {
+              await new Promise(resolve => setTimeout(resolve, 1000)); // Attendre 1s avant retry
+            }
+          }
+        }
 
         if (imageUrl) {
-          generatedAssetsList.push({
+          const asset = {
             name: assetPrompt.name,
             url: imageUrl,
             type: assetPrompt.type,
             prompt: assetPrompt.prompt
-          });
+          };
+          
+          generatedAssetsList.push(asset);
+          
+          // Associer les personnages aux assets
+          let characterId = undefined;
+          if (assetPrompt.type === 'character') {
+            const character = investigation.characters?.find((char: any) => 
+              assetPrompt.name.toLowerCase().includes(char.name.toLowerCase())
+            );
+            if (character) {
+              characterId = character.id;
+            }
+          }
+
+          // Ajouter à l'asset manager avec l'ID du personnage
+          await assetManager.addAsset({
+            name: assetPrompt.name,
+            url: imageUrl,
+            type: assetPrompt.type,
+            characterId
+          }, assetPrompt.prompt);
+          
+          toast.success(`Asset "${assetPrompt.name}" généré avec succès`);
+        } else {
+          toast.error(`Échec de la génération de "${assetPrompt.name}" après ${maxRetries} tentatives`);
         }
       }
 
@@ -63,6 +118,7 @@ const SceneGenerator: React.FC<SceneGeneratorProps> = ({ investigation, onAssets
       
     } catch (error) {
       console.error('Erreur lors de la génération des assets:', error);
+      toast.error('Erreur lors de la génération des assets');
     } finally {
       setIsGenerating(false);
     }
@@ -76,35 +132,78 @@ const SceneGenerator: React.FC<SceneGeneratorProps> = ({ investigation, onAssets
     
     try {
       console.log(`Régénération de l'asset: ${asset.name}`);
+      toast.info(`Régénération de "${asset.name}" en cours...`);
       
-      // Ajouter un paramètre aléatoire pour forcer une nouvelle génération
-      const enhancedPrompt = `${asset.prompt}, variation ${Math.floor(Math.random() * 1000)}`;
-      
-      const imageUrl = await generateAssetImage({
-        description: enhancedPrompt,
-        style: 'cartoon' as any,
-        type: asset.type as any
-      });
+      let newImageUrl: string | null = null;
+      let retryCount = 0;
+      const maxRetries = 3;
 
-      if (imageUrl) {
+      // Retry logic pour la régénération
+      while (!newImageUrl && retryCount < maxRetries) {
+        try {
+          // Ajouter un paramètre aléatoire pour forcer une nouvelle génération
+          const enhancedPrompt = `${asset.prompt}, variation ${Math.floor(Math.random() * 1000000)}`;
+          
+          newImageUrl = await generateAssetImage({
+            description: enhancedPrompt,
+            style: 'cartoon' as any,
+            type: asset.type as any
+          });
+          
+          if (newImageUrl) {
+            // Vérifier que la nouvelle image se charge
+            await new Promise((resolve, reject) => {
+              const img = new Image();
+              img.onload = resolve;
+              img.onerror = reject;
+              img.src = newImageUrl;
+              setTimeout(reject, 10000);
+            });
+          }
+        } catch (error) {
+          console.warn(`Tentative de régénération ${retryCount + 1} échouée:`, error);
+          retryCount++;
+          if (retryCount < maxRetries) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
+        }
+      }
+
+      if (newImageUrl) {
         const updatedAssets = [...generatedAssets];
         updatedAssets[assetIndex] = {
           ...asset,
-          url: imageUrl
+          url: newImageUrl
         };
         
         setGeneratedAssets(updatedAssets);
         onAssetsGenerated(updatedAssets);
         
         // Mettre à jour l'asset manager
-        assetManager.addAsset({
+        let characterId = undefined;
+        if (asset.type === 'character') {
+          const character = investigation.characters?.find((char: any) => 
+            asset.name.toLowerCase().includes(char.name.toLowerCase())
+          );
+          if (character) {
+            characterId = character.id;
+          }
+        }
+
+        await assetManager.addAsset({
           name: asset.name,
-          url: imageUrl,
-          type: asset.type as any
-        });
+          url: newImageUrl,
+          type: asset.type as any,
+          characterId
+        }, asset.prompt);
+        
+        toast.success(`Asset "${asset.name}" régénéré avec succès`);
+      } else {
+        toast.error(`Échec de la régénération de "${asset.name}" après ${maxRetries} tentatives`);
       }
     } catch (error) {
       console.error(`Erreur lors de la régénération de ${asset.name}:`, error);
+      toast.error(`Erreur lors de la régénération de "${asset.name}"`);
     } finally {
       setRegeneratingAsset(null);
     }
@@ -114,16 +213,28 @@ const SceneGenerator: React.FC<SceneGeneratorProps> = ({ investigation, onAssets
     setIsDownloading(asset.name);
     
     try {
-      // Ajouter directement à l'asset manager
-      assetManager.addAsset({
+      // Associer les personnages aux assets character
+      let characterId = undefined;
+      if (asset.type === 'character') {
+        const character = investigation.characters?.find((char: any) => 
+          asset.name.toLowerCase().includes(char.name.toLowerCase())
+        );
+        if (character) {
+          characterId = character.id;
+        }
+      }
+
+      await assetManager.addAsset({
         name: asset.name,
         url: asset.url,
-        type: asset.type as any
-      });
+        type: asset.type as any,
+        characterId
+      }, asset.prompt);
       
-      console.log(`Asset ${asset.name} ajouté au gestionnaire d'assets`);
+      toast.success(`Asset "${asset.name}" ajouté au jeu`);
     } catch (error) {
-      console.error(`Erreur lors du téléchargement de ${asset.name}:`, error);
+      console.error(`Erreur lors de l'ajout de ${asset.name}:`, error);
+      toast.error(`Erreur lors de l'ajout de "${asset.name}"`);
     } finally {
       setIsDownloading(null);
     }
@@ -134,16 +245,28 @@ const SceneGenerator: React.FC<SceneGeneratorProps> = ({ investigation, onAssets
     
     try {
       for (const asset of generatedAssets) {
-        assetManager.addAsset({
+        let characterId = undefined;
+        if (asset.type === 'character') {
+          const character = investigation.characters?.find((char: any) => 
+            asset.name.toLowerCase().includes(char.name.toLowerCase())
+          );
+          if (character) {
+            characterId = character.id;
+          }
+        }
+
+        await assetManager.addAsset({
           name: asset.name,
           url: asset.url,
-          type: asset.type as any
-        });
+          type: asset.type as any,
+          characterId
+        }, asset.prompt);
       }
       
-      console.log('Tous les assets ont été ajoutés au gestionnaire');
+      toast.success('Tous les assets ont été ajoutés au jeu');
     } catch (error) {
-      console.error('Erreur lors du téléchargement de tous les assets:', error);
+      console.error('Erreur lors de l\'ajout de tous les assets:', error);
+      toast.error('Erreur lors de l\'ajout des assets');
     } finally {
       setIsDownloading(null);
     }
@@ -265,6 +388,8 @@ const SceneGenerator: React.FC<SceneGeneratorProps> = ({ investigation, onAssets
                     className="w-full h-32 object-cover rounded border border-slate-600"
                     loading="lazy"
                     onError={(e) => {
+                      console.error(`Erreur de chargement pour ${asset.name}:`, asset.url);
+                      toast.error(`Erreur de chargement de l'image "${asset.name}"`);
                       (e.target as HTMLImageElement).src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjgwIiB2aWV3Qm94PSIwIDAgMjAwIDgwIiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgo8cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjMzc0MTUxIi8+Cjx0ZXh0IHg9IjEwMCIgeT0iNDAiIGZpbGw9IiM5Q0EzQUYiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSI+RXJyZXVyIGNoYXJnZW1lbnQ8L3RleHQ+Cjwvc3ZnPg==';
                     }}
                   />

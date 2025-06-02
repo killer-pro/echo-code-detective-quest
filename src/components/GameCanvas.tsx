@@ -32,6 +32,8 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ characters, onCharacterClick })
 
   useEffect(() => {
     if (gameInstanceRef.current && characters.length > 0) {
+      console.log('Mise à jour des personnages dans GameCanvas:', characters);
+      
       const scene = gameInstanceRef.current.scene.getScene('MainScene');
       if (scene && typeof (scene as any).setCharacters === 'function') {
         (scene as any).setCharacters(characters);
@@ -57,8 +59,8 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ characters, onCharacterClick })
     // Vérifier immédiatement
     reloadAssetsWhenAvailable();
 
-    // Puis vérifier périodiquement
-    const checkInterval = setInterval(reloadAssetsWhenAvailable, 2000);
+    // Puis vérifier périodiquement (toutes les 3 secondes)
+    const checkInterval = setInterval(reloadAssetsWhenAvailable, 3000);
 
     return () => clearInterval(checkInterval);
   }, []);
