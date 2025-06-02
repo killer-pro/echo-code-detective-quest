@@ -1,5 +1,5 @@
 
-interface AssetDownload {
+interface AssetData {
   name: string;
   url: string;
   type: 'background' | 'character' | 'prop';
@@ -7,7 +7,8 @@ interface AssetDownload {
 
 export class AssetManager {
   private static instance: AssetManager;
-  private downloadedAssets: Map<string, string> = new Map();
+  private assets: Map<string, AssetData> = new Map();
+  private loadedUrls: Set<string> = new Set();
 
   static getInstance(): AssetManager {
     if (!AssetManager.instance) {
@@ -16,69 +17,74 @@ export class AssetManager {
     return AssetManager.instance;
   }
 
-  async downloadAsset(asset: AssetDownload): Promise<string | null> {
-    try {
-      console.log(`Téléchargement de ${asset.name} depuis ${asset.url}`);
-      
-      // Dans un vrai projet, on utiliserait une API pour télécharger les assets
-      // Ici on simule le processus et on retourne une URL locale
-      
-      const response = await fetch(asset.url);
-      if (!response.ok) {
-        throw new Error(`Erreur HTTP: ${response.status}`);
-      }
-
-      const blob = await response.blob();
-      const fileName = `${asset.type}_${asset.name.replace(/\s+/g, '_').toLowerCase()}.png`;
-      
-      // Créer une URL locale pour l'asset
-      const localUrl = URL.createObjectURL(blob);
-      
-      // Stocker dans notre cache
-      this.downloadedAssets.set(asset.name, localUrl);
-      
-      console.log(`Asset ${asset.name} téléchargé avec succès: ${fileName}`);
-      return localUrl;
-      
-    } catch (error) {
-      console.error(`Erreur lors du téléchargement de ${asset.name}:`, error);
-      return null;
-    }
+  addAsset(asset: AssetData): void {
+    this.assets.set(asset.name, asset);
+    console.log(`Asset ajouté: ${asset.name} (${asset.type})`);
   }
 
-  getAsset(name: string): string | null {
-    return this.downloadedAssets.get(name) || null;
+  getAsset(name: string): AssetData | null {
+    return this.assets.get(name) || null;
   }
 
-  getAllAssets(): Map<string, string> {
-    return new Map(this.downloadedAssets);
+  getAssetsByType(type: 'background' | 'character' | 'prop'): AssetData[] {
+    return Array.from(this.assets.values()).filter(asset => asset.type === type);
+  }
+
+  getAllAssets(): AssetData[] {
+    return Array.from(this.assets.values());
+  }
+
+  getBackgroundUrl(): string | null {
+    const backgrounds = this.getAssetsByType('background');
+    return backgrounds.length > 0 ? backgrounds[0].url : null;
+  }
+
+  getCharacterAssets(): Map<string, string> {
+    const characterMap = new Map<string, string>();
+    this.getAssetsByType('character').forEach((asset, index) => {
+      characterMap.set(`character_${index}`, asset.url);
+    });
+    return characterMap;
+  }
+
+  getPropAssets(): Map<string, string> {
+    const propMap = new Map<string, string>();
+    this.getAssetsByType('prop').forEach((asset, index) => {
+      propMap.set(`prop_${index}`, asset.url);
+    });
+    return propMap;
   }
 
   clearAssets(): void {
-    // Libérer les URLs créées
-    this.downloadedAssets.forEach(url => {
-      URL.revokeObjectURL(url);
+    this.assets.clear();
+    this.loadedUrls.clear();
+    console.log('Assets cleared');
+  }
+
+  preloadAsset(url: string): Promise<boolean> {
+    return new Promise((resolve) => {
+      if (this.loadedUrls.has(url)) {
+        resolve(true);
+        return;
+      }
+
+      const img = new Image();
+      img.onload = () => {
+        this.loadedUrls.add(url);
+        resolve(true);
+      };
+      img.onerror = () => {
+        console.warn(`Failed to preload asset: ${url}`);
+        resolve(false);
+      };
+      img.src = url;
     });
-    this.downloadedAssets.clear();
   }
 
-  // Méthodes pour organiser les assets par type
-  getBackgrounds(): string[] {
-    return Array.from(this.downloadedAssets.entries())
-      .filter(([name]) => name.toLowerCase().includes('background') || name.toLowerCase().includes('manor') || name.toLowerCase().includes('village'))
-      .map(([, url]) => url);
-  }
-
-  getCharacterSprites(): string[] {
-    return Array.from(this.downloadedAssets.entries())
-      .filter(([name]) => name.toLowerCase().includes('sprite') || name.toLowerCase().includes('character'))
-      .map(([, url]) => url);
-  }
-
-  getProps(): string[] {
-    return Array.from(this.downloadedAssets.entries())
-      .filter(([name]) => name.toLowerCase().includes('prop') || name.toLowerCase().includes('evidence') || name.toLowerCase().includes('magnifying'))
-      .map(([, url]) => url);
+  async preloadAllAssets(): Promise<void> {
+    const urls = Array.from(this.assets.values()).map(asset => asset.url);
+    await Promise.all(urls.map(url => this.preloadAsset(url)));
+    console.log('All assets preloaded');
   }
 }
 

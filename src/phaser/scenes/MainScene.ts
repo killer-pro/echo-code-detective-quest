@@ -11,6 +11,7 @@ export class MainScene extends Phaser.Scene {
   private characterClickHandler: ((character: Character) => void) | null = null;
   private cursors: Phaser.Types.Input.Keyboard.CursorKeys | null = null;
   private proximityIndicators: Map<string, Phaser.GameObjects.Text> = new Map();
+  private spaceKey: Phaser.Input.Keyboard.Key | null = null;
 
   constructor() {
     super({ key: 'MainScene' });
@@ -19,43 +20,56 @@ export class MainScene extends Phaser.Scene {
   preload() {
     console.log('MainScene: Chargement des assets...');
     
-    // Créer des sprites par défaut simples
+    // Créer des sprites par défaut
     this.load.image('default_bg', 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjYwMCIgdmlld0JveD0iMCAwIDgwMCA2MDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI4MDAiIGhlaWdodD0iNjAwIiBmaWxsPSIjMmMzZTUwIi8+CjxyZWN0IHg9IjEwMCIgeT0iNTAwIiB3aWR0aD0iNjAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iIzM0NDk1ZSIvPgo8Y2lyY2xlIGN4PSI2NTAiIGN5PSIxNTAiIHI9IjUwIiBmaWxsPSIjZjM5YzEyIi8+Cjx0ZXh0IHg9IjQwMCIgeT0iMzAwIiBmaWxsPSIjZWNmMGYxIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiPk1hbm9pciBNeXN0w6lyaWV1eDwvdGV4dD4KPC9zdmc+');
     
-    // Charger les assets téléchargés s'ils existent
-    const backgrounds = assetManager.getBackgrounds();
-    if (backgrounds.length > 0) {
-      this.load.image('custom_bg', backgrounds[0]);
+    // Charger les assets générés par l'IA
+    this.loadGeneratedAssets();
+  }
+
+  private loadGeneratedAssets() {
+    console.log('Chargement des assets générés...');
+    
+    // Charger l'arrière-plan généré
+    const backgroundUrl = assetManager.getBackgroundUrl();
+    if (backgroundUrl) {
+      console.log('Chargement arrière-plan personnalisé:', backgroundUrl);
+      this.load.image('custom_bg', backgroundUrl);
     }
 
-    const characterSprites = assetManager.getCharacterSprites();
-    characterSprites.forEach((url, index) => {
-      this.load.image(`character_${index}`, url);
+    // Charger les sprites de personnages générés
+    const characterAssets = assetManager.getCharacterAssets();
+    characterAssets.forEach((url, key) => {
+      console.log(`Chargement sprite personnage ${key}:`, url);
+      this.load.image(key, url);
     });
 
-    // Props
-    const props = assetManager.getProps();
-    props.forEach((url, index) => {
-      this.load.image(`prop_${index}`, url);
+    // Charger les props générés
+    const propAssets = assetManager.getPropAssets();
+    propAssets.forEach((url, key) => {
+      console.log(`Chargement prop ${key}:`, url);
+      this.load.image(key, url);
     });
   }
 
   create() {
-    console.log('MainScene initialisée');
+    console.log('MainScene initialisée avec assets personnalisés');
     
-    // Arrière-plan
+    // Arrière-plan - utiliser l'asset généré ou le défaut
     const bgKey = this.textures.exists('custom_bg') ? 'custom_bg' : 'default_bg';
     this.background = this.add.image(400, 300, bgKey);
     this.background.setDisplaySize(800, 600);
+    console.log(`Arrière-plan utilisé: ${bgKey}`);
 
-    // Joueur (carré bleu simple pour l'instant)
-    this.player = this.add.rectangle(400, 300, 20, 20, 0x3498db);
-    this.player.setInteractive();
+    // Joueur (cube bleu contrôlable)
+    this.player = this.add.rectangle(400, 400, 30, 30, 0x3498db);
+    this.player.setStrokeStyle(2, 0x2980b9);
 
     // Contrôles clavier
     this.cursors = this.input.keyboard?.createCursorKeys() || null;
+    this.spaceKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE) || null;
 
-    // Créer les personnages si disponibles
+    // Créer les personnages
     this.updateCharacterSprites();
 
     // Gestion des clics
@@ -65,7 +79,7 @@ export class MainScene extends Phaser.Scene {
   update() {
     // Mouvement du joueur avec les flèches
     if (this.cursors && this.player) {
-      const speed = 150;
+      const speed = 200;
       const deltaTime = this.game.loop.delta / 1000;
 
       if (this.cursors.left?.isDown) {
@@ -81,8 +95,8 @@ export class MainScene extends Phaser.Scene {
       }
 
       // Garder le joueur dans les limites
-      this.player.x = Phaser.Math.Clamp(this.player.x, 10, 790);
-      this.player.y = Phaser.Math.Clamp(this.player.y, 10, 590);
+      this.player.x = Phaser.Math.Clamp(this.player.x, 15, 785);
+      this.player.y = Phaser.Math.Clamp(this.player.y, 15, 585);
 
       // Vérifier la proximité avec les personnages
       this.checkProximity();
@@ -101,30 +115,40 @@ export class MainScene extends Phaser.Scene {
         sprite.x, sprite.y
       );
 
-      const isClose = distance < 80;
+      const isClose = distance < 100;
       const indicatorKey = `proximity_${character.id}`;
 
       if (isClose && !this.proximityIndicators.has(indicatorKey)) {
         // Afficher indicateur de proximité
         const indicator = this.add.text(
-          sprite.x, sprite.y - 50,
-          'Appuyez sur ESPACE pour parler',
+          sprite.x, sprite.y - 80,
+          '⚡ ESPACE pour parler',
           {
-            fontSize: '10px',
+            fontSize: '12px',
             color: '#ffffff',
             backgroundColor: '#3498db',
-            padding: { x: 4, y: 2 }
+            padding: { x: 6, y: 3 },
+            borderRadius: 4
           }
         );
         indicator.setOrigin(0.5);
         this.proximityIndicators.set(indicatorKey, indicator);
 
-        // Gestion de la touche espace
-        this.input.keyboard?.once('keydown-SPACE', () => {
-          if (this.characterClickHandler) {
+        // Gestion de la touche espace pour ce personnage spécifique
+        const spaceHandler = () => {
+          if (this.spaceKey?.isDown && this.characterClickHandler) {
+            console.log(`Interaction avec ${character.name} via ESPACE`);
             this.characterClickHandler(character);
           }
+        };
+
+        this.time.addEvent({
+          delay: 100,
+          callback: spaceHandler,
+          repeat: -1,
+          startAt: 0
         });
+
       } else if (!isClose && this.proximityIndicators.has(indicatorKey)) {
         // Supprimer l'indicateur
         const indicator = this.proximityIndicators.get(indicatorKey);
@@ -137,7 +161,7 @@ export class MainScene extends Phaser.Scene {
   }
 
   setCharacters(characters: Character[]) {
-    console.log('Mise à jour des personnages:', characters);
+    console.log('Mise à jour des personnages avec assets:', characters);
     this.characters = characters;
     this.updateCharacterSprites();
   }
@@ -153,15 +177,16 @@ export class MainScene extends Phaser.Scene {
     this.proximityIndicators.forEach(indicator => indicator.destroy());
     this.proximityIndicators.clear();
 
-    // Créer les nouveaux sprites
+    // Créer les nouveaux sprites avec assets générés
     this.characters.forEach((character, index) => {
-      // Utiliser un sprite personnalisé s'il existe, sinon un rectangle coloré
       let sprite: Phaser.GameObjects.Sprite | Phaser.GameObjects.Rectangle;
       
+      // Essayer d'utiliser un sprite personnalisé généré
       const customSpriteKey = `character_${index}`;
       if (this.textures.exists(customSpriteKey)) {
+        console.log(`Utilisation sprite personnalisé pour ${character.name}:`, customSpriteKey);
         sprite = this.add.sprite(character.position.x, character.position.y, customSpriteKey);
-        sprite.setDisplaySize(40, 60);
+        sprite.setDisplaySize(60, 80);
       } else {
         // Sprite par défaut basé sur le rôle
         const colors = {
@@ -172,14 +197,16 @@ export class MainScene extends Phaser.Scene {
         };
         
         const color = colors[character.role] || 0x95a5a6;
-        sprite = this.add.rectangle(character.position.x, character.position.y, 30, 40, color);
+        sprite = this.add.rectangle(character.position.x, character.position.y, 40, 60, color);
+        sprite.setStrokeStyle(2, 0xffffff);
+        console.log(`Utilisation sprite par défaut pour ${character.name}`);
       }
 
       // Rendre interactif
       sprite.setInteractive();
       sprite.setData('character', character);
 
-      // Animation de hover avec vérification de type
+      // Animation de hover
       sprite.on('pointerover', () => {
         if ('setTint' in sprite) {
           sprite.setTint(0xffff00);
@@ -206,21 +233,22 @@ export class MainScene extends Phaser.Scene {
         });
       });
 
-      // Nom du personnage
+      // Nom du personnage avec style amélioré
       const nameText = this.add.text(
         character.position.x,
-        character.position.y - 30,
+        character.position.y - 50,
         character.name,
         {
-          fontSize: '12px',
+          fontSize: '14px',
           color: '#ffffff',
           backgroundColor: '#000000',
-          padding: { x: 4, y: 2 }
+          padding: { x: 6, y: 3 },
+          borderRadius: 4
         }
       );
       nameText.setOrigin(0.5);
 
-      // Badge de rôle
+      // Badge de rôle avec couleurs améliorées
       const roleColors = {
         'témoin': '#2ecc71',
         'suspect': '#e74c3c',
@@ -230,41 +258,46 @@ export class MainScene extends Phaser.Scene {
       
       const roleText = this.add.text(
         character.position.x,
-        character.position.y + 30,
-        character.role,
+        character.position.y + 40,
+        character.role.toUpperCase(),
         {
           fontSize: '10px',
           color: '#ffffff',
           backgroundColor: roleColors[character.role] || '#95a5a6',
-          padding: { x: 3, y: 1 }
+          padding: { x: 4, y: 2 },
+          borderRadius: 3
         }
       );
       roleText.setOrigin(0.5);
 
       this.characterSprites.push(sprite);
     });
+
+    console.log(`${this.characterSprites.length} personnages créés avec assets`);
   }
 
   private handleClick(pointer: Phaser.Input.Pointer) {
-    // Vérifier si on a cliqué sur un personnage
     const clickedObjects = this.input.hitTestPointer(pointer);
     
     for (const obj of clickedObjects) {
       const character = obj.getData('character');
       if (character && this.characterClickHandler) {
+        console.log(`Clic sur personnage: ${character.name}`);
         this.characterClickHandler(character);
         break;
       }
     }
   }
 
-  // Méthodes pour ajouter des effets visuels
+  // Méthodes pour effets visuels
   addInvestigationEffect(x: number, y: number) {
+    // Effet de particules pour les découvertes
     const particles = this.add.particles(x, y, 'default_bg', {
       scale: { start: 0.3, end: 0 },
       speed: { min: 50, max: 100 },
       lifespan: 600,
-      quantity: 5
+      quantity: 5,
+      tint: 0xffd700
     });
 
     this.time.delayedCall(1000, () => {
@@ -287,5 +320,27 @@ export class MainScene extends Phaser.Scene {
         repeat: 2
       });
     }
+  }
+
+  // Méthode pour recharger les assets après génération
+  reloadAssets() {
+    console.log('Rechargement des assets...');
+    
+    // Recharger l'arrière-plan si disponible
+    const backgroundUrl = assetManager.getBackgroundUrl();
+    if (backgroundUrl && !this.textures.exists('custom_bg')) {
+      this.load.image('custom_bg', backgroundUrl);
+      this.load.start();
+      
+      this.load.once('complete', () => {
+        if (this.background) {
+          this.background.setTexture('custom_bg');
+          console.log('Arrière-plan mis à jour');
+        }
+      });
+    }
+    
+    // Mettre à jour les personnages avec les nouveaux assets
+    this.updateCharacterSprites();
   }
 }

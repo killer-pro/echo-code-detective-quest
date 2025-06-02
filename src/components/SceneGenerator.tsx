@@ -3,8 +3,8 @@ import React, { useState } from 'react';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
-import { Loader2, Image, Download, Palette, Eye } from 'lucide-react';
-import { generateAssetImage, downloadAndCacheImage } from '../utils/imageGenerator';
+import { Loader2, Image, Download, Palette, Eye, RefreshCw } from 'lucide-react';
+import { generateAssetImage } from '../utils/imageGenerator';
 import { assetManager } from '../utils/assetManager';
 
 interface AssetPrompt {
@@ -14,6 +14,13 @@ interface AssetPrompt {
   style: string;
 }
 
+interface GeneratedAsset {
+  name: string;
+  url: string;
+  type: string;
+  prompt: string;
+}
+
 interface SceneGeneratorProps {
   investigation: any;
   onAssetsGenerated: (assets: { name: string; url: string; type: string }[]) => void;
@@ -21,15 +28,16 @@ interface SceneGeneratorProps {
 
 const SceneGenerator: React.FC<SceneGeneratorProps> = ({ investigation, onAssetsGenerated }) => {
   const [isGenerating, setIsGenerating] = useState(false);
-  const [generatedAssets, setGeneratedAssets] = useState<Array<{ name: string; url: string; type: string; prompt: string }>>([]);
+  const [generatedAssets, setGeneratedAssets] = useState<GeneratedAsset[]>([]);
   const [isDownloading, setIsDownloading] = useState<string | null>(null);
+  const [regeneratingAsset, setRegeneratingAsset] = useState<string | null>(null);
 
   const generateSceneAssets = async () => {
     setIsGenerating(true);
     
     try {
       const assetPrompts: AssetPrompt[] = investigation.assetPrompts || [];
-      const generatedAssetsList: Array<{ name: string; url: string; type: string; prompt: string }> = [];
+      const generatedAssetsList: GeneratedAsset[] = [];
 
       for (const assetPrompt of assetPrompts) {
         console.log(`Génération de l'asset: ${assetPrompt.name}`);
@@ -60,22 +68,72 @@ const SceneGenerator: React.FC<SceneGeneratorProps> = ({ investigation, onAssets
     }
   };
 
-  const downloadAsset = async (asset: { name: string; url: string; type: string }) => {
+  const regenerateAsset = async (assetIndex: number) => {
+    const asset = generatedAssets[assetIndex];
+    if (!asset) return;
+
+    setRegeneratingAsset(asset.name);
+    
+    try {
+      console.log(`Régénération de l'asset: ${asset.name}`);
+      
+      const imageUrl = await generateAssetImage({
+        description: asset.prompt,
+        style: 'cartoon' as any,
+        type: asset.type as any
+      });
+
+      if (imageUrl) {
+        const updatedAssets = [...generatedAssets];
+        updatedAssets[assetIndex] = {
+          ...asset,
+          url: imageUrl
+        };
+        
+        setGeneratedAssets(updatedAssets);
+        onAssetsGenerated(updatedAssets);
+      }
+    } catch (error) {
+      console.error(`Erreur lors de la régénération de ${asset.name}:`, error);
+    } finally {
+      setRegeneratingAsset(null);
+    }
+  };
+
+  const downloadAsset = async (asset: GeneratedAsset) => {
     setIsDownloading(asset.name);
     
     try {
-      const cachedUrl = await downloadAndCacheImage(asset.url, asset.name);
-      
-      // Ajouter à l'asset manager
-      await assetManager.downloadAsset({
+      // Ajouter directement à l'asset manager
+      assetManager.addAsset({
         name: asset.name,
-        url: cachedUrl,
+        url: asset.url,
         type: asset.type as any
       });
       
-      console.log(`Asset ${asset.name} téléchargé et mis en cache`);
+      console.log(`Asset ${asset.name} ajouté au gestionnaire d'assets`);
     } catch (error) {
       console.error(`Erreur lors du téléchargement de ${asset.name}:`, error);
+    } finally {
+      setIsDownloading(null);
+    }
+  };
+
+  const downloadAllAssets = async () => {
+    setIsDownloading('all');
+    
+    try {
+      for (const asset of generatedAssets) {
+        assetManager.addAsset({
+          name: asset.name,
+          url: asset.url,
+          type: asset.type as any
+        });
+      }
+      
+      console.log('Tous les assets ont été ajoutés au gestionnaire');
+    } catch (error) {
+      console.error('Erreur lors du téléchargement de tous les assets:', error);
     } finally {
       setIsDownloading(null);
     }
@@ -95,7 +153,7 @@ const SceneGenerator: React.FC<SceneGeneratorProps> = ({ investigation, onAssets
       <CardHeader>
         <CardTitle className="text-white flex items-center gap-2">
           <Palette className="w-5 h-5" />
-          Génération de Scène IA
+          Génération de Scène IA (2D)
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -103,7 +161,7 @@ const SceneGenerator: React.FC<SceneGeneratorProps> = ({ investigation, onAssets
           <div className="text-center">
             <Image className="w-16 h-16 text-gray-500 mx-auto mb-4" />
             <p className="text-gray-400 mb-4">
-              Générez des assets visuels avec l'IA basés sur votre enquête
+              Générez des assets visuels 2D avec l'IA basés sur votre enquête
             </p>
             <Button
               onClick={generateSceneAssets}
@@ -125,8 +183,22 @@ const SceneGenerator: React.FC<SceneGeneratorProps> = ({ investigation, onAssets
           </div>
         ) : (
           <div className="space-y-3">
-            <div className="text-sm text-gray-300 mb-3">
-              {generatedAssets.length} assets générés par l'IA pour votre enquête
+            <div className="flex justify-between items-center mb-3">
+              <div className="text-sm text-gray-300">
+                {generatedAssets.length} assets générés (style 2D)
+              </div>
+              <Button
+                onClick={downloadAllAssets}
+                disabled={isDownloading === 'all'}
+                className="bg-green-600 hover:bg-green-700 text-xs px-3 py-1"
+              >
+                {isDownloading === 'all' ? (
+                  <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                ) : (
+                  <Download className="w-3 h-3 mr-1" />
+                )}
+                Utiliser Tous
+              </Button>
             </div>
             
             {generatedAssets.map((asset, index) => (
@@ -138,29 +210,40 @@ const SceneGenerator: React.FC<SceneGeneratorProps> = ({ investigation, onAssets
                     </Badge>
                     <span className="text-white font-medium text-sm">{asset.name}</span>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-1">
                     <Button
                       size="sm"
                       variant="outline"
                       onClick={() => window.open(asset.url, '_blank')}
-                      className="text-xs"
+                      className="text-xs px-2 py-1"
                     >
-                      <Eye className="w-3 h-3 mr-1" />
-                      Voir
+                      <Eye className="w-3 h-3" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => regenerateAsset(index)}
+                      disabled={regeneratingAsset === asset.name}
+                      className="text-xs px-2 py-1"
+                    >
+                      {regeneratingAsset === asset.name ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : (
+                        <RefreshCw className="w-3 h-3" />
+                      )}
                     </Button>
                     <Button
                       size="sm"
                       variant="outline"
                       onClick={() => downloadAsset(asset)}
                       disabled={isDownloading === asset.name}
-                      className="text-xs"
+                      className="text-xs px-2 py-1"
                     >
                       {isDownloading === asset.name ? (
-                        <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                        <Loader2 className="w-3 h-3 animate-spin" />
                       ) : (
-                        <Download className="w-3 h-3 mr-1" />
+                        <Download className="w-3 h-3" />
                       )}
-                      Utiliser
                     </Button>
                   </div>
                 </div>

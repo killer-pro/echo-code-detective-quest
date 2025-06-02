@@ -80,14 +80,14 @@ Tu dois répondre uniquement en JSON valide avec cette structure exacte:
     {
       "type": "background",
       "name": "Scene principale",
-      "prompt": "Description précise pour générer l'arrière-plan principal",
-      "style": "realistic"
+      "prompt": "Description pour un décor de jeu 2D, vue de côté, pixel art style",
+      "style": "cartoon"
     },
     {
       "type": "character",
       "name": "Personnage principal",
-      "prompt": "Description précise du personnage pour l'IA image",
-      "style": "realistic"
+      "prompt": "Sprite de personnage 2D, vue de face, style cartoon/pixel art",
+      "style": "cartoon"
     }
   ],
   "characters": [
@@ -107,12 +107,13 @@ Tu dois répondre uniquement en JSON valide avec cette structure exacte:
   ]
 }
 
-IMPORTANT pour les assetPrompts:
-- Crée 1 arrière-plan principal qui correspond à la scène de l'enquête
-- Crée 1 prompt par personnage pour générer leur apparence
-- Crée 2-3 props/objets liés à l'enquête
-- Chaque prompt doit être TRÈS DESCRIPTIF pour l'IA image (couleurs, style, détails visuels)
-- Utilise des styles: "realistic", "cartoon", "pixel-art", "fantasy", "noir"
+IMPORTANT pour les assetPrompts (JEU 2D):
+- Crée 1 arrière-plan principal : "2D game background, side view, [description], cartoon/pixel art style, flat design, game environment"
+- Crée 1 prompt par personnage : "2D character sprite, front view, [description], cartoon style, game character, flat design, simple shapes"
+- Crée 2-3 props/objets : "2D game object, [description], simple flat design, cartoon style, game prop"
+- Toujours spécifier "2D", "flat design", "cartoon style" ou "pixel art"
+- Éviter "realistic", "3D", "photographic"
+- Utilise des styles: "cartoon", "pixel-art", "flat-design"
 
 Crée 3-5 personnages avec des rôles variés (témoin, suspect, innocent). 
 Les positions doivent être entre x:100-700 et y:100-500.
@@ -137,14 +138,14 @@ Les positions doivent être entre x:100-700 et y:100-500.
           {
             type: "background",
             name: "Manoir victorien",
-            prompt: "Victorian manor interior, grand library with bookshelves, fireplace, elegant furniture, mysterious atmosphere, realistic style",
-            style: "realistic"
+            prompt: "2D game background, Victorian manor interior, side view, cartoon style, flat design, game environment, library with bookshelves",
+            style: "cartoon"
           },
           {
             type: "character",
             name: "Majordome",
-            prompt: "English butler character, formal black suit, white gloves, distinguished elderly man, realistic portrait style",
-            style: "realistic"
+            prompt: "2D character sprite, English butler, front view, cartoon style, flat design, black suit, elderly man, game character",
+            style: "cartoon"
           }
         ],
         characters: [

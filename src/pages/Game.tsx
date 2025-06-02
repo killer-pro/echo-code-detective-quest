@@ -29,7 +29,6 @@ const Game: React.FC = () => {
     if (!state.currentInvestigation) return;
 
     try {
-      // Utiliser la table 'dialogs' au lieu de 'dialog_history'
       const { data: dialogData, error } = await supabase
         .from('dialogs')
         .select('*')
@@ -38,9 +37,8 @@ const Game: React.FC = () => {
 
       if (error) throw error;
 
-      if (dialogData) {
+      if (dialogData && dialogData.length > 0) {
         dialogData.forEach(dialog => {
-          // Gestion sûre des types de la base de données
           const dialogEntry: DialogEntry = {
             id: dialog.id,
             character_id: dialog.character_id || '',
@@ -48,7 +46,7 @@ const Game: React.FC = () => {
             character_reply: dialog.character_reply,
             timestamp: dialog.timestamp || new Date().toISOString(),
             clickable_keywords: Array.isArray(dialog.clickable_keywords) 
-              ? (dialog.clickable_keywords as string[]).filter(k => typeof k === 'string')
+              ? dialog.clickable_keywords.filter((k: any) => typeof k === 'string')
               : [],
             reputation_impact: dialog.reputation_impact || 0,
             truth_likelihood: dialog.truth_likelihood || 0.5,
@@ -68,6 +66,7 @@ const Game: React.FC = () => {
       const { error } = await supabase
         .from('dialogs')
         .insert({
+          investigation_id: state.currentInvestigation.id,
           character_id: dialog.character_id,
           user_input: dialog.user_input,
           character_reply: dialog.character_reply,

@@ -2,6 +2,7 @@
 import React, { useEffect, useRef } from 'react';
 import { GameManager } from '../phaser/Game';
 import { Character } from '../types';
+import { assetManager } from '../utils/assetManager';
 
 interface GameCanvasProps {
   characters: Character[];
@@ -25,7 +26,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ characters, onCharacterClick })
     }
 
     return () => {
-      // Pas de cleanup automatique - on garde l'instance pour éviter les recreations
+      // Pas de cleanup automatique - on garde l'instance
     };
   }, [onCharacterClick]);
 
@@ -38,12 +39,38 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ characters, onCharacterClick })
     }
   }, [characters]);
 
+  // Recharger les assets quand ils sont générés
+  useEffect(() => {
+    const reloadAssets = () => {
+      if (gameInstanceRef.current) {
+        const scene = gameInstanceRef.current.scene.getScene('MainScene');
+        if (scene && typeof (scene as any).reloadAssets === 'function') {
+          (scene as any).reloadAssets();
+        }
+      }
+    };
+
+    // Surveiller les changements d'assets
+    const checkAssets = setInterval(() => {
+      const assets = assetManager.getAllAssets();
+      if (assets.length > 0) {
+        reloadAssets();
+        clearInterval(checkAssets);
+      }
+    }, 1000);
+
+    return () => clearInterval(checkAssets);
+  }, []);
+
   return (
-    <div className="w-full h-full flex items-center justify-center bg-slate-800 rounded-lg overflow-hidden">
+    <div className="w-full h-full flex items-center justify-center bg-slate-800 rounded-lg overflow-hidden border-2 border-slate-600">
       <div 
         ref={gameRef} 
         id="game-container"
-        className="w-[800px] h-[600px] border border-slate-600 rounded"
+        className="w-[800px] h-[600px] border border-slate-500 rounded bg-slate-900"
+        style={{ 
+          boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.3), 0 4px 8px rgba(0,0,0,0.2)' 
+        }}
       />
     </div>
   );
