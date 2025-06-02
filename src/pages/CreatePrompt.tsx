@@ -11,6 +11,7 @@ import { supabase } from '../integrations/supabase/client';
 import { useGame } from '../context/GameContext';
 import SceneGenerator from '../components/SceneGenerator';
 import { toast } from 'sonner';
+import { Character } from '../types';
 
 const CreatePrompt: React.FC = () => {
   const navigate = useNavigate();
@@ -40,6 +41,35 @@ const CreatePrompt: React.FC = () => {
     }
   };
 
+  const normalizeRole = (role: string): Character['role'] => {
+    const roleMap: Record<string, Character['role']> = {
+      'témoin': 'témoin',
+      'suspect': 'suspect',
+      'enquêteur': 'enquêteur',
+      'innocent': 'innocent',
+      'witness': 'témoin',
+      'detective': 'enquêteur',
+      'investigator': 'enquêteur'
+    };
+    return roleMap[role.toLowerCase()] || 'témoin';
+  };
+
+  const normalizeExpressionState = (state: string): Character['expression_state'] => {
+    const stateMap: Record<string, Character['expression_state']> = {
+      'neutre': 'neutre',
+      'nerveux': 'nerveux',
+      'en_colère': 'en_colère',
+      'coopératif': 'coopératif',
+      'méfiant': 'méfiant',
+      'neutral': 'neutre',
+      'nervous': 'nerveux',
+      'angry': 'en_colère',
+      'cooperative': 'coopératif',
+      'suspicious': 'méfiant'
+    };
+    return stateMap[state.toLowerCase()] || 'neutre';
+  };
+
   const handleStartGame = async () => {
     if (!generatedInvestigation) return;
 
@@ -60,14 +90,14 @@ const CreatePrompt: React.FC = () => {
         throw investigationError;
       }
 
-      // Préparer les personnages avec le bon format
+      // Préparer les personnages avec le bon format et types corrects
       const charactersData = generatedInvestigation.characters.map((char: any) => ({
         investigation_id: investigationData.id,
         name: char.name,
-        role: char.role,
+        role: normalizeRole(char.role),
         personality: typeof char.personality === 'string' ? JSON.parse(char.personality) : char.personality,
         knowledge: char.knowledge,
-        expression_state: 'neutre' as const,
+        expression_state: normalizeExpressionState(char.expression_state || 'neutre'),
         reputation_score: char.reputation_score || 50,
         alerted: false,
         position: typeof char.position === 'string' ? JSON.parse(char.position) : char.position,
@@ -84,17 +114,17 @@ const CreatePrompt: React.FC = () => {
         throw charactersError;
       }
 
-      // Convertir au format attendu par l'application
-      const formattedCharacters = charactersResponse?.map(char => ({
+      // Convertir au format attendu par l'application avec les bons types
+      const formattedCharacters: Character[] = charactersResponse?.map(char => ({
         id: char.id,
         investigation_id: char.investigation_id,
         name: char.name,
-        role: char.role,
+        role: normalizeRole(char.role),
         personality: typeof char.personality === 'string' ? JSON.parse(char.personality) : char.personality,
         knowledge: char.knowledge,
-        expression_state: char.expression_state,
-        reputation_score: char.reputation_score,
-        alerted: char.alerted,
+        expression_state: normalizeExpressionState(char.expression_state || 'neutre'),
+        reputation_score: char.reputation_score || 50,
+        alerted: char.alerted || false,
         position: typeof char.position === 'string' ? JSON.parse(char.position) : char.position,
         sprite: char.sprite || 'default',
         created_at: char.created_at
