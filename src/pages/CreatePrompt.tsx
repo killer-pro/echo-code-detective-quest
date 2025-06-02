@@ -51,8 +51,7 @@ const CreatePrompt: React.FC = () => {
         .insert({
           title: generatedInvestigation.title,
           prompt: prompt,
-          status: 'en_cours' as const,
-          description: generatedInvestigation.description
+          status: 'en_cours' as const
         })
         .select()
         .single();
@@ -105,8 +104,9 @@ const CreatePrompt: React.FC = () => {
         id: investigationData.id,
         title: investigationData.title,
         prompt: investigationData.prompt,
-        status: investigationData.status,
-        description: investigationData.description,
+        status: investigationData.status as 'en_cours' | 'terminée' | 'abandonnée',
+        description: generatedInvestigation.description,
+        context: generatedInvestigation.context,
         created_at: investigationData.created_at,
         characters: formattedCharacters
       };
@@ -143,7 +143,7 @@ const CreatePrompt: React.FC = () => {
             Retour
           </Button>
           <div>
-            <h1 className="text-xl font-bold text-white">Générateur d'Enquête</h1>
+            <h1 className="text-xl font-bold text-white">Générateur d'Enquête IA</h1>
             <p className="text-gray-400 text-sm">Créez votre mystère personnalisé avec l'IA</p>
           </div>
         </div>
@@ -214,6 +214,13 @@ const CreatePrompt: React.FC = () => {
                   <CardContent className="space-y-4">
                     <p className="text-gray-300">{generatedInvestigation.description}</p>
                     
+                    {generatedInvestigation.context && (
+                      <div className="bg-slate-700 p-3 rounded-lg">
+                        <h4 className="text-white font-medium mb-2">Contexte</h4>
+                        <p className="text-gray-400 text-sm">{generatedInvestigation.context}</p>
+                      </div>
+                    )}
+                    
                     <div className="flex items-center justify-between">
                       <Badge variant="secondary" className="bg-green-600/20 text-green-300">
                         <Users className="w-3 h-3 mr-1" />
@@ -221,7 +228,7 @@ const CreatePrompt: React.FC = () => {
                       </Badge>
                       <Badge variant="secondary" className="bg-blue-600/20 text-blue-300">
                         <Map className="w-3 h-3 mr-1" />
-                        Scène générée
+                        {generatedInvestigation.assetPrompts?.length || 0} assets IA
                       </Badge>
                     </div>
 
@@ -261,9 +268,11 @@ const CreatePrompt: React.FC = () => {
                             <p className="text-gray-400 text-sm mb-2">{character.knowledge}</p>
                             {character.personality && (
                               <div className="text-xs text-gray-500">
-                                Traits: {typeof character.personality === 'string' 
-                                  ? character.personality.substring(0, 50) + '...'
-                                  : JSON.stringify(character.personality).substring(0, 50) + '...'
+                                Traits: {Array.isArray(character.personality.traits) 
+                                  ? character.personality.traits.join(', ')
+                                  : typeof character.personality === 'string' 
+                                    ? character.personality.substring(0, 50) + '...'
+                                    : JSON.stringify(character.personality).substring(0, 50) + '...'
                                 }
                               </div>
                             )}

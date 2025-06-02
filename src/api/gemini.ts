@@ -6,9 +6,18 @@ interface GeminiResponse {
   truthLikelihood: number;
 }
 
+interface AssetPrompt {
+  type: 'background' | 'character' | 'prop';
+  name: string;
+  prompt: string;
+  style: string;
+}
+
 interface InvestigationData {
   title: string;
   description: string;
+  context: string;
+  assetPrompts: AssetPrompt[];
   characters: Array<{
     id: string;
     name: string;
@@ -41,7 +50,7 @@ class GeminiAPI {
             temperature: 0.7,
             topK: 40,
             topP: 0.95,
-            maxOutputTokens: 1024,
+            maxOutputTokens: 2048,
           }
         })
       });
@@ -66,6 +75,21 @@ Tu dois répondre uniquement en JSON valide avec cette structure exacte:
 {
   "title": "Titre de l'enquête",
   "description": "Description détaillée du mystère",
+  "context": "Contexte narratif initial de l'enquête expliquant la situation de départ",
+  "assetPrompts": [
+    {
+      "type": "background",
+      "name": "Scene principale",
+      "prompt": "Description précise pour générer l'arrière-plan principal",
+      "style": "realistic"
+    },
+    {
+      "type": "character",
+      "name": "Personnage principal",
+      "prompt": "Description précise du personnage pour l'IA image",
+      "style": "realistic"
+    }
+  ],
   "characters": [
     {
       "id": "unique_id",
@@ -83,14 +107,19 @@ Tu dois répondre uniquement en JSON valide avec cette structure exacte:
   ]
 }
 
+IMPORTANT pour les assetPrompts:
+- Crée 1 arrière-plan principal qui correspond à la scène de l'enquête
+- Crée 1 prompt par personnage pour générer leur apparence
+- Crée 2-3 props/objets liés à l'enquête
+- Chaque prompt doit être TRÈS DESCRIPTIF pour l'IA image (couleurs, style, détails visuels)
+- Utilise des styles: "realistic", "cartoon", "pixel-art", "fantasy", "noir"
+
 Crée 3-5 personnages avec des rôles variés (témoin, suspect, innocent). 
-Assure-toi que chaque personnage ait des informations uniques et des secrets.
 Les positions doivent être entre x:100-700 et y:100-500.
 `;
 
     try {
       const response = await this.makeRequest(prompt);
-      // Nettoie la réponse pour extraire le JSON
       const jsonMatch = response.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
         throw new Error('Réponse JSON invalide');
@@ -103,24 +132,34 @@ Les positions doivent être entre x:100-700 et y:100-500.
       return {
         title: "Mystère au Manoir",
         description: "Un vol mystérieux s'est produit au manoir. Interrogez les témoins pour découvrir la vérité.",
+        context: "Vous êtes appelé pour enquêter sur un vol dans un manoir victorien. L'atmosphère est tendue et les suspects nombreux.",
+        assetPrompts: [
+          {
+            type: "background",
+            name: "Manoir victorien",
+            prompt: "Victorian manor interior, grand library with bookshelves, fireplace, elegant furniture, mysterious atmosphere, realistic style",
+            style: "realistic"
+          },
+          {
+            type: "character",
+            name: "Majordome",
+            prompt: "English butler character, formal black suit, white gloves, distinguished elderly man, realistic portrait style",
+            style: "realistic"
+          }
+        ],
         characters: [
           {
             id: "butler_1",
             name: "James le Majordome",
             role: "témoin",
-            personality: { traits: ["discret", "loyal"], secrets: "Connaît tous les secrets de la famille" },
+            personality: { 
+              traits: ["Discret", "Loyal", "Observateur"], 
+              secrets: "Connaît tous les secrets de la famille",
+              motivations: "Protéger la réputation de la famille"
+            },
             knowledge: "A vu quelqu'un rôder près du coffre-fort",
             position: { x: 200, y: 200 },
             reputation_score: 60
-          },
-          {
-            id: "maid_1", 
-            name: "Sarah la Femme de chambre",
-            role: "suspect",
-            personality: { traits: ["nerveuse", "cachottière"], secrets: "A des dettes importantes" },
-            knowledge: "Avait accès à toutes les pièces",
-            position: { x: 400, y: 300 },
-            reputation_score: 40
           }
         ]
       };

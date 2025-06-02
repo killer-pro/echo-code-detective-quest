@@ -3,105 +3,55 @@ import React, { useState } from 'react';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
-import { Loader2, Image, Download, Palette } from 'lucide-react';
+import { Loader2, Image, Download, Palette, Eye } from 'lucide-react';
+import { generateAssetImage, downloadAndCacheImage } from '../utils/imageGenerator';
+import { assetManager } from '../utils/assetManager';
 
-interface AssetSuggestion {
+interface AssetPrompt {
   type: 'background' | 'character' | 'prop';
   name: string;
-  url: string;
-  description: string;
+  prompt: string;
+  style: string;
 }
 
 interface SceneGeneratorProps {
   investigation: any;
-  onAssetsGenerated: (assets: AssetSuggestion[]) => void;
+  onAssetsGenerated: (assets: { name: string; url: string; type: string }[]) => void;
 }
 
 const SceneGenerator: React.FC<SceneGeneratorProps> = ({ investigation, onAssetsGenerated }) => {
   const [isGenerating, setIsGenerating] = useState(false);
-  const [generatedAssets, setGeneratedAssets] = useState<AssetSuggestion[]>([]);
+  const [generatedAssets, setGeneratedAssets] = useState<Array<{ name: string; url: string; type: string; prompt: string }>>([]);
+  const [isDownloading, setIsDownloading] = useState<string | null>(null);
 
   const generateSceneAssets = async () => {
     setIsGenerating(true);
     
     try {
-      // Simulation de génération d'assets basée sur l'enquête
-      const sceneContext = `${investigation.title}: ${investigation.description}`;
-      
-      // Assets suggérés basés sur le contexte
-      const suggestedAssets: AssetSuggestion[] = [
-        // Arrière-plans
-        {
-          type: 'background',
-          name: 'Manor Interior',
-          url: 'https://opengameart.org/sites/default/files/mansion_interior.png',
-          description: 'Intérieur de manoir victorien'
-        },
-        {
-          type: 'background',
-          name: 'Village Square',
-          url: 'https://opengameart.org/sites/default/files/village_square.png',
-          description: 'Place de village rustique'
-        },
-        {
-          type: 'background',
-          name: 'Office Building',
-          url: 'https://opengameart.org/sites/default/files/office_interior.png',
-          description: 'Bureau moderne'
-        },
-        
-        // Personnages
-        {
-          type: 'character',
-          name: 'Butler Sprite',
-          url: 'https://opengameart.org/sites/default/files/butler_sprite.png',
-          description: 'Majordome en costume'
-        },
-        {
-          type: 'character',
-          name: 'Detective Sprite',
-          url: 'https://opengameart.org/sites/default/files/detective_sprite.png',
-          description: 'Enquêteur en imperméable'
-        },
-        {
-          type: 'character',
-          name: 'Maid Sprite',
-          url: 'https://opengameart.org/sites/default/files/maid_sprite.png',
-          description: 'Femme de chambre'
-        },
-        
-        // Props/Objets
-        {
-          type: 'prop',
-          name: 'Evidence Box',
-          url: 'https://opengameart.org/sites/default/files/evidence_box.png',
-          description: 'Boîte à indices'
-        },
-        {
-          type: 'prop',
-          name: 'Magnifying Glass',
-          url: 'https://opengameart.org/sites/default/files/magnifying_glass.png',
-          description: 'Loupe d\'enquêteur'
-        }
-      ];
+      const assetPrompts: AssetPrompt[] = investigation.assetPrompts || [];
+      const generatedAssetsList: Array<{ name: string; url: string; type: string; prompt: string }> = [];
 
-      // Filtrer les assets pertinents selon le contexte
-      const contextKeywords = sceneContext.toLowerCase();
-      const relevantAssets = suggestedAssets.filter(asset => {
-        if (contextKeywords.includes('manoir') || contextKeywords.includes('manor')) {
-          return asset.name.toLowerCase().includes('manor') || asset.name.toLowerCase().includes('butler');
-        }
-        if (contextKeywords.includes('bureau') || contextKeywords.includes('office')) {
-          return asset.name.toLowerCase().includes('office') || asset.name.toLowerCase().includes('detective');
-        }
-        if (contextKeywords.includes('village')) {
-          return asset.name.toLowerCase().includes('village') || asset.name.toLowerCase().includes('maid');
-        }
-        return true; // Garder tous les assets par défaut
-      });
+      for (const assetPrompt of assetPrompts) {
+        console.log(`Génération de l'asset: ${assetPrompt.name}`);
+        
+        const imageUrl = await generateAssetImage({
+          description: assetPrompt.prompt,
+          style: assetPrompt.style as any,
+          type: assetPrompt.type
+        });
 
-      setGeneratedAssets(relevantAssets);
-      onAssetsGenerated(relevantAssets);
+        if (imageUrl) {
+          generatedAssetsList.push({
+            name: assetPrompt.name,
+            url: imageUrl,
+            type: assetPrompt.type,
+            prompt: assetPrompt.prompt
+          });
+        }
+      }
+
+      setGeneratedAssets(generatedAssetsList);
+      onAssetsGenerated(generatedAssetsList);
       
     } catch (error) {
       console.error('Erreur lors de la génération des assets:', error);
@@ -110,22 +60,24 @@ const SceneGenerator: React.FC<SceneGeneratorProps> = ({ investigation, onAssets
     }
   };
 
-  const downloadAsset = async (asset: AssetSuggestion) => {
+  const downloadAsset = async (asset: { name: string; url: string; type: string }) => {
+    setIsDownloading(asset.name);
+    
     try {
-      // Simulation du téléchargement
-      console.log(`Téléchargement de ${asset.name} depuis ${asset.url}`);
+      const cachedUrl = await downloadAndCacheImage(asset.url, asset.name);
       
-      // Ici, dans un vrai projet, on ferait:
-      // 1. Fetch de l'URL de l'asset
-      // 2. Convertir en blob
-      // 3. Sauvegarder dans le dossier public/assets/
+      // Ajouter à l'asset manager
+      await assetManager.downloadAsset({
+        name: asset.name,
+        url: cachedUrl,
+        type: asset.type as any
+      });
       
-      const response = await fetch(asset.url);
-      if (response.ok) {
-        console.log(`Asset ${asset.name} téléchargé avec succès`);
-      }
+      console.log(`Asset ${asset.name} téléchargé et mis en cache`);
     } catch (error) {
       console.error(`Erreur lors du téléchargement de ${asset.name}:`, error);
+    } finally {
+      setIsDownloading(null);
     }
   };
 
@@ -143,7 +95,7 @@ const SceneGenerator: React.FC<SceneGeneratorProps> = ({ investigation, onAssets
       <CardHeader>
         <CardTitle className="text-white flex items-center gap-2">
           <Palette className="w-5 h-5" />
-          Génération de Scène
+          Génération de Scène IA
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -151,7 +103,7 @@ const SceneGenerator: React.FC<SceneGeneratorProps> = ({ investigation, onAssets
           <div className="text-center">
             <Image className="w-16 h-16 text-gray-500 mx-auto mb-4" />
             <p className="text-gray-400 mb-4">
-              Générez des assets visuels basés sur votre enquête
+              Générez des assets visuels avec l'IA basés sur votre enquête
             </p>
             <Button
               onClick={generateSceneAssets}
@@ -161,12 +113,12 @@ const SceneGenerator: React.FC<SceneGeneratorProps> = ({ investigation, onAssets
               {isGenerating ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Génération...
+                  Génération IA...
                 </>
               ) : (
                 <>
                   <Palette className="w-4 h-4 mr-2" />
-                  Générer Assets
+                  Générer Assets IA
                 </>
               )}
             </Button>
@@ -174,7 +126,7 @@ const SceneGenerator: React.FC<SceneGeneratorProps> = ({ investigation, onAssets
         ) : (
           <div className="space-y-3">
             <div className="text-sm text-gray-300 mb-3">
-              {generatedAssets.length} assets suggérés pour votre enquête
+              {generatedAssets.length} assets générés par l'IA pour votre enquête
             </div>
             
             {generatedAssets.map((asset, index) => (
@@ -186,25 +138,41 @@ const SceneGenerator: React.FC<SceneGeneratorProps> = ({ investigation, onAssets
                     </Badge>
                     <span className="text-white font-medium text-sm">{asset.name}</span>
                   </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => downloadAsset(asset)}
-                    className="text-xs"
-                  >
-                    <Download className="w-3 h-3 mr-1" />
-                    Télécharger
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => window.open(asset.url, '_blank')}
+                      className="text-xs"
+                    >
+                      <Eye className="w-3 h-3 mr-1" />
+                      Voir
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => downloadAsset(asset)}
+                      disabled={isDownloading === asset.name}
+                      className="text-xs"
+                    >
+                      {isDownloading === asset.name ? (
+                        <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                      ) : (
+                        <Download className="w-3 h-3 mr-1" />
+                      )}
+                      Utiliser
+                    </Button>
+                  </div>
                 </div>
-                <p className="text-gray-400 text-xs">{asset.description}</p>
+                <p className="text-gray-400 text-xs mb-2">Prompt: {asset.prompt}</p>
                 <div className="mt-2">
                   <img
                     src={asset.url}
                     alt={asset.name}
-                    className="w-full h-20 object-cover rounded border border-slate-600"
+                    className="w-full h-32 object-cover rounded border border-slate-600"
+                    loading="lazy"
                     onError={(e) => {
-                      // Fallback si l'image ne charge pas
-                      (e.target as HTMLImageElement).src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjgwIiB2aWV3Qm94PSIwIDAgMjAwIDgwIiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgo8cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjMzc0MTUxIi8+Cjx0ZXh0IHg9IjEwMCIgeT0iNDAiIGZpbGw9IiM5Q0EzQUYiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSI+QXNzZXQgUHJldmlldzwvdGV4dD4KPC9zdmc+';
+                      (e.target as HTMLImageElement).src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjgwIiB2aWV3Qm94PSIwIDAgMjAwIDgwIiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgo8cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjMzc0MTUxIi8+Cjx0ZXh0IHg9IjEwMCIgeT0iNDAiIGZpbGw9IiM5Q0EzQUYiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSI+RXJyZXVyIGNoYXJnZW1lbnQ8L3RleHQ+Cjwvc3ZnPg==';
                     }}
                   />
                 </div>
@@ -215,9 +183,10 @@ const SceneGenerator: React.FC<SceneGeneratorProps> = ({ investigation, onAssets
               onClick={generateSceneAssets}
               variant="outline"
               className="w-full mt-4"
+              disabled={isGenerating}
             >
               <Palette className="w-4 h-4 mr-2" />
-              Regénérer Assets
+              Regénérer Assets IA
             </Button>
           </div>
         )}

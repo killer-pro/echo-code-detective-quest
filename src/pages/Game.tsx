@@ -30,8 +30,9 @@ const Game: React.FC = () => {
     if (!state.currentInvestigation) return;
 
     try {
+      // Utiliser la table 'dialogs' au lieu de 'dialog_history'
       const { data: dialogData, error } = await supabase
-        .from('dialog_history')
+        .from('dialogs')
         .select('*')
         .eq('investigation_id', state.currentInvestigation.id)
         .order('timestamp', { ascending: true });
@@ -42,11 +43,11 @@ const Game: React.FC = () => {
         dialogData.forEach(dialog => {
           const dialogEntry: DialogEntry = {
             id: dialog.id,
-            character_id: dialog.character_id,
+            character_id: dialog.character_id || '',
             user_input: dialog.user_input,
             character_reply: dialog.character_reply,
             timestamp: dialog.timestamp,
-            clickable_keywords: dialog.clickable_keywords || [],
+            clickable_keywords: Array.isArray(dialog.clickable_keywords) ? dialog.clickable_keywords : [],
             reputation_impact: dialog.reputation_impact || 0,
             truth_likelihood: dialog.truth_likelihood || 0.5,
           };
@@ -63,9 +64,8 @@ const Game: React.FC = () => {
 
     try {
       const { error } = await supabase
-        .from('dialog_history')
+        .from('dialogs')
         .insert({
-          investigation_id: state.currentInvestigation.id,
           character_id: dialog.character_id,
           user_input: dialog.user_input,
           character_reply: dialog.character_reply,
@@ -259,6 +259,7 @@ const Game: React.FC = () => {
                   dialogHistory={state.dialogHistory}
                   discoveredLeads={state.discoveredLeads}
                   characters={state.currentInvestigation.characters}
+                  investigation={state.currentInvestigation}
                 />
               </div>
             )}
