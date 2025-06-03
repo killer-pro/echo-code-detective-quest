@@ -5,6 +5,7 @@ import KonvaGameCanvas from '../components/KonvaGameCanvas';
 import DialogueBox from '../components/DialogueBox';
 import Journal from '../components/Journal';
 import GameManager from '../components/GameManager';
+import GameSaveManager from '../components/GameSaveManager';
 import { Button } from '../components/ui/button';
 import { ArrowLeft, Book, Save, Menu, Settings } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -55,6 +56,29 @@ const Game: React.FC = () => {
       toast.error('Erreur lors de la sauvegarde');
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleLoadGame = (saveData: any) => {
+    if (saveData.game_state) {
+      dispatch({
+        type: 'LOAD_GAME_STATE',
+        payload: {
+          dialogHistory: saveData.game_state.dialogHistory || [],
+          discoveredLeads: saveData.game_state.discoveredLeads || [],
+          reputation: saveData.game_state.reputation || {},
+          playerPosition: saveData.player_position || { x: 600, y: 750 },
+          charactersAlerted: saveData.game_state.charactersAlerted || {}
+        }
+      });
+      
+      // Mettre à jour la position du joueur
+      dispatch({
+        type: 'UPDATE_PLAYER_POSITION',
+        payload: saveData.player_position || { x: 600, y: 750 }
+      });
+      
+      setIsMenuOpen(false);
     }
   };
 
@@ -210,37 +234,42 @@ const Game: React.FC = () => {
                 )}
 
                 {isMenuOpen && !isDialogueOpen && !isJournalOpen && (
-                  <div className="h-full p-4">
-                    <div className="bg-slate-800 rounded-lg p-4">
-                      <h3 className="text-white text-lg font-bold mb-4">Options</h3>
-                      <div className="space-y-3">
-                        <Button
-                          onClick={handleSaveGame}
-                          disabled={isSaving}
-                          className="w-full bg-green-600 hover:bg-green-700"
-                        >
-                          <Save className="w-4 h-4 mr-2" />
-                          {isSaving ? 'Sauvegarde...' : 'Sauvegarder la partie'}
-                        </Button>
+                  <div className="h-full p-4 overflow-y-auto">
+                    <div className="space-y-4">
+                      <div className="bg-slate-800 rounded-lg p-4">
+                        <h3 className="text-white text-lg font-bold mb-4">Options</h3>
+                        <div className="space-y-3">
+                          <Button
+                            onClick={handleSaveGame}
+                            disabled={isSaving}
+                            className="w-full bg-green-600 hover:bg-green-700"
+                          >
+                            <Save className="w-4 h-4 mr-2" />
+                            {isSaving ? 'Sauvegarde...' : 'Sauvegarder la partie'}
+                          </Button>
+                          
+                          <Button
+                            onClick={() => navigate('/')}
+                            variant="outline"
+                            className="w-full"
+                          >
+                            <ArrowLeft className="w-4 h-4 mr-2" />
+                            Retour au menu principal
+                          </Button>
+                        </div>
                         
-                        <Button
-                          onClick={() => navigate('/')}
-                          variant="outline"
-                          className="w-full"
-                        >
-                          <ArrowLeft className="w-4 h-4 mr-2" />
-                          Retour au menu principal
-                        </Button>
+                        <div className="mt-6 p-3 bg-slate-700 rounded text-sm text-gray-300">
+                          <p className="font-semibold mb-2">Contrôles :</p>
+                          <ul className="space-y-1 text-xs">
+                            <li>• Flèches : Se déplacer sur la map agrandie</li>
+                            <li>• ESPACE : Interagir avec un personnage proche</li>
+                            <li>• Clic : Interagir avec un personnage</li>
+                          </ul>
+                        </div>
                       </div>
-                      
-                      <div className="mt-6 p-3 bg-slate-700 rounded text-sm text-gray-300">
-                        <p className="font-semibold mb-2">Contrôles :</p>
-                        <ul className="space-y-1 text-xs">
-                          <li>• Flèches : Se déplacer</li>
-                          <li>• ESPACE : Interagir avec un personnage proche</li>
-                          <li>• Clic : Interagir avec un personnage</li>
-                        </ul>
-                      </div>
+
+                      {/* Gestionnaire de sauvegardes */}
+                      <GameSaveManager onLoadGame={handleLoadGame} />
                     </div>
                   </div>
                 )}
@@ -252,7 +281,7 @@ const Game: React.FC = () => {
           <div className="bg-slate-800 border-t border-slate-700 p-2">
             <div className="max-w-7xl mx-auto text-center text-sm text-gray-400">
               <span className="inline-flex items-center gap-4">
-                <span>🎮 Utilisez les flèches pour vous déplacer</span>
+                <span>🎮 Utilisez les flèches pour vous déplacer sur la map agrandie</span>
                 <span>•</span>
                 <span>🤝 Approchez-vous des personnages et appuyez sur ESPACE</span>
                 <span>•</span>

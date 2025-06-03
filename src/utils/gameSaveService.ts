@@ -27,7 +27,7 @@ export class GameSaveService {
     charactersAlerted: { [characterId: string]: boolean } = {}
   ): Promise<string> {
     try {
-      const saveData: GameSaveData = {
+      const saveData = {
         investigation_id: investigation.id,
         player_position: playerPosition,
         game_state: {
@@ -38,7 +38,7 @@ export class GameSaveService {
         },
         last_played_at: new Date().toISOString(),
         player_name: 'Enquêteur',
-        player_role: investigation.player_role || 'enquêteur'
+        player_role: 'enquêteur'
       };
 
       const { data, error } = await supabase
@@ -57,7 +57,7 @@ export class GameSaveService {
     }
   }
 
-  static async loadGame(saveId: string): Promise<GameSaveData | null> {
+  static async loadGame(saveId: string): Promise<any | null> {
     try {
       const { data, error } = await supabase
         .from('game_saves')
@@ -66,14 +66,24 @@ export class GameSaveService {
         .single();
 
       if (error) throw error;
-      return data;
+      
+      return {
+        ...data,
+        player_position: data.player_position as { x: number; y: number },
+        game_state: data.game_state as {
+          dialogHistory: DialogEntry[];
+          discoveredLeads: Lead[];
+          reputation: { [characterId: string]: number };
+          charactersAlerted: { [characterId: string]: boolean };
+        }
+      };
     } catch (error) {
       console.error('💥 Erreur chargement partie:', error);
       return null;
     }
   }
 
-  static async getRecentSaves(limit: number = 10): Promise<GameSaveData[]> {
+  static async getRecentSaves(limit: number = 10): Promise<any[]> {
     try {
       const { data, error } = await supabase
         .from('game_saves')

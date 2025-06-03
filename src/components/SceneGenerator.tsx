@@ -110,13 +110,13 @@ const SceneGenerator: React.FC<SceneGeneratorProps> = ({ investigation, onAssets
             }
           }
 
-          // Ajouter à l'asset manager avec l'ID du personnage
+          // Ajouter à l'asset manager avec l'ID du personnage et marquer comme venant de génération
           await assetManager.addAsset({
             name: assetPrompt.name,
             url: imageUrl,
             type: assetPrompt.type,
             characterId
-          }, assetPrompt.prompt);
+          }, true);
           
           console.log(`✅ Asset "${assetPrompt.name}" généré et ajouté`);
           toast.success(`Asset "${assetPrompt.name}" généré avec succès`);
@@ -203,7 +203,7 @@ const SceneGenerator: React.FC<SceneGeneratorProps> = ({ investigation, onAssets
           url: newImageUrl,
           type: asset.type as any,
           characterId
-        }, asset.prompt);
+        }, true);
 
         await saveGeneratedAssetToDatabase(
           investigation.id,
@@ -248,7 +248,7 @@ const SceneGenerator: React.FC<SceneGeneratorProps> = ({ investigation, onAssets
         url: asset.url,
         type: asset.type as any,
         characterId
-      }, asset.prompt);
+      }, true);
       
       console.log(`✅ Asset "${asset.name}" ajouté au jeu`);
       toast.success(`Asset "${asset.name}" ajouté au jeu`);
@@ -281,7 +281,7 @@ const SceneGenerator: React.FC<SceneGeneratorProps> = ({ investigation, onAssets
           url: asset.url,
           type: asset.type as any,
           characterId
-        }, asset.prompt);
+        }, true);
       }
       
       console.log('✅ Tous les assets ont été ajoutés au jeu');

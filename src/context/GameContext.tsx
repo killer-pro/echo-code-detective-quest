@@ -9,6 +9,7 @@ interface GameState {
   activeCharacter: Character | null;
   discoveredLeads: Lead[];
   playerPosition: { x: number; y: number };
+  charactersAlerted: { [characterId: string]: boolean };
 }
 
 const initialState: GameState = {
@@ -17,7 +18,8 @@ const initialState: GameState = {
   reputation: {},
   activeCharacter: null,
   discoveredLeads: [],
-  playerPosition: { x: 400, y: 500 },
+  playerPosition: { x: 600, y: 750 }, // Position mise à jour pour map agrandie
+  charactersAlerted: {},
 };
 
 type GameAction =
@@ -34,12 +36,19 @@ type GameAction =
       discoveredLeads: Lead[]; 
       reputation: { [characterId: string]: number };
       playerPosition: { x: number; y: number };
+      charactersAlerted: { [characterId: string]: boolean };
     } };
 
 const gameReducer = (state: GameState, action: GameAction): GameState => {
   switch (action.type) {
     case 'SET_INVESTIGATION':
-      return { ...state, currentInvestigation: action.payload, dialogHistory: [], discoveredLeads: [] };
+      return { 
+        ...state, 
+        currentInvestigation: action.payload, 
+        dialogHistory: [], 
+        discoveredLeads: [],
+        charactersAlerted: {}
+      };
     case 'ADD_DIALOG':
       return { ...state, dialogHistory: [...state.dialogHistory, action.payload] };
     case 'UPDATE_CHARACTER_REPUTATION':
@@ -66,6 +75,10 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
     case 'UPDATE_CHARACTER_ALERTED_STATUS':
       return {
         ...state,
+        charactersAlerted: {
+          ...state.charactersAlerted,
+          [action.payload.characterId]: action.payload.alerted
+        },
         currentInvestigation: state.currentInvestigation
           ? {
               ...state.currentInvestigation,
@@ -82,6 +95,7 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         discoveredLeads: action.payload.discoveredLeads,
         reputation: action.payload.reputation,
         playerPosition: action.payload.playerPosition,
+        charactersAlerted: action.payload.charactersAlerted || {},
       };
     default:
       return state;

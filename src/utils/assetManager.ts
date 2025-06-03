@@ -22,7 +22,7 @@ class AssetManager {
   private loadingPromise: Promise<void> | null = null;
 
   constructor() {
-    console.log('🎨 AssetManager: Initialisation avec support Cloudinary');
+    console.log('🎨 AssetManager: Initialisation avec support Cloudinary et LocalStorage');
   }
 
   setCurrentInvestigation(investigationId: string) {
@@ -30,6 +30,29 @@ class AssetManager {
     this.currentInvestigationId = investigationId;
     this.ready = false;
     this.assets.clear();
+  }
+
+  // Système de cache LocalStorage
+  private getCacheKey(assetName: string): string {
+    return `asset_${this.currentInvestigationId}_${assetName}`;
+  }
+
+  private saveToCache(assetName: string, url: string): void {
+    try {
+      localStorage.setItem(this.getCacheKey(assetName), url);
+      console.log(`💾 Asset mis en cache: ${assetName}`);
+    } catch (error) {
+      console.warn('⚠️ Erreur cache localStorage:', error);
+    }
+  }
+
+  private getFromCache(assetName: string): string | null {
+    try {
+      return localStorage.getItem(this.getCacheKey(assetName));
+    } catch (error) {
+      console.warn('⚠️ Erreur lecture cache:', error);
+      return null;
+    }
   }
 
   async loadAssetsFromDatabase(): Promise<void> {
@@ -51,7 +74,7 @@ class AssetManager {
   private async _loadAssetsFromDatabase(): Promise<void> {
     if (!this.currentInvestigationId) return;
 
-    console.log('📥 AssetManager: Chargement des assets Cloudinary...');
+    console.log('📥 AssetManager: Chargement des assets...');
 
     try {
       // 1. Récupérer les assets Cloudinary existants
@@ -67,17 +90,26 @@ class AssetManager {
 
       console.log(`📦 AssetManager: ${cloudinaryAssets?.length || 0} assets Cloudinary trouvés`);
 
-      // 2. Charger les assets existants
+      // 2. Charger les assets existants avec cache
       if (cloudinaryAssets && cloudinaryAssets.length > 0) {
-        cloudinaryAssets.forEach((asset: CloudinaryAssetRow) => {
+        for (const asset of cloudinaryAssets) {
+          // Vérifier le cache d'abord
+          let assetUrl = this.getFromCache(asset.asset_name);
+          
+          if (!assetUrl) {
+            // Si pas en cache, utiliser l'URL Cloudinary et la mettre en cache
+            assetUrl = asset.cloudinary_url;
+            this.saveToCache(asset.asset_name, assetUrl);
+          }
+
           this.registerAsset({
             name: asset.asset_name,
-            url: asset.cloudinary_url,
+            url: assetUrl,
             type: asset.asset_type as Asset['type'],
             characterId: asset.character_id || undefined,
             locationContext: asset.location_context || undefined
           });
-        });
+        }
       } else {
         // 3. Si pas d'assets, en générer automatiquement
         await this.generateMissingAssets();
@@ -143,8 +175,13 @@ class AssetManager {
     console.log('✅ AssetManager: Assets de fallback chargés');
   }
 
-  async addAsset(asset: Asset): Promise<void> {
+  async addAsset(asset: Asset, fromGeneration: boolean = false): Promise<void> {
     this.registerAsset(asset);
+    
+    // Si l'asset vient de la génération IA, le mettre en cache
+    if (fromGeneration) {
+      this.saveToCache(asset.name, asset.url);
+    }
   }
 
   public markAsReadyForLocalAssets(): void {
@@ -227,6 +264,20 @@ class AssetManager {
     this.ready = false;
     this.currentInvestigationId = null;
     this.loadingPromise = null;
+  }
+
+  // Nettoyer le cache pour une investigation
+  clearCacheForInvestigation(investigationId: string): void {
+    try {
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith(`asset_${investigationId}_`)) {
+          localStorage.removeItem(key);
+        }
+      });
+      console.log(`🗑️ Cache nettoyé pour investigation: ${investigationId}`);
+    } catch (error) {
+      console.warn('⚠️ Erreur nettoyage cache:', error);
+    }
   }
 }
 

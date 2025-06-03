@@ -16,10 +16,14 @@ const KonvaGameCanvas: React.FC<KonvaGameCanvasProps> = ({ characters, onCharact
   const [backgroundImage, setBackgroundImage] = useState<HTMLImageElement | null>(null);
   const [playerImage, setPlayerImage] = useState<HTMLImageElement | null>(null);
   const [characterImages, setCharacterImages] = useState<Map<string, HTMLImageElement>>(new Map());
-  const [playerPosition, setPlayerPosition] = useState({ x: 400, y: 500 });
+  const [playerPosition, setPlayerPosition] = useState({ x: 600, y: 750 }); // Position plus centrale sur map agrandie
   const [keys, setKeys] = useState<Set<string>>(new Set());
   const [hoveredCharacter, setHoveredCharacter] = useState<string | null>(null);
   const stageRef = useRef<Konva.Stage>(null);
+
+  // Taille agrandie de la map
+  const MAP_WIDTH = 1200;
+  const MAP_HEIGHT = 900;
 
   // Charger l'image d'arrière-plan
   useEffect(() => {
@@ -113,7 +117,7 @@ const KonvaGameCanvas: React.FC<KonvaGameCanvasProps> = ({ characters, onCharact
       
       // Interaction avec ESPACE
       if (e.code === 'Space') {
-        const interactionDistance = 80;
+        const interactionDistance = 100;
         for (const character of characters) {
           const distance = Math.sqrt(
             Math.pow(playerPosition.x - character.position.x, 2) +
@@ -147,7 +151,7 @@ const KonvaGameCanvas: React.FC<KonvaGameCanvasProps> = ({ characters, onCharact
 
   // Animation du joueur
   useEffect(() => {
-    const speed = 3;
+    const speed = 4;
     const interval = setInterval(() => {
       setPlayerPosition(prev => {
         let newX = prev.x;
@@ -158,9 +162,9 @@ const KonvaGameCanvas: React.FC<KonvaGameCanvasProps> = ({ characters, onCharact
         if (keys.has('ArrowUp')) newY -= speed;
         if (keys.has('ArrowDown')) newY += speed;
 
-        // Limiter aux bords
-        newX = Math.max(30, Math.min(770, newX));
-        newY = Math.max(30, Math.min(570, newY));
+        // Limiter aux bords de la map agrandie
+        newX = Math.max(40, Math.min(MAP_WIDTH - 40, newX));
+        newY = Math.max(40, Math.min(MAP_HEIGHT - 40, newY));
 
         return { x: newX, y: newY };
       });
@@ -183,30 +187,34 @@ const KonvaGameCanvas: React.FC<KonvaGameCanvasProps> = ({ characters, onCharact
   };
 
   const isCharacterInRange = (character: Character): boolean => {
-    return getCharacterInteractionDistance(character) < 80;
+    return getCharacterInteractionDistance(character) < 100;
   };
 
   return (
     <div className="w-full h-full flex items-center justify-center bg-slate-800 rounded-lg overflow-hidden border-2 border-slate-600">
       <div 
-        className="w-[800px] h-[600px] border border-slate-500 rounded bg-slate-900 relative"
+        className="border border-slate-500 rounded bg-slate-900 relative overflow-auto"
         style={{ 
+          width: '100%',
+          height: '100%',
+          maxWidth: `${MAP_WIDTH}px`,
+          maxHeight: `${MAP_HEIGHT}px`,
           boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.3), 0 4px 8px rgba(0,0,0,0.2)' 
         }}
       >
-        <Stage width={800} height={600} ref={stageRef}>
+        <Stage width={MAP_WIDTH} height={MAP_HEIGHT} ref={stageRef}>
           <Layer>
             {/* Arrière-plan */}
             {backgroundImage ? (
               <Image
                 image={backgroundImage}
-                width={800}
-                height={600}
+                width={MAP_WIDTH}
+                height={MAP_HEIGHT}
               />
             ) : (
               <Rect
-                width={800}
-                height={600}
+                width={MAP_WIDTH}
+                height={MAP_HEIGHT}
                 fill="linear-gradient(135deg, #1e293b 0%, #334155 50%, #475569 100%)"
               />
             )}
@@ -217,7 +225,7 @@ const KonvaGameCanvas: React.FC<KonvaGameCanvasProps> = ({ characters, onCharact
                 key={`interaction-${character.id}`}
                 x={character.position.x}
                 y={character.position.y}
-                radius={80}
+                radius={100}
                 fill="rgba(59, 130, 246, 0.1)"
                 stroke={isCharacterInRange(character) ? "#3b82f6" : "transparent"}
                 strokeWidth={2}
@@ -253,8 +261,8 @@ const KonvaGameCanvas: React.FC<KonvaGameCanvasProps> = ({ characters, onCharact
                   {/* Ombre du personnage */}
                   <Circle
                     x={0}
-                    y={35}
-                    radius={25}
+                    y={40}
+                    radius={30}
                     fill="rgba(0, 0, 0, 0.3)"
                     scaleY={0.5}
                   />
@@ -263,10 +271,10 @@ const KonvaGameCanvas: React.FC<KonvaGameCanvasProps> = ({ characters, onCharact
                   {characterImage ? (
                     <Image
                       image={characterImage}
-                      width={60}
-                      height={80}
-                      offsetX={30}
-                      offsetY={40}
+                      width={70}
+                      height={90}
+                      offsetX={35}
+                      offsetY={45}
                       scaleX={isHovered ? 1.1 : 1}
                       scaleY={isHovered ? 1.1 : 1}
                       filters={isInRange ? [] : [Konva.Filters.Brighten]}
@@ -274,10 +282,10 @@ const KonvaGameCanvas: React.FC<KonvaGameCanvasProps> = ({ characters, onCharact
                     />
                   ) : (
                     <Rect
-                      width={40}
-                      height={60}
-                      offsetX={20}
-                      offsetY={30}
+                      width={50}
+                      height={70}
+                      offsetX={25}
+                      offsetY={35}
                       fill={character.role === 'témoin' ? '#10b981' : 
                             character.role === 'suspect' ? '#ef4444' : 
                             character.role === 'enquêteur' ? '#3b82f6' : '#6b7280'}
@@ -292,41 +300,41 @@ const KonvaGameCanvas: React.FC<KonvaGameCanvasProps> = ({ characters, onCharact
                   {/* Nom du personnage */}
                   <Text
                     text={character.name}
-                    fontSize={14}
+                    fontSize={16}
                     fontFamily="Arial, sans-serif"
                     fill="white"
                     stroke="black"
                     strokeWidth={1}
-                    offsetX={character.name.length * 4}
-                    y={-60}
+                    offsetX={character.name.length * 5}
+                    y={-70}
                     visible={isHovered || isInRange}
                   />
                   
                   {/* Rôle du personnage */}
                   <Text
                     text={character.role.toUpperCase()}
-                    fontSize={10}
+                    fontSize={12}
                     fontFamily="Arial, sans-serif"
                     fill={character.role === 'témoin' ? '#10b981' : 
                           character.role === 'suspect' ? '#ef4444' : 
                           character.role === 'enquêteur' ? '#3b82f6' : '#6b7280'}
                     stroke="black"
                     strokeWidth={1}
-                    offsetX={character.role.length * 3}
-                    y={50}
+                    offsetX={character.role.length * 4}
+                    y={60}
                   />
 
                   {/* Indicateur d'interaction */}
                   {isInRange && (
                     <Text
                       text="ESPACE pour interagir"
-                      fontSize={12}
+                      fontSize={14}
                       fontFamily="Arial, sans-serif"
                       fill="#fbbf24"
                       stroke="black"
                       strokeWidth={1}
-                      offsetX={80}
-                      y={-80}
+                      offsetX={90}
+                      y={-90}
                     />
                   )}
                 </Group>
@@ -338,8 +346,8 @@ const KonvaGameCanvas: React.FC<KonvaGameCanvasProps> = ({ characters, onCharact
               {/* Ombre du joueur */}
               <Circle
                 x={0}
-                y={35}
-                radius={25}
+                y={40}
+                radius={30}
                 fill="rgba(0, 0, 0, 0.3)"
                 scaleY={0.5}
               />
@@ -348,17 +356,17 @@ const KonvaGameCanvas: React.FC<KonvaGameCanvasProps> = ({ characters, onCharact
               {playerImage ? (
                 <Image
                   image={playerImage}
+                  width={60}
+                  height={80}
+                  offsetX={30}
+                  offsetY={40}
+                />
+              ) : (
+                <Rect
                   width={50}
                   height={70}
                   offsetX={25}
                   offsetY={35}
-                />
-              ) : (
-                <Rect
-                  width={40}
-                  height={60}
-                  offsetX={20}
-                  offsetY={30}
                   fill="#0ea5e9"
                   stroke="#ffffff"
                   strokeWidth={3}
@@ -369,24 +377,24 @@ const KonvaGameCanvas: React.FC<KonvaGameCanvasProps> = ({ characters, onCharact
               {/* Indicateur de direction */}
               <Circle
                 x={0}
-                y={-45}
-                radius={3}
+                y={-50}
+                radius={4}
                 fill="#0ea5e9"
               />
             </Group>
           </Layer>
         </Stage>
 
-        {/* Mini-carte en overlay */}
-        <div className="absolute top-4 right-4 w-32 h-24 bg-black/50 rounded border border-slate-500 p-2">
+        {/* Mini-carte agrandie */}
+        <div className="absolute top-4 right-4 w-40 h-32 bg-black/50 rounded border border-slate-500 p-2">
           <div className="text-white text-xs mb-1">Mini-carte</div>
-          <div className="relative w-full h-16 bg-slate-700 rounded">
+          <div className="relative w-full h-24 bg-slate-700 rounded">
             {/* Point joueur sur mini-carte */}
             <div 
               className="absolute w-2 h-2 bg-blue-400 rounded-full"
               style={{
-                left: `${(playerPosition.x / 800) * 100}%`,
-                top: `${(playerPosition.y / 600) * 100}%`,
+                left: `${(playerPosition.x / MAP_WIDTH) * 100}%`,
+                top: `${(playerPosition.y / MAP_HEIGHT) * 100}%`,
                 transform: 'translate(-50%, -50%)'
               }}
             />
@@ -400,8 +408,8 @@ const KonvaGameCanvas: React.FC<KonvaGameCanvasProps> = ({ characters, onCharact
                   'bg-gray-400'
                 }`}
                 style={{
-                  left: `${(character.position.x / 800) * 100}%`,
-                  top: `${(character.position.y / 600) * 100}%`,
+                  left: `${(character.position.x / MAP_WIDTH) * 100}%`,
+                  top: `${(character.position.y / MAP_HEIGHT) * 100}%`,
                   transform: 'translate(-50%, -50%)'
                 }}
               />
