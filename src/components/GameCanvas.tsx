@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef } from 'react';
 import { GameManager } from '../phaser/Game';
 import { Character } from '../types';
@@ -16,14 +17,19 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ characters, onCharacterClick })
 
   useEffect(() => {
     if (gameRef.current && !gameInstanceRef.current) {
+      console.log('🎮 GameCanvas: Initialisation du jeu Phaser');
       const gameManager = GameManager.getInstance();
       gameInstanceRef.current = gameManager.init(gameRef.current.id);
 
-      // Configuration du handler de clic
-      const scene = gameInstanceRef.current.scene.getScene('MainScene');
-      if (scene && typeof (scene as any).setCharacterClickHandler === 'function') {
-        (scene as any).setCharacterClickHandler(onCharacterClick);
-      }
+      // Attendre que la scène soit créée puis configurer les handlers
+      gameInstanceRef.current.events.once('ready', () => {
+        console.log('🎮 GameCanvas: Jeu Phaser prêt');
+        const scene = gameInstanceRef.current?.scene.getScene('MainScene') as any;
+        if (scene && typeof scene.setCharacterClickHandler === 'function') {
+          scene.setCharacterClickHandler(onCharacterClick);
+          console.log('🖱️ GameCanvas: Handler de clic configuré');
+        }
+      });
     }
 
     return () => {
@@ -31,32 +37,33 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ characters, onCharacterClick })
     };
   }, [onCharacterClick]);
 
+  // Mettre à jour les personnages dans la scène quand ils changent
   useEffect(() => {
     if (gameInstanceRef.current && characters.length > 0) {
-      console.log('Mise à jour des personnages dans GameCanvas:', characters);
+      console.log('👥 GameCanvas: Mise à jour des personnages:', characters.length);
       
-      const scene = gameInstanceRef.current.scene.getScene('MainScene');
-      if (scene && typeof (scene as any).setCharacters === 'function') {
-        (scene as any).setCharacters(characters);
+      const scene = gameInstanceRef.current.scene.getScene('MainScene') as any;
+      if (scene && typeof scene.setCharacters === 'function') {
+        scene.setCharacters(characters);
+        console.log('✅ GameCanvas: Personnages mis à jour dans la scène');
       }
     }
   }, [characters]);
 
   // Surveiller les changements d'assets et recharger automatiquement (sauf en mode démo)
   useEffect(() => {
-    // Si ce n'est PAS le mode démo, configurer le rechargement automatique
     if (state.currentInvestigation?.id !== 'demo-investigation-001') {
-      console.log('🔄 GameCanvas: Rechargement automatique des assets activé.');
+      console.log('🔄 GameCanvas: Surveillance des assets activée');
 
       const reloadAssetsWhenAvailable = () => {
         const assets = assetManager.getAllAssets();
-        console.log('Assets disponibles pour rechargement:', assets);
+        console.log('📦 GameCanvas: Assets disponibles:', assets.length);
         
         if (assets.length > 0 && gameInstanceRef.current) {
-          const scene = gameInstanceRef.current.scene.getScene('MainScene');
-          if (scene && typeof (scene as any).reloadAssets === 'function') {
-            console.log('Rechargement des assets dans la scène...');
-            (scene as any).reloadAssets();
+          const scene = gameInstanceRef.current.scene.getScene('MainScene') as any;
+          if (scene && typeof scene.reloadAssets === 'function') {
+            console.log('🔄 GameCanvas: Rechargement des assets dans la scène');
+            scene.reloadAssets();
           }
         }
       };
@@ -69,14 +76,11 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ characters, onCharacterClick })
 
       return () => clearInterval(checkInterval);
     } else {
-      // En mode démo, afficher un message et ne rien faire
-      console.log('🚫 GameCanvas: Rechargement automatique des assets désactivé en mode démo.');
+      console.log('🚫 GameCanvas: Mode démo - rechargement automatique désactivé');
     }
 
-    // Cleanup pour le cas démo (bien que rien ne soit configuré)
     return () => {};
-
-  }, [state.currentInvestigation]); // Dépendance à state.currentInvestigation
+  }, [state.currentInvestigation]);
 
   return (
     <div className="w-full h-full flex items-center justify-center bg-slate-800 rounded-lg overflow-hidden border-2 border-slate-600">

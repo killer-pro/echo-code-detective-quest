@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
@@ -34,11 +35,10 @@ const SceneGenerator: React.FC<SceneGeneratorProps> = ({ investigation, onAssets
 
   const validateImageUrl = (url: string): Promise<boolean> => {
     return new Promise((resolve) => {
-      const img = new window.Image(); // Fix: utiliser window.Image() au lieu de new Image()
+      const img = document.createElement('img');
       img.onload = () => resolve(true);
       img.onerror = () => resolve(false);
       img.src = url;
-      // Timeout après 10 secondes
       setTimeout(() => resolve(false), 10000);
     });
   };
@@ -152,10 +152,8 @@ const SceneGenerator: React.FC<SceneGeneratorProps> = ({ investigation, onAssets
       let retryCount = 0;
       const maxRetries = 3;
 
-      // Retry logic pour la régénération avec nouveaux paramètres
       while (!newImageUrl && retryCount < maxRetries) {
         try {
-          // Ajouter une variation au prompt pour forcer une nouvelle génération
           const enhancedPrompt = `${asset.prompt}, variation ${Date.now()}, style variant`;
           
           newImageUrl = await generateAssetImage({
@@ -165,7 +163,6 @@ const SceneGenerator: React.FC<SceneGeneratorProps> = ({ investigation, onAssets
           });
           
           if (newImageUrl) {
-            // Vérifier que la nouvelle image se charge
             const isValid = await validateImageUrl(newImageUrl);
             if (!isValid) {
               newImageUrl = null;
@@ -191,7 +188,6 @@ const SceneGenerator: React.FC<SceneGeneratorProps> = ({ investigation, onAssets
         setGeneratedAssets(updatedAssets);
         onAssetsGenerated(updatedAssets);
         
-        // Mettre à jour l'asset manager
         let characterId = undefined;
         if (asset.type === 'character') {
           const character = investigation.characters?.find((char: any) => 
@@ -208,6 +204,14 @@ const SceneGenerator: React.FC<SceneGeneratorProps> = ({ investigation, onAssets
           type: asset.type as any,
           characterId
         }, asset.prompt);
+
+        await saveGeneratedAssetToDatabase(
+          investigation.id,
+          asset.name,
+          asset.type as 'background' | 'character' | 'prop',
+          newImageUrl,
+          asset.prompt
+        );
         
         console.log(`✅ Asset "${asset.name}" régénéré avec succès`);
         toast.success(`Asset "${asset.name}" régénéré avec succès`);

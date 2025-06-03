@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useGame } from '../context/GameContext';
 import GameCanvas from '../components/GameCanvas';
@@ -7,6 +8,7 @@ import GameManager from '../components/GameManager';
 import { Button } from '../components/ui/button';
 import { ArrowLeft, Book } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { Character } from '../types';
 
 const Game: React.FC = () => {
   const { state, dispatch } = useGame();
@@ -80,7 +82,7 @@ const Game: React.FC = () => {
               {assetsInitialized ? (
                 <GameCanvas
                   characters={state.currentInvestigation.characters}
-                  onCharacterClick={(character) => {
+                  onCharacterClick={(character: Character) => {
                     console.log('🖱️ Game.tsx: onCharacterClick called for:', character.name);
                     handleCharacterClick(character);
                     setIsDialogueOpen(true);
