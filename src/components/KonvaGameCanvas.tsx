@@ -1,6 +1,6 @@
 
 import React, { useEffect, useRef, useState } from 'react';
-import { Stage, Layer, Image, Rect, Text, Group } from 'react-konva';
+import { Stage, Layer, Image, Rect, Text, Group, Circle } from 'react-konva';
 import { Character } from '../types';
 import { assetManager } from '../utils/assetManager';
 import { useGame } from '../context/GameContext';
@@ -14,9 +14,11 @@ interface KonvaGameCanvasProps {
 const KonvaGameCanvas: React.FC<KonvaGameCanvasProps> = ({ characters, onCharacterClick }) => {
   const { state } = useGame();
   const [backgroundImage, setBackgroundImage] = useState<HTMLImageElement | null>(null);
+  const [playerImage, setPlayerImage] = useState<HTMLImageElement | null>(null);
   const [characterImages, setCharacterImages] = useState<Map<string, HTMLImageElement>>(new Map());
   const [playerPosition, setPlayerPosition] = useState({ x: 400, y: 500 });
   const [keys, setKeys] = useState<Set<string>>(new Set());
+  const [hoveredCharacter, setHoveredCharacter] = useState<string | null>(null);
   const stageRef = useRef<Konva.Stage>(null);
 
   // Charger l'image d'arrière-plan
@@ -40,6 +42,30 @@ const KonvaGameCanvas: React.FC<KonvaGameCanvasProps> = ({ characters, onCharact
 
     if (assetManager.isReady()) {
       loadBackground();
+    }
+  }, [state.currentInvestigation]);
+
+  // Charger l'image du joueur
+  useEffect(() => {
+    const loadPlayerImage = async () => {
+      const playerImageUrl = assetManager.getPlayerImageUrl();
+      if (playerImageUrl) {
+        console.log('👤 KonvaGameCanvas: Chargement image joueur:', playerImageUrl);
+        const img = new window.Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+          console.log('✅ KonvaGameCanvas: Image joueur chargée');
+          setPlayerImage(img);
+        };
+        img.onerror = (error) => {
+          console.error('💥 KonvaGameCanvas: Erreur chargement image joueur:', error);
+        };
+        img.src = playerImageUrl;
+      }
+    };
+
+    if (assetManager.isReady()) {
+      loadPlayerImage();
     }
   }, [state.currentInvestigation]);
 
@@ -133,8 +159,8 @@ const KonvaGameCanvas: React.FC<KonvaGameCanvasProps> = ({ characters, onCharact
         if (keys.has('ArrowDown')) newY += speed;
 
         // Limiter aux bords
-        newX = Math.max(20, Math.min(780, newX));
-        newY = Math.max(20, Math.min(580, newY));
+        newX = Math.max(30, Math.min(770, newX));
+        newY = Math.max(30, Math.min(570, newY));
 
         return { x: newX, y: newY };
       });
@@ -143,41 +169,27 @@ const KonvaGameCanvas: React.FC<KonvaGameCanvasProps> = ({ characters, onCharact
     return () => clearInterval(interval);
   }, [keys]);
 
-  // Recharger les assets quand ils changent (sauf en mode démo)
-  useEffect(() => {
-    if (state.currentInvestigation?.id !== 'demo-investigation-001') {
-      console.log('🔄 KonvaGameCanvas: Surveillance des assets activée');
-
-      const reloadAssetsWhenAvailable = () => {
-        const assets = assetManager.getAllAssets();
-        console.log('📦 KonvaGameCanvas: Assets disponibles:', assets.length);
-        
-        if (assets.length > 0) {
-          // Recharger l'arrière-plan
-          const backgroundUrl = assetManager.getBackgroundUrl();
-          if (backgroundUrl && (!backgroundImage || backgroundImage.src !== backgroundUrl)) {
-            const img = new window.Image();
-            img.crossOrigin = 'anonymous';
-            img.onload = () => setBackgroundImage(img);
-            img.src = backgroundUrl;
-          }
-        }
-      };
-
-      const checkInterval = setInterval(reloadAssetsWhenAvailable, 3000);
-      return () => clearInterval(checkInterval);
-    }
-  }, [state.currentInvestigation, backgroundImage]);
-
   const handleCharacterClick = (character: Character) => {
     console.log(`🖱️ KonvaGameCanvas: Clic sur ${character.name}`);
     onCharacterClick(character);
   };
 
+  const getCharacterInteractionDistance = (character: Character): number => {
+    const distance = Math.sqrt(
+      Math.pow(playerPosition.x - character.position.x, 2) +
+      Math.pow(playerPosition.y - character.position.y, 2)
+    );
+    return distance;
+  };
+
+  const isCharacterInRange = (character: Character): boolean => {
+    return getCharacterInteractionDistance(character) < 80;
+  };
+
   return (
     <div className="w-full h-full flex items-center justify-center bg-slate-800 rounded-lg overflow-hidden border-2 border-slate-600">
       <div 
-        className="w-[800px] h-[600px] border border-slate-500 rounded bg-slate-900"
+        className="w-[800px] h-[600px] border border-slate-500 rounded bg-slate-900 relative"
         style={{ 
           boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.3), 0 4px 8px rgba(0,0,0,0.2)' 
         }}
@@ -195,13 +207,31 @@ const KonvaGameCanvas: React.FC<KonvaGameCanvasProps> = ({ characters, onCharact
               <Rect
                 width={800}
                 height={600}
-                fill="#333333"
+                fill="linear-gradient(135deg, #1e293b 0%, #334155 50%, #475569 100%)"
               />
             )}
+
+            {/* Zones d'interaction pour les personnages */}
+            {characters.map((character) => (
+              <Circle
+                key={`interaction-${character.id}`}
+                x={character.position.x}
+                y={character.position.y}
+                radius={80}
+                fill="rgba(59, 130, 246, 0.1)"
+                stroke={isCharacterInRange(character) ? "#3b82f6" : "transparent"}
+                strokeWidth={2}
+                dash={[5, 5]}
+                visible={isCharacterInRange(character)}
+              />
+            ))}
 
             {/* Personnages */}
             {characters.map((character) => {
               const characterImage = characterImages.get(character.id);
+              const isInRange = isCharacterInRange(character);
+              const isHovered = hoveredCharacter === character.id;
+              
               return (
                 <Group
                   key={character.id}
@@ -209,7 +239,27 @@ const KonvaGameCanvas: React.FC<KonvaGameCanvasProps> = ({ characters, onCharact
                   y={character.position.y}
                   onClick={() => handleCharacterClick(character)}
                   onTap={() => handleCharacterClick(character)}
+                  onMouseEnter={() => {
+                    setHoveredCharacter(character.id);
+                    const stage = stageRef.current;
+                    if (stage) stage.container().style.cursor = 'pointer';
+                  }}
+                  onMouseLeave={() => {
+                    setHoveredCharacter(null);
+                    const stage = stageRef.current;
+                    if (stage) stage.container().style.cursor = 'default';
+                  }}
                 >
+                  {/* Ombre du personnage */}
+                  <Circle
+                    x={0}
+                    y={35}
+                    radius={25}
+                    fill="rgba(0, 0, 0, 0.3)"
+                    scaleY={0.5}
+                  />
+                  
+                  {/* Image ou rectangle du personnage */}
                   {characterImage ? (
                     <Image
                       image={characterImage}
@@ -217,14 +267,10 @@ const KonvaGameCanvas: React.FC<KonvaGameCanvasProps> = ({ characters, onCharact
                       height={80}
                       offsetX={30}
                       offsetY={40}
-                      onMouseEnter={(e) => {
-                        const stage = e.target.getStage();
-                        if (stage) stage.container().style.cursor = 'pointer';
-                      }}
-                      onMouseLeave={(e) => {
-                        const stage = e.target.getStage();
-                        if (stage) stage.container().style.cursor = 'default';
-                      }}
+                      scaleX={isHovered ? 1.1 : 1}
+                      scaleY={isHovered ? 1.1 : 1}
+                      filters={isInRange ? [] : [Konva.Filters.Brighten]}
+                      brightness={isInRange ? 0 : -0.3}
                     />
                   ) : (
                     <Rect
@@ -232,19 +278,14 @@ const KonvaGameCanvas: React.FC<KonvaGameCanvasProps> = ({ characters, onCharact
                       height={60}
                       offsetX={20}
                       offsetY={30}
-                      fill={character.role === 'témoin' ? '#2ecc71' : 
-                            character.role === 'suspect' ? '#e74c3c' : 
-                            character.role === 'enquêteur' ? '#3498db' : '#95a5a6'}
+                      fill={character.role === 'témoin' ? '#10b981' : 
+                            character.role === 'suspect' ? '#ef4444' : 
+                            character.role === 'enquêteur' ? '#3b82f6' : '#6b7280'}
                       stroke="#ffffff"
                       strokeWidth={2}
-                      onMouseEnter={(e) => {
-                        const stage = e.target.getStage();
-                        if (stage) stage.container().style.cursor = 'pointer';
-                      }}
-                      onMouseLeave={(e) => {
-                        const stage = e.target.getStage();
-                        if (stage) stage.container().style.cursor = 'default';
-                      }}
+                      cornerRadius={5}
+                      scaleX={isHovered ? 1.1 : 1}
+                      scaleY={isHovered ? 1.1 : 1}
                     />
                   )}
                   
@@ -252,41 +293,121 @@ const KonvaGameCanvas: React.FC<KonvaGameCanvasProps> = ({ characters, onCharact
                   <Text
                     text={character.name}
                     fontSize={14}
+                    fontFamily="Arial, sans-serif"
                     fill="white"
                     stroke="black"
                     strokeWidth={1}
                     offsetX={character.name.length * 4}
-                    y={-50}
+                    y={-60}
+                    visible={isHovered || isInRange}
                   />
                   
                   {/* Rôle du personnage */}
                   <Text
                     text={character.role.toUpperCase()}
                     fontSize={10}
-                    fill="white"
+                    fontFamily="Arial, sans-serif"
+                    fill={character.role === 'témoin' ? '#10b981' : 
+                          character.role === 'suspect' ? '#ef4444' : 
+                          character.role === 'enquêteur' ? '#3b82f6' : '#6b7280'}
                     stroke="black"
                     strokeWidth={1}
                     offsetX={character.role.length * 3}
                     y={50}
                   />
+
+                  {/* Indicateur d'interaction */}
+                  {isInRange && (
+                    <Text
+                      text="ESPACE pour interagir"
+                      fontSize={12}
+                      fontFamily="Arial, sans-serif"
+                      fill="#fbbf24"
+                      stroke="black"
+                      strokeWidth={1}
+                      offsetX={80}
+                      y={-80}
+                    />
+                  )}
                 </Group>
               );
             })}
 
             {/* Joueur */}
-            <Rect
-              x={playerPosition.x}
-              y={playerPosition.y}
-              width={40}
-              height={60}
-              offsetX={20}
-              offsetY={30}
-              fill="#0099ff"
-              stroke="#ffffff"
-              strokeWidth={2}
-            />
+            <Group x={playerPosition.x} y={playerPosition.y}>
+              {/* Ombre du joueur */}
+              <Circle
+                x={0}
+                y={35}
+                radius={25}
+                fill="rgba(0, 0, 0, 0.3)"
+                scaleY={0.5}
+              />
+              
+              {/* Image ou rectangle du joueur */}
+              {playerImage ? (
+                <Image
+                  image={playerImage}
+                  width={50}
+                  height={70}
+                  offsetX={25}
+                  offsetY={35}
+                />
+              ) : (
+                <Rect
+                  width={40}
+                  height={60}
+                  offsetX={20}
+                  offsetY={30}
+                  fill="#0ea5e9"
+                  stroke="#ffffff"
+                  strokeWidth={3}
+                  cornerRadius={5}
+                />
+              )}
+              
+              {/* Indicateur de direction */}
+              <Circle
+                x={0}
+                y={-45}
+                radius={3}
+                fill="#0ea5e9"
+              />
+            </Group>
           </Layer>
         </Stage>
+
+        {/* Mini-carte en overlay */}
+        <div className="absolute top-4 right-4 w-32 h-24 bg-black/50 rounded border border-slate-500 p-2">
+          <div className="text-white text-xs mb-1">Mini-carte</div>
+          <div className="relative w-full h-16 bg-slate-700 rounded">
+            {/* Point joueur sur mini-carte */}
+            <div 
+              className="absolute w-2 h-2 bg-blue-400 rounded-full"
+              style={{
+                left: `${(playerPosition.x / 800) * 100}%`,
+                top: `${(playerPosition.y / 600) * 100}%`,
+                transform: 'translate(-50%, -50%)'
+              }}
+            />
+            {/* Points personnages sur mini-carte */}
+            {characters.map((character) => (
+              <div
+                key={`minimap-${character.id}`}
+                className={`absolute w-1.5 h-1.5 rounded-full ${
+                  character.role === 'témoin' ? 'bg-green-400' :
+                  character.role === 'suspect' ? 'bg-red-400' :
+                  'bg-gray-400'
+                }`}
+                style={{
+                  left: `${(character.position.x / 800) * 100}%`,
+                  top: `${(character.position.y / 600) * 100}%`,
+                  transform: 'translate(-50%, -50%)'
+                }}
+              />
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useReducer } from 'react';
 import { Investigation, Character, DialogEntry, Lead } from '../types';
 
@@ -16,7 +17,7 @@ const initialState: GameState = {
   reputation: {},
   activeCharacter: null,
   discoveredLeads: [],
-  playerPosition: { x: 400, y: 300 },
+  playerPosition: { x: 400, y: 500 },
 };
 
 type GameAction =
@@ -27,7 +28,13 @@ type GameAction =
   | { type: 'ADD_LEAD'; payload: Lead }
   | { type: 'UPDATE_PLAYER_POSITION'; payload: { x: number; y: number } }
   | { type: 'RESOLVE_LEAD'; payload: string }
-  | { type: 'UPDATE_CHARACTER_ALERTED_STATUS'; payload: { characterId: string; alerted: boolean } };
+  | { type: 'UPDATE_CHARACTER_ALERTED_STATUS'; payload: { characterId: string; alerted: boolean } }
+  | { type: 'LOAD_GAME_STATE'; payload: { 
+      dialogHistory: DialogEntry[]; 
+      discoveredLeads: Lead[]; 
+      reputation: { [characterId: string]: number };
+      playerPosition: { x: number; y: number };
+    } };
 
 const gameReducer = (state: GameState, action: GameAction): GameState => {
   switch (action.type) {
@@ -67,6 +74,14 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
               ),
             }
           : state.currentInvestigation,
+      };
+    case 'LOAD_GAME_STATE':
+      return {
+        ...state,
+        dialogHistory: action.payload.dialogHistory,
+        discoveredLeads: action.payload.discoveredLeads,
+        reputation: action.payload.reputation,
+        playerPosition: action.payload.playerPosition,
       };
     default:
       return state;

@@ -13,10 +13,12 @@ export type Database = {
         Row: {
           alerted: boolean | null
           created_at: string | null
+          dialogue_background_url: string | null
           expression_state: string | null
           id: string
           investigation_id: string | null
           knowledge: string
+          location_description: string | null
           name: string
           personality: Json
           position: Json
@@ -27,10 +29,12 @@ export type Database = {
         Insert: {
           alerted?: boolean | null
           created_at?: string | null
+          dialogue_background_url?: string | null
           expression_state?: string | null
           id?: string
           investigation_id?: string | null
           knowledge?: string
+          location_description?: string | null
           name: string
           personality?: Json
           position?: Json
@@ -41,10 +45,12 @@ export type Database = {
         Update: {
           alerted?: boolean | null
           created_at?: string | null
+          dialogue_background_url?: string | null
           expression_state?: string | null
           id?: string
           investigation_id?: string | null
           knowledge?: string
+          location_description?: string | null
           name?: string
           personality?: Json
           position?: Json
@@ -55,6 +61,57 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "characters_investigation_id_fkey"
+            columns: ["investigation_id"]
+            isOneToOne: false
+            referencedRelation: "investigations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cloudinary_assets: {
+        Row: {
+          asset_name: string
+          asset_type: string
+          character_id: string | null
+          cloudinary_public_id: string
+          cloudinary_url: string
+          created_at: string | null
+          id: string
+          investigation_id: string | null
+          location_context: string | null
+        }
+        Insert: {
+          asset_name: string
+          asset_type: string
+          character_id?: string | null
+          cloudinary_public_id: string
+          cloudinary_url: string
+          created_at?: string | null
+          id?: string
+          investigation_id?: string | null
+          location_context?: string | null
+        }
+        Update: {
+          asset_name?: string
+          asset_type?: string
+          character_id?: string | null
+          cloudinary_public_id?: string
+          cloudinary_url?: string
+          created_at?: string | null
+          id?: string
+          investigation_id?: string | null
+          location_context?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cloudinary_assets_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cloudinary_assets_investigation_id_fkey"
             columns: ["investigation_id"]
             isOneToOne: false
             referencedRelation: "investigations"
@@ -215,6 +272,47 @@ export type Database = {
         }
         Relationships: []
       }
+      game_saves: {
+        Row: {
+          created_at: string | null
+          game_state: Json
+          id: string
+          investigation_id: string | null
+          last_played_at: string | null
+          player_name: string | null
+          player_position: Json
+          player_role: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          game_state?: Json
+          id?: string
+          investigation_id?: string | null
+          last_played_at?: string | null
+          player_name?: string | null
+          player_position?: Json
+          player_role?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          game_state?: Json
+          id?: string
+          investigation_id?: string | null
+          last_played_at?: string | null
+          player_name?: string | null
+          player_position?: Json
+          player_role?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_saves_investigation_id_fkey"
+            columns: ["investigation_id"]
+            isOneToOne: false
+            referencedRelation: "investigations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       generated_assets: {
         Row: {
           asset_name: string
@@ -293,6 +391,8 @@ export type Database = {
           created_at: string | null
           created_by: string | null
           id: string
+          player_image_url: string | null
+          player_role: string | null
           prompt: string
           status: string | null
           title: string
@@ -301,6 +401,8 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           id?: string
+          player_image_url?: string | null
+          player_role?: string | null
           prompt: string
           status?: string | null
           title: string
@@ -309,6 +411,8 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           id?: string
+          player_image_url?: string | null
+          player_role?: string | null
           prompt?: string
           status?: string | null
           title?: string

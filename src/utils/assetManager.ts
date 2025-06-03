@@ -1,24 +1,18 @@
 
 import { supabase } from '../integrations/supabase/client';
-import { generateAssetImage } from './imageGenerator';
+import { CloudinaryService } from './cloudinaryService';
 import { SVGFallbacks } from './svgFallbacks';
 import type { Database } from '../integrations/supabase/types';
 
 type InvestigationRow = Database['public']['Tables']['investigations']['Row'];
-type InvestigationAssetRow = Database['public']['Tables']['investigation_assets']['Row'];
+type CloudinaryAssetRow = Database['public']['Tables']['cloudinary_assets']['Row'];
 
 interface Asset {
   name: string;
   url: string;
-  type: 'background' | 'character' | 'prop';
+  type: 'background' | 'character' | 'prop' | 'dialogue_bg' | 'player';
   characterId?: string;
-}
-
-interface AssetPrompt {
-  type: string;
-  name: string;
-  prompt: string;
-  style: string;
+  locationContext?: string;
 }
 
 class AssetManager {
@@ -28,7 +22,7 @@ class AssetManager {
   private loadingPromise: Promise<void> | null = null;
 
   constructor() {
-    console.log('🎨 AssetManager: Initialisation');
+    console.log('🎨 AssetManager: Initialisation avec support Cloudinary');
   }
 
   setCurrentInvestigation(investigationId: string) {
@@ -57,40 +51,75 @@ class AssetManager {
   private async _loadAssetsFromDatabase(): Promise<void> {
     if (!this.currentInvestigationId) return;
 
-    console.log('📥 AssetManager: Chargement des assets depuis la base de données...');
+    console.log('📥 AssetManager: Chargement des assets Cloudinary...');
 
     try {
-      // 1. Récupérer les assets existants
-      const { data: existingAssets, error: assetsError } = await supabase
-          .from('investigation_assets')
-          .select('*')
-          .eq('investigation_id', this.currentInvestigationId);
+      // 1. Récupérer les assets Cloudinary existants
+      const { data: cloudinaryAssets, error: cloudinaryError } = await supabase
+        .from('cloudinary_assets')
+        .select('*')
+        .eq('investigation_id', this.currentInvestigationId);
 
-      if (assetsError) {
-        console.error('💥 AssetManager: Erreur chargement assets:', assetsError);
-        throw assetsError;
+      if (cloudinaryError) {
+        console.error('💥 AssetManager: Erreur chargement assets Cloudinary:', cloudinaryError);
+        throw cloudinaryError;
       }
 
-      console.log(`📦 AssetManager: ${existingAssets?.length || 0} assets trouvés en base`);
+      console.log(`📦 AssetManager: ${cloudinaryAssets?.length || 0} assets Cloudinary trouvés`);
 
-      // 2. Pour l'instant, on charge simplement les assets existants
-      // La logique de génération sera ajoutée plus tard quand on aura la colonne asset_prompts
-      if (existingAssets && existingAssets.length > 0) {
-        existingAssets.forEach((asset: InvestigationAssetRow) => {
+      // 2. Charger les assets existants
+      if (cloudinaryAssets && cloudinaryAssets.length > 0) {
+        cloudinaryAssets.forEach((asset: CloudinaryAssetRow) => {
           this.registerAsset({
             name: asset.asset_name,
-            url: asset.asset_url,
-            type: asset.asset_type as 'background' | 'character' | 'prop',
-            characterId: this.extractCharacterIdFromName(asset.asset_name)
+            url: asset.cloudinary_url,
+            type: asset.asset_type as Asset['type'],
+            characterId: asset.character_id || undefined,
+            locationContext: asset.location_context || undefined
           });
         });
+      } else {
+        // 3. Si pas d'assets, en générer automatiquement
+        await this.generateMissingAssets();
       }
 
       this.ready = true;
-      console.log('✅ AssetManager: Chargement terminé, assets prêts');
+      console.log('✅ AssetManager: Assets prêts');
 
     } catch (error) {
       console.error('💥 AssetManager: Erreur lors du chargement:', error);
+      await this.loadFallbackAssets();
+    }
+  }
+
+  private async generateMissingAssets(): Promise<void> {
+    if (!this.currentInvestigationId) return;
+
+    console.log('🎨 AssetManager: Génération automatique des assets manquants...');
+
+    try {
+      // Récupérer les données de l'investigation
+      const { data: investigation, error } = await supabase
+        .from('investigations')
+        .select(`
+          *,
+          characters(*)
+        `)
+        .eq('id', this.currentInvestigationId)
+        .single();
+
+      if (error || !investigation) {
+        throw new Error('Investigation introuvable');
+      }
+
+      // Générer tous les assets via Cloudinary
+      await CloudinaryService.generateInvestigationAssets(this.currentInvestigationId, investigation);
+
+      // Recharger les assets nouvellement créés
+      await this._loadAssetsFromDatabase();
+
+    } catch (error) {
+      console.error('💥 AssetManager: Erreur génération assets:', error);
       await this.loadFallbackAssets();
     }
   }
@@ -114,38 +143,8 @@ class AssetManager {
     console.log('✅ AssetManager: Assets de fallback chargés');
   }
 
-  // Ajouter la méthode addAsset manquante
-  async addAsset(asset: Asset, prompt?: string): Promise<void> {
+  async addAsset(asset: Asset): Promise<void> {
     this.registerAsset(asset);
-    
-    // Sauvegarder en base de données si ce n'est pas la démo
-    if (this.currentInvestigationId && this.currentInvestigationId !== 'demo-investigation-001') {
-      await this.saveAssetToDatabase(asset.name, asset.url, asset.type);
-    }
-  }
-
-  private async saveAssetToDatabase(name: string, url: string, type: string): Promise<void> {
-    if (!this.currentInvestigationId) return;
-
-    try {
-      const { error } = await supabase
-          .from('investigation_assets')
-          .upsert({
-            investigation_id: this.currentInvestigationId,
-            asset_name: name,
-            asset_url: url,
-            asset_type: type,
-            created_at: new Date().toISOString()
-          });
-
-      if (error) {
-        console.error('💥 AssetManager: Erreur sauvegarde asset:', error);
-      } else {
-        console.log(`💾 AssetManager: Asset sauvegardé en base: ${name}`);
-      }
-    } catch (error) {
-      console.error('💥 AssetManager: Erreur lors de la sauvegarde:', error);
-    }
   }
 
   public markAsReadyForLocalAssets(): void {
@@ -167,14 +166,9 @@ class AssetManager {
     return backgrounds.length > 0 ? backgrounds[0].url : null;
   }
 
-  getCharacterAssets(): Map<string, string> {
-    const characterAssets = new Map();
-    this.assets.forEach((asset, name) => {
-      if (asset.type === 'character' && asset.characterId) {
-        characterAssets.set(asset.characterId, asset.url);
-      }
-    });
-    return characterAssets;
+  getPlayerImageUrl(): string | null {
+    const playerAssets = Array.from(this.assets.values()).filter(asset => asset.type === 'player');
+    return playerAssets.length > 0 ? playerAssets[0].url : null;
   }
 
   getCharacterAssetByName(characterName: string): string | null {
@@ -200,27 +194,24 @@ class AssetManager {
     return null;
   }
 
-  getPropAssets(): Map<string, string> {
-    const propAssets = new Map();
-    this.assets.forEach((asset, name) => {
-      if (asset.type === 'prop') {
-        propAssets.set(name, asset.url);
+  getDialogueBackgroundByCharacterId(characterId: string): string | null {
+    for (const [assetName, asset] of this.assets) {
+      if (asset.type === 'dialogue_bg' && asset.characterId === characterId) {
+        console.log(`✅ AssetManager: Arrière-plan dialogue trouvé pour ${characterId}: ${assetName}`);
+        return asset.url;
       }
-    });
-    return propAssets;
+    }
+    
+    console.log(`❌ AssetManager: Aucun arrière-plan dialogue trouvé pour ${characterId}`);
+    return null;
   }
 
   getAllAssets(): Asset[] {
     return Array.from(this.assets.values());
   }
 
-  private extractCharacterIdFromName(assetName: string): string | undefined {
-    const match = assetName.match(/character_(.+)/);
-    return match ? match[1] : undefined;
-  }
-
   async preloadAllAssets(): Promise<void> {
-    console.log('🎮 AssetManager: Préchargement des assets pour Phaser...');
+    console.log('🎮 AssetManager: Préchargement des assets...');
     if (!this.ready) {
       await this.loadAssetsFromDatabase();
     }
