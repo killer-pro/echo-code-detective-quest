@@ -1,13 +1,36 @@
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
-import { Wand2, Play, BookOpen, Brain, Users, Search, MessageSquare } from 'lucide-react';
+import { Wand2, Play, BookOpen, Brain, Users, Search, MessageSquare, Zap } from 'lucide-react';
+import { useGame } from '../context/GameContext';
+import { DemoService } from '../utils/demoService';
+import { toast } from 'sonner';
 
 const Index: React.FC = () => {
   const navigate = useNavigate();
+  const { dispatch } = useGame();
+
+  const handleDemoClick = async () => {
+    try {
+      toast.info('Chargement de l\'enquête de démo...');
+      
+      // Obtenir les données de l'enquête de démo
+      const demoInvestigation = await DemoService.getDemoInvestigationData();
+      
+      // Mettre à jour le contexte
+      dispatch({ type: 'SET_INVESTIGATION', payload: demoInvestigation });
+      
+      toast.success('Enquête de démo chargée !');
+      
+      // Naviguer vers le jeu
+      navigate('/game');
+    } catch (error) {
+      console.error('Erreur lors du chargement de la démo:', error);
+      toast.error('Erreur lors du chargement de l\'enquête de démo');
+    }
+  };
 
   const features = [
     {
@@ -43,7 +66,7 @@ const Index: React.FC = () => {
             <div className="flex justify-center mb-6">
               <Badge variant="secondary" className="bg-purple-600/20 text-purple-300 border-purple-500/30 px-4 py-2">
                 <Wand2 className="w-4 h-4 mr-2" />
-                Propulsé par l'IA Gemini
+                Propulsé par l'IA Gemini + Cloudinary
               </Badge>
             </div>
             
@@ -67,14 +90,22 @@ const Index: React.FC = () => {
               </Button>
               
               <Button 
-                onClick={() => navigate('/game')}
+                onClick={handleDemoClick}
                 variant="outline"
                 size="lg"
-                className="border-white/20 text-white hover:bg-white/10 px-8 py-4 text-lg"
+                className="border-amber-500/50 text-amber-300 hover:bg-amber-500/10 px-8 py-4 text-lg relative overflow-hidden group"
               >
-                <Play className="w-5 h-5 mr-2" />
-                Enquête de démo
+                <div className="absolute inset-0 bg-gradient-to-r from-amber-600/20 to-orange-600/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <Zap className="w-5 h-5 mr-2 relative z-10" />
+                <span className="relative z-10">Enquête de démo</span>
               </Button>
+            </div>
+
+            <div className="mt-6">
+              <p className="text-sm text-gray-400">
+                <Zap className="w-4 h-4 inline mr-1" />
+                L'enquête de démo inclut 4 personnages, dialogues pré-écrits et assets de fallback
+              </p>
             </div>
           </div>
         </div>
@@ -108,7 +139,6 @@ const Index: React.FC = () => {
         </div>
       </div>
 
-      {/* How it works */}
       <div className="bg-slate-800/30 border-y border-slate-700/50">
         <div className="max-w-7xl mx-auto px-6 py-20">
           <div className="text-center mb-16">
@@ -156,14 +186,25 @@ const Index: React.FC = () => {
             <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
               Créez des histoires uniques où chaque conversation révèle de nouveaux secrets et où vos choix façonnent l'enquête.
             </p>
-            <Button 
-              onClick={() => navigate('/create')}
-              size="lg"
-              className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white px-8 py-4 text-lg"
-            >
-              <Wand2 className="w-5 h-5 mr-2" />
-              Lancer le générateur
-            </Button>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Button 
+                onClick={() => navigate('/create')}
+                size="lg"
+                className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white px-8 py-4 text-lg"
+              >
+                <Wand2 className="w-5 h-5 mr-2" />
+                Lancer le générateur
+              </Button>
+              <Button 
+                onClick={handleDemoClick}
+                variant="outline"
+                size="lg"
+                className="border-amber-500/50 text-amber-300 hover:bg-amber-500/10 px-8 py-4 text-lg"
+              >
+                <Zap className="w-5 h-5 mr-2" />
+                Essayer la démo
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -173,7 +214,7 @@ const Index: React.FC = () => {
         <div className="max-w-7xl mx-auto px-6 py-8">
           <div className="text-center text-gray-400">
             <p>EchoCode - Enquêtes procédurales alimentées par l'IA</p>
-            <p className="text-sm mt-2">Développé avec React, Phaser 3, et l'API Gemini</p>
+            <p className="text-sm mt-2">Développé avec React, Phaser 3, l'API Gemini et Cloudinary</p>
           </div>
         </div>
       </div>

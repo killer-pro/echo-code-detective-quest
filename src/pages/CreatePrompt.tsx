@@ -1,169 +1,59 @@
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useGame } from '../context/GameContext';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
-import { Textarea } from '../components/ui/textarea';
-import { Badge } from '../components/ui/badge';
-import { Loader2, ArrowLeft, Wand2, Users, Map } from 'lucide-react';
-import { geminiAPI } from '../api/gemini';
-import { supabase } from '../integrations/supabase/client';
-import { useGame } from '../context/GameContext';
+import { ArrowLeft, Wand2, Play } from 'lucide-react';
+import PromptGenerator from '../components/PromptGenerator';
 import SceneGenerator from '../components/SceneGenerator';
-import { toast } from 'sonner';
-import { Character } from '../types';
+import { Investigation } from '../types';
 
 const CreatePrompt: React.FC = () => {
+  const [prompt, setPrompt] = useState('');
+  const [generatedInvestigation, setGeneratedInvestigation] = useState<Investigation | null>(null);
+  const [showSceneGenerator, setShowSceneGenerator] = useState(false);
   const navigate = useNavigate();
   const { dispatch } = useGame();
-  const [prompt, setPrompt] = useState('');
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [generatedInvestigation, setGeneratedInvestigation] = useState<any>(null);
-  const [isStartingGame, setIsStartingGame] = useState(false);
 
-  const generateInvestigation = async () => {
-    if (!prompt.trim()) {
-      toast.error('Veuillez entrer un prompt pour votre enquête');
-      return;
-    }
-
-    setIsGenerating(true);
-    try {
-      const investigation = await geminiAPI.generateInvestigation(prompt);
-      console.log('Enquête générée:', investigation);
-      setGeneratedInvestigation(investigation);
-      toast.success('Enquête générée avec succès !');
-    } catch (error) {
-      console.error('Erreur lors de la génération:', error);
-      toast.error('Erreur lors de la génération de l\'enquête');
-    } finally {
-      setIsGenerating(false);
-    }
+  const handleInvestigationGenerated = (investigation: Investigation) => {
+    console.log('🎯 Investigation générée:', investigation);
+    setGeneratedInvestigation(investigation);
+    setShowSceneGenerator(true);
   };
 
-  const normalizeRole = (role: string): Character['role'] => {
-    const roleMap: Record<string, Character['role']> = {
-      'témoin': 'témoin',
-      'suspect': 'suspect',
-      'enquêteur': 'enquêteur',
-      'innocent': 'innocent',
-      'witness': 'témoin',
-      'detective': 'enquêteur',
-      'investigator': 'enquêteur'
-    };
-    return roleMap[role.toLowerCase()] || 'témoin';
+  const handleAssetsGenerated = (assets: { name: string; url: string; type: string }[]) => {
+    console.log('🎨 Assets générés:', assets);
+    // Les assets sont déjà ajoutés à l'AssetManager par SceneGenerator
   };
 
-  const normalizeExpressionState = (state: string): Character['expression_state'] => {
-    const stateMap: Record<string, Character['expression_state']> = {
-      'neutre': 'neutre',
-      'nerveux': 'nerveux',
-      'en_colère': 'en_colère',
-      'coopératif': 'coopératif',
-      'méfiant': 'méfiant',
-      'neutral': 'neutre',
-      'nervous': 'nerveux',
-      'angry': 'en_colère',
-      'cooperative': 'coopératif',
-      'suspicious': 'méfiant'
-    };
-    return stateMap[state.toLowerCase()] || 'neutre';
-  };
-
-  const handleStartGame = async () => {
+  const handleStartInvestigation = () => {
     if (!generatedInvestigation) return;
 
-    setIsStartingGame(true);
-    try {
-      // Sauvegarder l'enquête dans Supabase
-      const { data: investigationData, error: investigationError } = await supabase
-        .from('investigations')
-        .insert({
-          title: generatedInvestigation.title,
-          prompt: prompt,
-          status: 'en_cours' as const
-        })
-        .select()
-        .single();
-
-      if (investigationError) {
-        throw investigationError;
-      }
-
-      // Préparer les personnages avec le bon format et types corrects
-      const charactersData = generatedInvestigation.characters.map((char: any) => ({
-        investigation_id: investigationData.id,
-        name: char.name,
-        role: normalizeRole(char.role),
-        personality: typeof char.personality === 'string' ? JSON.parse(char.personality) : char.personality,
-        knowledge: char.knowledge,
-        expression_state: normalizeExpressionState(char.expression_state || 'neutre'),
-        reputation_score: char.reputation_score || 50,
-        alerted: false,
-        position: typeof char.position === 'string' ? JSON.parse(char.position) : char.position,
-        sprite: 'default'
-      }));
-
-      // Sauvegarder les personnages
-      const { data: charactersResponse, error: charactersError } = await supabase
-        .from('characters')
-        .insert(charactersData)
-        .select();
-
-      if (charactersError) {
-        throw charactersError;
-      }
-
-      // Convertir au format attendu par l'application avec les bons types
-      const formattedCharacters: Character[] = charactersResponse?.map(char => ({
-        id: char.id,
-        investigation_id: char.investigation_id,
-        name: char.name,
-        role: normalizeRole(char.role),
-        personality: typeof char.personality === 'string' ? JSON.parse(char.personality) : char.personality,
-        knowledge: char.knowledge,
-        expression_state: normalizeExpressionState(char.expression_state || 'neutre'),
-        reputation_score: char.reputation_score || 50,
-        alerted: char.alerted || false,
-        position: typeof char.position === 'string' ? JSON.parse(char.position) : char.position,
-        sprite: char.sprite || 'default',
-        created_at: char.created_at
-      })) || [];
-
-      const finalInvestigation = {
-        id: investigationData.id,
-        title: investigationData.title,
-        prompt: investigationData.prompt,
-        status: investigationData.status as 'en_cours' | 'terminée' | 'abandonnée',
-        description: generatedInvestigation.description,
-        context: generatedInvestigation.context,
-        created_at: investigationData.created_at,
-        characters: formattedCharacters
-      };
-
-      // Mettre à jour le contexte global
-      dispatch({ type: 'SET_INVESTIGATION', payload: finalInvestigation });
-      
-      toast.success('Enquête sauvegardée !');
-      navigate('/game');
-    } catch (error: any) {
-      console.error('Erreur lors de la sauvegarde:', error);
-      toast.error('Erreur lors de la sauvegarde de l\'enquête');
-    } finally {
-      setIsStartingGame(false);
-    }
+    console.log('🚀 Démarrage de l\'enquête:', generatedInvestigation.title);
+    dispatch({ type: 'SET_INVESTIGATION', payload: generatedInvestigation });
+    navigate('/game');
   };
 
-  const handleAssetsGenerated = (assets: any[]) => {
-    console.log('Assets générés:', assets);
-    toast.success(`${assets.length} assets générés pour votre scène`);
+  const handleCreateSimpleInvestigation = async () => {
+    if (!prompt.trim()) return;
+
+    const simpleInvestigation: Investigation = {
+      id: `investigation-${Date.now()}`,
+      title: 'Nouvelle Enquête',
+      prompt: prompt.trim(),
+      characters: [],
+      status: 'en_cours'
+    };
+
+    dispatch({ type: 'SET_INVESTIGATION', payload: simpleInvestigation });
+    navigate('/game');
   };
 
   return (
-    <div className="min-h-screen bg-slate-900">
-      {/* Header */}
-      <div className="bg-slate-800 border-b border-slate-700 p-4">
-        <div className="flex items-center gap-4 max-w-7xl mx-auto">
+    <div className="min-h-screen bg-slate-900 p-4">
+      <div className="max-w-6xl mx-auto">
+        <div className="flex items-center gap-4 mb-6">
           <Button
             variant="ghost"
             onClick={() => navigate('/')}
@@ -172,162 +62,94 @@ const CreatePrompt: React.FC = () => {
             <ArrowLeft className="w-4 h-4 mr-2" />
             Retour
           </Button>
-          <div>
-            <h1 className="text-xl font-bold text-white">Générateur d'Enquête IA</h1>
-            <p className="text-gray-400 text-sm">Créez votre mystère personnalisé avec l'IA</p>
-          </div>
+          <h1 className="text-2xl font-bold text-white">Créer une Enquête</h1>
         </div>
-      </div>
 
-      <div className="max-w-7xl mx-auto p-6">
-        <div className="grid lg:grid-cols-2 gap-8">
-          {/* Panneau de génération */}
-          <div className="space-y-6">
+        {!generatedInvestigation ? (
+          /* Étape 1: Génération de l'enquête */
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card className="bg-slate-800 border-slate-700">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
                   <Wand2 className="w-5 h-5" />
-                  Génération d'Enquête
+                  Générateur d'Enquête IA
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Décrivez votre enquête
-                  </label>
-                  <Textarea
-                    value={prompt}
-                    onChange={(e) => setPrompt(e.target.value)}
-                    placeholder="Ex: Une enquête dans un manoir victorien où le majordome a été retrouvé mort dans la bibliothèque. Les suspects incluent la famille propriétaire et les domestiques..."
-                    className="bg-slate-700 border-slate-600 text-white min-h-[120px]"
-                    disabled={isGenerating}
-                  />
-                </div>
-
-                <Button
-                  onClick={generateInvestigation}
-                  disabled={isGenerating || !prompt.trim()}
-                  className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
-                >
-                  {isGenerating ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Génération en cours...
-                    </>
-                  ) : (
-                    <>
-                      <Wand2 className="w-4 h-4 mr-2" />
-                      Générer l'enquête
-                    </>
-                  )}
-                </Button>
+              <CardContent>
+                <PromptGenerator 
+                  onPromptUpdate={setPrompt}
+                  onInvestigationGenerated={handleInvestigationGenerated}
+                />
               </CardContent>
             </Card>
 
-            {/* Génération de scène */}
-            {generatedInvestigation && (
-              <SceneGenerator 
+            <Card className="bg-slate-800 border-slate-700">
+              <CardHeader>
+                <CardTitle className="text-white">Ou créer une enquête simple</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="text-gray-400 text-sm">
+                  <p>💡 Vous pouvez aussi créer une enquête basique sans IA</p>
+                  <p>✨ Vous pourrez ajouter des personnages manuellement plus tard</p>
+                </div>
+                
+                <Button
+                  onClick={handleCreateSimpleInvestigation}
+                  disabled={!prompt.trim()}
+                  variant="outline"
+                  className="w-full"
+                >
+                  Créer Enquête Simple
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        ) : (
+          /* Étape 2: Génération des assets et finalisation */
+          <div className="space-y-6">
+            {/* Résumé de l'enquête générée */}
+            <Card className="bg-slate-800 border-slate-700">
+              <CardHeader>
+                <CardTitle className="text-white">Enquête Générée: {generatedInvestigation.title}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <p className="text-gray-300">{generatedInvestigation.description}</p>
+                  <div className="text-sm text-gray-400">
+                    <p><strong>Contexte:</strong> {generatedInvestigation.context}</p>
+                    <p><strong>Personnages:</strong> {generatedInvestigation.characters?.length || 0}</p>
+                    <p><strong>Assets à générer:</strong> {generatedInvestigation.assetPrompts?.length || 0}</p>
+                  </div>
+                  
+                  <div className="flex gap-3 pt-4">
+                    <Button
+                      onClick={handleStartInvestigation}
+                      className="bg-green-600 hover:bg-green-700"
+                    >
+                      <Play className="w-4 h-4 mr-2" />
+                      Commencer l'Enquête
+                    </Button>
+                    
+                    <Button
+                      onClick={() => setGeneratedInvestigation(null)}
+                      variant="outline"
+                    >
+                      Régénérer
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Générateur de scène (optionnel) */}
+            {showSceneGenerator && generatedInvestigation.assetPrompts && (
+              <SceneGenerator
                 investigation={generatedInvestigation}
                 onAssetsGenerated={handleAssetsGenerated}
               />
             )}
           </div>
-
-          {/* Prévisualisation */}
-          <div className="space-y-6">
-            {generatedInvestigation ? (
-              <>
-                <Card className="bg-slate-800 border-slate-700">
-                  <CardHeader>
-                    <CardTitle className="text-white">{generatedInvestigation.title}</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <p className="text-gray-300">{generatedInvestigation.description}</p>
-                    
-                    {generatedInvestigation.context && (
-                      <div className="bg-slate-700 p-3 rounded-lg">
-                        <h4 className="text-white font-medium mb-2">Contexte</h4>
-                        <p className="text-gray-400 text-sm">{generatedInvestigation.context}</p>
-                      </div>
-                    )}
-                    
-                    <div className="flex items-center justify-between">
-                      <Badge variant="secondary" className="bg-green-600/20 text-green-300">
-                        <Users className="w-3 h-3 mr-1" />
-                        {generatedInvestigation.characters?.length || 0} personnages
-                      </Badge>
-                      <Badge variant="secondary" className="bg-blue-600/20 text-blue-300">
-                        <Map className="w-3 h-3 mr-1" />
-                        {generatedInvestigation.assetPrompts?.length || 0} assets IA
-                      </Badge>
-                    </div>
-
-                    <Button
-                      onClick={handleStartGame}
-                      disabled={isStartingGame}
-                      className="w-full bg-green-600 hover:bg-green-700"
-                    >
-                      {isStartingGame ? (
-                        <>
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          Lancement...
-                        </>
-                      ) : (
-                        'Commencer l\'enquête'
-                      )}
-                    </Button>
-                  </CardContent>
-                </Card>
-
-                {/* Aperçu des personnages */}
-                {generatedInvestigation.characters && (
-                  <Card className="bg-slate-800 border-slate-700">
-                    <CardHeader>
-                      <CardTitle className="text-white text-lg">Personnages</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="grid gap-3">
-                        {generatedInvestigation.characters.map((character: any, index: number) => (
-                          <div key={index} className="bg-slate-700 p-3 rounded-lg">
-                            <div className="flex items-center justify-between mb-2">
-                              <h4 className="text-white font-medium">{character.name}</h4>
-                              <Badge variant="outline" className="text-xs">
-                                {character.role}
-                              </Badge>
-                            </div>
-                            <p className="text-gray-400 text-sm mb-2">{character.knowledge}</p>
-                            {character.personality && (
-                              <div className="text-xs text-gray-500">
-                                Traits: {Array.isArray(character.personality.traits) 
-                                  ? character.personality.traits.join(', ')
-                                  : typeof character.personality === 'string' 
-                                    ? character.personality.substring(0, 50) + '...'
-                                    : JSON.stringify(character.personality).substring(0, 50) + '...'
-                                }
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-              </>
-            ) : (
-              <Card className="bg-slate-800 border-slate-700 border-dashed">
-                <CardContent className="p-12 text-center">
-                  <Wand2 className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold text-gray-400 mb-2">
-                    Aucune enquête générée
-                  </h3>
-                  <p className="text-gray-500">
-                    Entrez un prompt pour commencer à générer votre enquête personnalisée
-                  </p>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );

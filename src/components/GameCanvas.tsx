@@ -1,8 +1,8 @@
-
 import React, { useEffect, useRef } from 'react';
 import { GameManager } from '../phaser/Game';
 import { Character } from '../types';
 import { assetManager } from '../utils/assetManager';
+import { useGame } from '../context/GameContext';
 
 interface GameCanvasProps {
   characters: Character[];
@@ -12,6 +12,7 @@ interface GameCanvasProps {
 const GameCanvas: React.FC<GameCanvasProps> = ({ characters, onCharacterClick }) => {
   const gameRef = useRef<HTMLDivElement>(null);
   const gameInstanceRef = useRef<Phaser.Game | null>(null);
+  const { state } = useGame();
 
   useEffect(() => {
     if (gameRef.current && !gameInstanceRef.current) {
@@ -41,29 +42,41 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ characters, onCharacterClick })
     }
   }, [characters]);
 
-  // Surveiller les changements d'assets et recharger automatiquement
+  // Surveiller les changements d'assets et recharger automatiquement (sauf en mode démo)
   useEffect(() => {
-    const reloadAssetsWhenAvailable = () => {
-      const assets = assetManager.getAllAssets();
-      console.log('Assets disponibles pour rechargement:', assets);
-      
-      if (assets.length > 0 && gameInstanceRef.current) {
-        const scene = gameInstanceRef.current.scene.getScene('MainScene');
-        if (scene && typeof (scene as any).reloadAssets === 'function') {
-          console.log('Rechargement des assets dans la scène...');
-          (scene as any).reloadAssets();
+    // Si ce n'est PAS le mode démo, configurer le rechargement automatique
+    if (state.currentInvestigation?.id !== 'demo-investigation-001') {
+      console.log('🔄 GameCanvas: Rechargement automatique des assets activé.');
+
+      const reloadAssetsWhenAvailable = () => {
+        const assets = assetManager.getAllAssets();
+        console.log('Assets disponibles pour rechargement:', assets);
+        
+        if (assets.length > 0 && gameInstanceRef.current) {
+          const scene = gameInstanceRef.current.scene.getScene('MainScene');
+          if (scene && typeof (scene as any).reloadAssets === 'function') {
+            console.log('Rechargement des assets dans la scène...');
+            (scene as any).reloadAssets();
+          }
         }
-      }
-    };
+      };
 
-    // Vérifier immédiatement
-    reloadAssetsWhenAvailable();
+      // Vérifier immédiatement
+      reloadAssetsWhenAvailable();
 
-    // Puis vérifier périodiquement (toutes les 3 secondes)
-    const checkInterval = setInterval(reloadAssetsWhenAvailable, 3000);
+      // Puis vérifier périodiquement (toutes les 3 secondes)
+      const checkInterval = setInterval(reloadAssetsWhenAvailable, 3000);
 
-    return () => clearInterval(checkInterval);
-  }, []);
+      return () => clearInterval(checkInterval);
+    } else {
+      // En mode démo, afficher un message et ne rien faire
+      console.log('🚫 GameCanvas: Rechargement automatique des assets désactivé en mode démo.');
+    }
+
+    // Cleanup pour le cas démo (bien que rien ne soit configuré)
+    return () => {};
+
+  }, [state.currentInvestigation]); // Dépendance à state.currentInvestigation
 
   return (
     <div className="w-full h-full flex items-center justify-center bg-slate-800 rounded-lg overflow-hidden border-2 border-slate-600">

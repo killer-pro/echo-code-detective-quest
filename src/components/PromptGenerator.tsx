@@ -6,12 +6,17 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
 import { Loader2, Wand2, Users, MapPin, Zap } from 'lucide-react';
 import { geminiAPI } from '../api/gemini';
+import { Investigation } from '../types';
 
 interface PromptGeneratorProps {
-  onInvestigationGenerated: (investigation: any) => void;
+  onPromptUpdate: (prompt: string) => void;
+  onInvestigationGenerated?: (investigation: Investigation) => void;
 }
 
-const PromptGenerator: React.FC<PromptGeneratorProps> = ({ onInvestigationGenerated }) => {
+const PromptGenerator: React.FC<PromptGeneratorProps> = ({ 
+  onPromptUpdate, 
+  onInvestigationGenerated 
+}) => {
   const [prompt, setPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
@@ -46,6 +51,12 @@ const PromptGenerator: React.FC<PromptGeneratorProps> = ({ onInvestigationGenera
   const handleTemplateSelect = (template: typeof templates[0]) => {
     setSelectedTemplate(template.id);
     setPrompt(template.prompt);
+    onPromptUpdate(template.prompt);
+  };
+
+  const handlePromptChange = (value: string) => {
+    setPrompt(value);
+    onPromptUpdate(value);
   };
 
   const handleGenerate = async () => {
@@ -54,7 +65,25 @@ const PromptGenerator: React.FC<PromptGeneratorProps> = ({ onInvestigationGenera
     setIsGenerating(true);
     try {
       const investigation = await geminiAPI.generateInvestigation(prompt);
-      onInvestigationGenerated(investigation);
+      
+      // Convertir la réponse en format Investigation avec types corrects
+      const formattedInvestigation: Investigation = {
+        id: `investigation-${Date.now()}`,
+        title: investigation.title,
+        description: investigation.description,
+        context: investigation.context,
+        prompt: prompt.trim(),
+        characters: investigation.characters.map(char => ({
+          ...char,
+          role: char.role as 'témoin' | 'suspect' | 'enquêteur' | 'innocent' // Type assertion pour corriger le type
+        })),
+        status: 'en_cours',
+        assetPrompts: investigation.assetPrompts
+      };
+
+      if (onInvestigationGenerated) {
+        onInvestigationGenerated(formattedInvestigation);
+      }
     } catch (error) {
       console.error('Erreur lors de la génération:', error);
     } finally {
@@ -109,7 +138,7 @@ const PromptGenerator: React.FC<PromptGeneratorProps> = ({ onInvestigationGenera
           <CardContent className="space-y-4">
             <Textarea
               value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
+              onChange={(e) => handlePromptChange(e.target.value)}
               placeholder="Décrivez le mystère que vous voulez créer... Par exemple: 'Un meurtre dans un train de nuit avec 6 passagers suspects' ou 'Vol dans une galerie d'art moderne pendant un vernissage'"
               className="min-h-[120px] bg-slate-700 border-slate-600 text-white placeholder-gray-400"
               disabled={isGenerating}

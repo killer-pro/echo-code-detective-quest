@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
@@ -35,7 +34,7 @@ const SceneGenerator: React.FC<SceneGeneratorProps> = ({ investigation, onAssets
 
   const validateImageUrl = (url: string): Promise<boolean> => {
     return new Promise((resolve) => {
-      const img = new Image();
+      const img = new window.Image(); // Fix: utiliser window.Image() au lieu de new Image()
       img.onload = () => resolve(true);
       img.onerror = () => resolve(false);
       img.src = url;
@@ -46,16 +45,18 @@ const SceneGenerator: React.FC<SceneGeneratorProps> = ({ investigation, onAssets
 
   const generateSceneAssets = async () => {
     setIsGenerating(true);
+    console.log('🎨 Début génération des assets pour investigation:', investigation.id);
     
     try {
       const assetPrompts: AssetPrompt[] = investigation.assetPrompts || [];
       const generatedAssetsList: GeneratedAsset[] = [];
 
       // Configurer l'investigation dans l'asset manager
+      console.log('📋 Configuration AssetManager avec investigation:', investigation.id);
       assetManager.setCurrentInvestigation(investigation.id);
 
       for (const assetPrompt of assetPrompts) {
-        console.log(`Génération de l'asset: ${assetPrompt.name}`);
+        console.log(`🖼️ Génération de l'asset: ${assetPrompt.name} (${assetPrompt.type})`);
         
         let imageUrl: string | null = null;
         let retryCount = 0;
@@ -79,7 +80,7 @@ const SceneGenerator: React.FC<SceneGeneratorProps> = ({ investigation, onAssets
               }
             }
           } catch (error) {
-            console.warn(`Tentative ${retryCount + 1} échouée pour ${assetPrompt.name}:`, error);
+            console.warn(`⚠️ Tentative ${retryCount + 1} échouée pour ${assetPrompt.name}:`, error);
             retryCount++;
             if (retryCount < maxRetries) {
               await new Promise(resolve => setTimeout(resolve, 1000)); // Attendre 1s avant retry
@@ -105,6 +106,7 @@ const SceneGenerator: React.FC<SceneGeneratorProps> = ({ investigation, onAssets
             );
             if (character) {
               characterId = character.id;
+              console.log(`👤 Asset personnage associé: ${character.name} -> ${asset.name}`);
             }
           }
 
@@ -116,17 +118,20 @@ const SceneGenerator: React.FC<SceneGeneratorProps> = ({ investigation, onAssets
             characterId
           }, assetPrompt.prompt);
           
+          console.log(`✅ Asset "${assetPrompt.name}" généré et ajouté`);
           toast.success(`Asset "${assetPrompt.name}" généré avec succès`);
         } else {
+          console.error(`❌ Échec génération "${assetPrompt.name}" après ${maxRetries} tentatives`);
           toast.error(`Échec de la génération de "${assetPrompt.name}" après ${maxRetries} tentatives`);
         }
       }
 
       setGeneratedAssets(generatedAssetsList);
       onAssetsGenerated(generatedAssetsList);
+      console.log(`🎉 Génération terminée: ${generatedAssetsList.length} assets créés`);
       
     } catch (error) {
-      console.error('Erreur lors de la génération des assets:', error);
+      console.error('💥 Erreur lors de la génération des assets:', error);
       toast.error('Erreur lors de la génération des assets');
     } finally {
       setIsGenerating(false);
@@ -138,9 +143,9 @@ const SceneGenerator: React.FC<SceneGeneratorProps> = ({ investigation, onAssets
     if (!asset) return;
 
     setRegeneratingAsset(asset.name);
+    console.log(`🔄 Régénération de l'asset: ${asset.name}`);
     
     try {
-      console.log(`Régénération de l'asset: ${asset.name}`);
       toast.info(`Régénération de "${asset.name}" en cours...`);
       
       let newImageUrl: string | null = null;
@@ -168,7 +173,7 @@ const SceneGenerator: React.FC<SceneGeneratorProps> = ({ investigation, onAssets
             }
           }
         } catch (error) {
-          console.warn(`Tentative de régénération ${retryCount + 1} échouée:`, error);
+          console.warn(`⚠️ Tentative de régénération ${retryCount + 1} échouée:`, error);
           retryCount++;
           if (retryCount < maxRetries) {
             await new Promise(resolve => setTimeout(resolve, 1000));
@@ -204,12 +209,14 @@ const SceneGenerator: React.FC<SceneGeneratorProps> = ({ investigation, onAssets
           characterId
         }, asset.prompt);
         
+        console.log(`✅ Asset "${asset.name}" régénéré avec succès`);
         toast.success(`Asset "${asset.name}" régénéré avec succès`);
       } else {
+        console.error(`❌ Échec régénération "${asset.name}" après ${maxRetries} tentatives`);
         toast.error(`Échec de la régénération de "${asset.name}" après ${maxRetries} tentatives`);
       }
     } catch (error) {
-      console.error(`Erreur lors de la régénération de ${asset.name}:`, error);
+      console.error(`💥 Erreur lors de la régénération de ${asset.name}:`, error);
       toast.error(`Erreur lors de la régénération de "${asset.name}"`);
     } finally {
       setRegeneratingAsset(null);
@@ -218,6 +225,7 @@ const SceneGenerator: React.FC<SceneGeneratorProps> = ({ investigation, onAssets
 
   const downloadAsset = async (asset: GeneratedAsset) => {
     setIsDownloading(asset.name);
+    console.log(`💾 Téléchargement asset: ${asset.name}`);
     
     try {
       // Associer les personnages aux assets character
@@ -238,9 +246,10 @@ const SceneGenerator: React.FC<SceneGeneratorProps> = ({ investigation, onAssets
         characterId
       }, asset.prompt);
       
+      console.log(`✅ Asset "${asset.name}" ajouté au jeu`);
       toast.success(`Asset "${asset.name}" ajouté au jeu`);
     } catch (error) {
-      console.error(`Erreur lors de l'ajout de ${asset.name}:`, error);
+      console.error(`💥 Erreur lors de l'ajout de ${asset.name}:`, error);
       toast.error(`Erreur lors de l'ajout de "${asset.name}"`);
     } finally {
       setIsDownloading(null);
@@ -249,6 +258,7 @@ const SceneGenerator: React.FC<SceneGeneratorProps> = ({ investigation, onAssets
 
   const downloadAllAssets = async () => {
     setIsDownloading('all');
+    console.log('💾 Téléchargement de tous les assets...');
     
     try {
       for (const asset of generatedAssets) {
@@ -270,9 +280,10 @@ const SceneGenerator: React.FC<SceneGeneratorProps> = ({ investigation, onAssets
         }, asset.prompt);
       }
       
+      console.log('✅ Tous les assets ont été ajoutés au jeu');
       toast.success('Tous les assets ont été ajoutés au jeu');
     } catch (error) {
-      console.error('Erreur lors de l\'ajout de tous les assets:', error);
+      console.error('💥 Erreur lors de l\'ajout de tous les assets:', error);
       toast.error('Erreur lors de l\'ajout des assets');
     } finally {
       setIsDownloading(null);
@@ -395,7 +406,7 @@ const SceneGenerator: React.FC<SceneGeneratorProps> = ({ investigation, onAssets
                     className="w-full h-32 object-cover rounded border border-slate-600"
                     loading="lazy"
                     onError={(e) => {
-                      console.error(`Erreur de chargement pour ${asset.name}:`, asset.url);
+                      console.error(`💥 Erreur de chargement pour ${asset.name}:`, asset.url);
                       toast.error(`Erreur de chargement de l'image "${asset.name}"`);
                       // Régénérer automatiquement en cas d'erreur
                       regenerateAsset(index);

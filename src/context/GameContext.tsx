@@ -1,11 +1,23 @@
+import React, { createContext, useContext, useReducer } from 'react';
+import { Investigation, Character, DialogEntry, Lead } from '../types';
 
-import React, { createContext, useContext, useReducer, ReactNode } from 'react';
-import { GameState, Character, DialogEntry, Lead, Investigation } from '../types';
-
-interface GameContextType {
-  state: GameState;
-  dispatch: React.Dispatch<GameAction>;
+interface GameState {
+  currentInvestigation: Investigation | null;
+  dialogHistory: DialogEntry[];
+  reputation: { [characterId: string]: number };
+  activeCharacter: Character | null;
+  discoveredLeads: Lead[];
+  playerPosition: { x: number; y: number };
 }
+
+const initialState: GameState = {
+  currentInvestigation: null,
+  dialogHistory: [],
+  reputation: {},
+  activeCharacter: null,
+  discoveredLeads: [],
+  playerPosition: { x: 400, y: 300 },
+};
 
 type GameAction =
   | { type: 'SET_INVESTIGATION'; payload: Investigation }
@@ -14,64 +26,29 @@ type GameAction =
   | { type: 'SET_ACTIVE_CHARACTER'; payload: Character | null }
   | { type: 'ADD_LEAD'; payload: Lead }
   | { type: 'UPDATE_PLAYER_POSITION'; payload: { x: number; y: number } }
-  | { type: 'RESOLVE_LEAD'; payload: string };
-
-const initialState: GameState = {
-  currentInvestigation: null,
-  playerPosition: { x: 400, y: 300 },
-  activeCharacter: null,
-  dialogHistory: [],
-  discoveredLeads: [],
-  reputation: {},
-};
+  | { type: 'RESOLVE_LEAD'; payload: string }
+  | { type: 'UPDATE_CHARACTER_ALERTED_STATUS'; payload: { characterId: string; alerted: boolean } };
 
 const gameReducer = (state: GameState, action: GameAction): GameState => {
   switch (action.type) {
     case 'SET_INVESTIGATION':
-      return {
-        ...state,
-        currentInvestigation: action.payload,
-        reputation: action.payload.characters.reduce((acc, char) => {
-          acc[char.id] = char.reputation_score;
-          return acc;
-        }, {} as Record<string, number>),
-      };
-
+      return { ...state, currentInvestigation: action.payload, dialogHistory: [], discoveredLeads: [] };
     case 'ADD_DIALOG':
-      return {
-        ...state,
-        dialogHistory: [...state.dialogHistory, action.payload],
-      };
-
+      return { ...state, dialogHistory: [...state.dialogHistory, action.payload] };
     case 'UPDATE_CHARACTER_REPUTATION':
       return {
         ...state,
         reputation: {
           ...state.reputation,
-          [action.payload.characterId]: Math.max(0, Math.min(100, 
-            (state.reputation[action.payload.characterId] || 50) + action.payload.change
-          )),
+          [action.payload.characterId]: (state.reputation[action.payload.characterId] || 0) + action.payload.change,
         },
       };
-
     case 'SET_ACTIVE_CHARACTER':
-      return {
-        ...state,
-        activeCharacter: action.payload,
-      };
-
+      return { ...state, activeCharacter: action.payload };
     case 'ADD_LEAD':
-      return {
-        ...state,
-        discoveredLeads: [...state.discoveredLeads, action.payload],
-      };
-
+      return { ...state, discoveredLeads: [...state.discoveredLeads, action.payload] };
     case 'UPDATE_PLAYER_POSITION':
-      return {
-        ...state,
-        playerPosition: action.payload,
-      };
-
+      return { ...state, playerPosition: action.payload };
     case 'RESOLVE_LEAD':
       return {
         ...state,
@@ -79,15 +56,38 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
           lead.id === action.payload ? { ...lead, resolved: true } : lead
         ),
       };
-
+    case 'UPDATE_CHARACTER_ALERTED_STATUS':
+      return {
+        ...state,
+        currentInvestigation: state.currentInvestigation
+          ? {
+              ...state.currentInvestigation,
+              characters: state.currentInvestigation.characters.map(char =>
+                char.id === action.payload.characterId ? { ...char, alerted: action.payload.alerted } : char
+              ),
+            }
+          : state.currentInvestigation,
+      };
     default:
       return state;
   }
 };
 
-const GameContext = createContext<GameContextType | undefined>(undefined);
+interface GameContextProps {
+  state: GameState;
+  dispatch: React.Dispatch<GameAction>;
+}
 
-export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+const GameContext = createContext<GameContextProps>({
+  state: initialState,
+  dispatch: () => null,
+});
+
+interface GameProviderProps {
+  children: React.ReactNode;
+}
+
+const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
   const [state, dispatch] = useReducer(gameReducer, initialState);
 
   return (
@@ -97,10 +97,12 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   );
 };
 
-export const useGame = () => {
+const useGame = () => {
   const context = useContext(GameContext);
-  if (context === undefined) {
+  if (!context) {
     throw new Error('useGame must be used within a GameProvider');
   }
   return context;
 };
+
+export { GameProvider, useGame };

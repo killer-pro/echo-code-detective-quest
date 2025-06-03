@@ -122,6 +122,7 @@ export type Database = {
           character_reply: string
           clickable_keywords: Json | null
           id: string
+          investigation_id: string | null
           reputation_impact: number | null
           timestamp: string | null
           truth_likelihood: number | null
@@ -132,6 +133,7 @@ export type Database = {
           character_reply: string
           clickable_keywords?: Json | null
           id?: string
+          investigation_id?: string | null
           reputation_impact?: number | null
           timestamp?: string | null
           truth_likelihood?: number | null
@@ -142,6 +144,7 @@ export type Database = {
           character_reply?: string
           clickable_keywords?: Json | null
           id?: string
+          investigation_id?: string | null
           reputation_impact?: number | null
           timestamp?: string | null
           truth_likelihood?: number | null
@@ -153,6 +156,13 @@ export type Database = {
             columns: ["character_id"]
             isOneToOne: false
             referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dialogs_investigation_ud_fkey"
+            columns: ["investigation_id"]
+            isOneToOne: false
+            referencedRelation: "investigations"
             referencedColumns: ["id"]
           },
         ]
@@ -236,6 +246,41 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "generated_assets_investigation_id_fkey"
+            columns: ["investigation_id"]
+            isOneToOne: false
+            referencedRelation: "investigations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      investigation_assets: {
+        Row: {
+          asset_name: string
+          asset_type: string
+          asset_url: string
+          created_at: string | null
+          id: string
+          investigation_id: string | null
+        }
+        Insert: {
+          asset_name: string
+          asset_type: string
+          asset_url: string
+          created_at?: string | null
+          id?: string
+          investigation_id?: string | null
+        }
+        Update: {
+          asset_name?: string
+          asset_type?: string
+          asset_url?: string
+          created_at?: string | null
+          id?: string
+          investigation_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "investigation_assets_investigation_id_fkey"
             columns: ["investigation_id"]
             isOneToOne: false
             referencedRelation: "investigations"
