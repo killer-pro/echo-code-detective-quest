@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { useGame } from '../context/GameContext';
-import GameCanvas from '../components/GameCanvas';
+import KonvaGameCanvas from '../components/KonvaGameCanvas';
 import DialogueBox from '../components/DialogueBox';
 import Journal from '../components/Journal';
 import GameManager from '../components/GameManager';
@@ -80,7 +80,7 @@ const Game: React.FC = () => {
             {/* Zone de jeu */}
             <div className="flex-1 flex items-center justify-center p-4">
               {assetsInitialized ? (
-                <GameCanvas
+                <KonvaGameCanvas
                   characters={state.currentInvestigation.characters}
                   onCharacterClick={(character: Character) => {
                     console.log('🖱️ Game.tsx: onCharacterClick called for:', character.name);
