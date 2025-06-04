@@ -1,73 +1,76 @@
-# Welcome to your Lovable project
+# Echo Code Detective
 
-## Project info
+## Vision
 
-**URL**: https://lovable.dev/projects/4a01d05c-21a5-4626-a8e6-ef524036a894
+Echo Code Detective lets anyone generate and play unique detective games where players are truly free to question AI-driven characters. Unlike traditional scripted games, every investigation is dynamic and player-driven for true immersion.
 
-## How can I edit this code?
+## Problem Solved
 
-There are several ways of editing your application.
+Most mystery games are too scripted, limiting player freedom and replayability. Echo Code Detective empowers everyone to create and experience unscripted, AI-powered investigations—no coding or art skills required.
 
-**Use Lovable**
+## Features
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/4a01d05c-21a5-4626-a8e6-ef524036a894) and start prompting.
+- **Prompt-based Generation:** Instantly create a full investigation (story, suspects, clues, and visual assets) from a simple text prompt.
+- **AI Characters:** Each character has a unique personality, secrets, and knowledge. Players can freely interrogate them with natural language.
+- **Dynamic Clues & Visuals:** The app generates clues and backgrounds as images, making each case visually unique.
+- **Immersive Gameplay:** Explore, question, and accuse suspects in a living, unscripted world.
 
-Changes made via Lovable will be committed automatically to this repo.
+## Architecture
 
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+```
+/echo-code-detective-quest
+  public/                # Static assets
+  src/
+    api/                # API calls (e.g. Gemini, Supabase)
+    components/         # React UI components (game, prompt, scene, UI, etc.)
+    context/            # React context providers (game state, etc.)
+    data/               # Static or mock data
+    hooks/              # Custom React hooks
+    integrations/       # External services (supabase, etc.)
+    lib/                # Utility libraries
+    pages/              # Main app pages (routing)
+    types/              # TypeScript types & interfaces
+    utils/              # Utility functions (Cloudinary, asset management, etc.)
+  README.md
+  package.json
+  ...
 ```
 
-**Edit a file directly in GitHub**
+- **Frontend:** All logic is in `src/` (React, TypeScript, Vite, Tailwind CSS)
+- **Backend:** Supabase (database, auth)
+- **AI:** Gemini API (text), Cloudinary (image upload)
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## How to Run
 
-**Use GitHub Codespaces**
+1. **Clone the repository:**
+   ```sh
+   git clone <YOUR_GIT_URL>
+   cd <YOUR_PROJECT_NAME>
+   ```
+2. **Install dependencies:**
+   ```sh
+   npm install
+   ```
+3. **Configure environment variables:**
+   - Create a `.env` file if needed for API keys (Gemini, Supabase, Cloudinary, etc.)
+   - Example:
+     ```env
+     VITE_SUPABASE_URL=...
+     VITE_SUPABASE_ANON_KEY=...
+     VITE_GEMINI_API_KEY=...
+     VITE_CLOUDINARY_PRESET=...
+     ```
+4. **Start the development server:**
+   ```sh
+   npm run dev
+   ```
+5. **Open your browser:**
+   - Visit [http://localhost:5173](http://localhost:5173) (or the port shown in your terminal)
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## Deployment
 
-## What technologies are used for this project?
+You can deploy this project easily on [Lovable](https://lovable.dev/) or your preferred platform. For custom domains, see the Lovable documentation.
 
-This project is built with:
+## License
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/4a01d05c-21a5-4626-a8e6-ef524036a894) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+MIT
