@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useGame } from '../context/GameContext';
 import { Character, DialogEntry } from '../types';
@@ -5,10 +6,12 @@ import { geminiAPI } from '../api/gemini';
 import { supabase } from '../integrations/supabase/client';
 import { toast } from 'sonner';
 import { DemoService } from '../utils/demoService';
+import { useClueDetection } from './useClueDetection';
 
 export const useDialogManager = () => {
   const { state, dispatch } = useGame();
   const [isLoading, setIsLoading] = useState(false);
+  const { detectAndSaveClue } = useClueDetection();
 
   const loadDialogHistory = async () => {
     if (!state.currentInvestigation) return;
@@ -163,6 +166,17 @@ export const useDialogManager = () => {
             change: response.reputationImpact 
           }
         });
+      }
+
+      // Détecter et sauvegarder les indices automatiquement
+      if (state.currentInvestigation.id !== 'demo-investigation-001') {
+        await detectAndSaveClue(
+          state.currentInvestigation.id,
+          state.activeCharacter.id,
+          dialogEntry.id,
+          response.text,
+          response.truthLikelihood
+        );
       }
 
       if (response.truthLikelihood > 0.6 && Math.random() > 0.7) {

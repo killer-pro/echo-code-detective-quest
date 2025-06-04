@@ -9,6 +9,15 @@ export interface GenerateImageParams {
   type?: 'background' | 'character' | 'prop';
 }
 
+// Fonction utilitaire pour valider et obtenir un style compatible avec GenerateImageParams
+export function getValidImageStyle(style: string | undefined | null): GenerateImageParams['style'] {
+  const validStyles: GenerateImageParams['style'][] = ['realistic', 'cartoon', 'pixel-art', 'fantasy', 'noir'];
+  if (style && validStyles.includes(style as GenerateImageParams['style'])) {
+    return style as GenerateImageParams['style'];
+  }
+  return 'cartoon'; // Style par défaut
+}
+
 export async function generateAssetImage(params: GenerateImageParams): Promise<string | null> {
   if (!params.description) {
     console.warn('No description provided for image generation.');
@@ -20,15 +29,15 @@ export async function generateAssetImage(params: GenerateImageParams): Promise<s
     let enhancedPrompt = params.description;
     
     if (params.type === 'background') {
-      enhancedPrompt = `${params.description}, 2D game background, flat design, side view, ${params.style || 'cartoon'} style, no 3D, simple shapes, game environment`;
+      enhancedPrompt = `${params.description}, detailed scene background, atmospheric lighting, ${params.style || 'cartoon'} style, game environment, high quality, cinematic view`;
     } else if (params.type === 'character') {
-      enhancedPrompt = `${params.description}, 2D character sprite, front view, ${params.style || 'cartoon'} style, flat design, simple shapes, game character, portrait style, no 3D, no realistic`;
+      enhancedPrompt = `${params.description}, character portrait, detailed face and clothing, ${params.style || 'cartoon'} style, high quality character art, full body or portrait view`;
     } else if (params.type === 'prop') {
-      enhancedPrompt = `${params.description}, 2D game object, flat design, ${params.style || 'cartoon'} style, simple shapes, clean background, no 3D`;
+      enhancedPrompt = `${params.description}, detailed object, ${params.style || 'cartoon'} style, game item, clean background, high quality`;
     }
 
     const encodedPrompt = encodeURIComponent(enhancedPrompt);
-    const imageUrl = `${IMAGE_GENERATION_API_URL}${encodedPrompt}?width=512&height=512&model=flux&nologo=true&private=false&enhance=false&safe=false&seed=${Math.floor(Math.random() * 1000000)}`;
+    const imageUrl = `${IMAGE_GENERATION_API_URL}${encodedPrompt}?width=512&height=512&model=flux&nologo=true&private=false&enhance=true&safe=false&seed=${Math.floor(Math.random() * 1000000)}`;
     
     console.log('Generating image from URL:', imageUrl);
     
@@ -61,49 +70,29 @@ function generatePlaceholderImage(description: string): string {
   `)}`;
 }
 
-export async function saveGeneratedAssetToDatabase(
-  investigationId: string,
-  assetName: string,
-  assetType: 'background' | 'character' | 'prop',
-  imageUrl: string,
-  prompt: string
-): Promise<void> {
-  try {
-    const { error } = await supabase
-      .from('generated_assets')
-      .insert({
-        investigation_id: investigationId,
-        asset_name: assetName,
-        asset_type: assetType,
-        image_url: imageUrl,
-        prompt: prompt
-      });
-
-    if (error) throw error;
-    console.log(`Asset ${assetName} sauvegardé en base de données`);
-  } catch (error) {
-    console.error('Erreur lors de la sauvegarde de l\'asset:', error);
+// Fonction pour améliorer les prompts d'images
+export function enhanceImagePrompt(basePrompt: string, type: 'character' | 'background' | 'dialogue_bg', characterRole?: string): string {
+  let enhancedPrompt = basePrompt;
+  
+  switch (type) {
+    case 'character':
+      enhancedPrompt = `High quality character portrait of ${basePrompt}`;
+      if (characterRole) {
+        enhancedPrompt += `, ${characterRole} appearance`;
+      }
+      enhancedPrompt += ', detailed facial features, professional character art, clear background, cartoon style, game character design';
+      break;
+      
+    case 'background':
+      enhancedPrompt = `Atmospheric scene background: ${basePrompt}, cinematic lighting, detailed environment, game background art, high quality, immersive setting, cartoon style`;
+      break;
+      
+    case 'dialogue_bg':
+      enhancedPrompt = `Dialogue background scene: ${basePrompt}, atmospheric, moody lighting, perfect for character conversations, detailed interior/exterior, cartoon style, cinematic composition`;
+      break;
   }
-}
-
-export async function loadAssetsFromDatabase(investigationId: string): Promise<Array<{
-  asset_name: string;
-  asset_type: string;
-  image_url: string;
-  prompt: string;
-}>> {
-  try {
-    const { data, error } = await supabase
-      .from('generated_assets')
-      .select('*')
-      .eq('investigation_id', investigationId);
-
-    if (error) throw error;
-    return data || [];
-  } catch (error) {
-    console.error('Erreur lors du chargement des assets:', error);
-    return [];
-  }
+  
+  return enhancedPrompt;
 }
 
 export async function downloadAndCacheImage(url: string, name: string): Promise<string> {

@@ -13,10 +13,13 @@ export type Database = {
         Row: {
           alerted: boolean | null
           created_at: string | null
+          dialog_background_url: string | null
           dialogue_background_url: string | null
           expression_state: string | null
           id: string
+          image_url: string | null
           investigation_id: string | null
+          is_culprit: boolean | null
           knowledge: string
           location_description: string | null
           name: string
@@ -29,10 +32,13 @@ export type Database = {
         Insert: {
           alerted?: boolean | null
           created_at?: string | null
+          dialog_background_url?: string | null
           dialogue_background_url?: string | null
           expression_state?: string | null
           id?: string
+          image_url?: string | null
           investigation_id?: string | null
+          is_culprit?: boolean | null
           knowledge?: string
           location_description?: string | null
           name: string
@@ -45,10 +51,13 @@ export type Database = {
         Update: {
           alerted?: boolean | null
           created_at?: string | null
+          dialog_background_url?: string | null
           dialogue_background_url?: string | null
           expression_state?: string | null
           id?: string
+          image_url?: string | null
           investigation_id?: string | null
+          is_culprit?: boolean | null
           knowledge?: string
           location_description?: string | null
           name?: string
@@ -68,50 +77,47 @@ export type Database = {
           },
         ]
       }
-      cloudinary_assets: {
+      clues: {
         Row: {
-          asset_name: string
-          asset_type: string
-          character_id: string | null
-          cloudinary_public_id: string
-          cloudinary_url: string
           created_at: string | null
+          description: string | null
+          discovered_by: string | null
           id: string
+          image_url: string | null
           investigation_id: string | null
-          location_context: string | null
+          location: string | null
+          name: string
         }
         Insert: {
-          asset_name: string
-          asset_type: string
-          character_id?: string | null
-          cloudinary_public_id: string
-          cloudinary_url: string
           created_at?: string | null
-          id?: string
+          description?: string | null
+          discovered_by?: string | null
+          id: string
+          image_url?: string | null
           investigation_id?: string | null
-          location_context?: string | null
+          location?: string | null
+          name: string
         }
         Update: {
-          asset_name?: string
-          asset_type?: string
-          character_id?: string | null
-          cloudinary_public_id?: string
-          cloudinary_url?: string
           created_at?: string | null
+          description?: string | null
+          discovered_by?: string | null
           id?: string
+          image_url?: string | null
           investigation_id?: string | null
-          location_context?: string | null
+          location?: string | null
+          name?: string
         }
         Relationships: [
           {
-            foreignKeyName: "cloudinary_assets_character_id_fkey"
-            columns: ["character_id"]
+            foreignKeyName: "clues_discovered_by_fkey"
+            columns: ["discovered_by"]
             isOneToOne: false
             referencedRelation: "characters"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "cloudinary_assets_investigation_id_fkey"
+            foreignKeyName: "clues_investigation_id_fkey"
             columns: ["investigation_id"]
             isOneToOne: false
             referencedRelation: "investigations"
@@ -173,50 +179,54 @@ export type Database = {
           },
         ]
       }
-      dialogs: {
+      discovered_clues: {
         Row: {
-          character_id: string | null
-          character_reply: string
-          clickable_keywords: Json | null
+          character_id: string
+          clue_text: string
+          clue_type: string | null
+          dialog_id: string
+          discovered_at: string | null
           id: string
-          investigation_id: string | null
-          reputation_impact: number | null
-          timestamp: string | null
-          truth_likelihood: number | null
-          user_input: string
+          importance_level: number | null
+          investigation_id: string
         }
         Insert: {
-          character_id?: string | null
-          character_reply: string
-          clickable_keywords?: Json | null
+          character_id: string
+          clue_text: string
+          clue_type?: string | null
+          dialog_id: string
+          discovered_at?: string | null
           id?: string
-          investigation_id?: string | null
-          reputation_impact?: number | null
-          timestamp?: string | null
-          truth_likelihood?: number | null
-          user_input: string
+          importance_level?: number | null
+          investigation_id: string
         }
         Update: {
-          character_id?: string | null
-          character_reply?: string
-          clickable_keywords?: Json | null
+          character_id?: string
+          clue_text?: string
+          clue_type?: string | null
+          dialog_id?: string
+          discovered_at?: string | null
           id?: string
-          investigation_id?: string | null
-          reputation_impact?: number | null
-          timestamp?: string | null
-          truth_likelihood?: number | null
-          user_input?: string
+          importance_level?: number | null
+          investigation_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "dialogs_character_id_fkey"
+            foreignKeyName: "discovered_clues_character_id_fkey"
             columns: ["character_id"]
             isOneToOne: false
             referencedRelation: "characters"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "dialogs_investigation_ud_fkey"
+            foreignKeyName: "discovered_clues_dialog_id_fkey"
+            columns: ["dialog_id"]
+            isOneToOne: false
+            referencedRelation: "dialog_history"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discovered_clues_investigation_id_fkey"
             columns: ["investigation_id"]
             isOneToOne: false
             referencedRelation: "investigations"
@@ -272,124 +282,16 @@ export type Database = {
         }
         Relationships: []
       }
-      game_saves: {
-        Row: {
-          created_at: string | null
-          game_state: Json
-          id: string
-          investigation_id: string | null
-          last_played_at: string | null
-          player_name: string | null
-          player_position: Json
-          player_role: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          game_state?: Json
-          id?: string
-          investigation_id?: string | null
-          last_played_at?: string | null
-          player_name?: string | null
-          player_position?: Json
-          player_role?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          game_state?: Json
-          id?: string
-          investigation_id?: string | null
-          last_played_at?: string | null
-          player_name?: string | null
-          player_position?: Json
-          player_role?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "game_saves_investigation_id_fkey"
-            columns: ["investigation_id"]
-            isOneToOne: false
-            referencedRelation: "investigations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      generated_assets: {
-        Row: {
-          asset_name: string
-          asset_type: string
-          created_at: string | null
-          id: string
-          image_url: string
-          investigation_id: string | null
-          prompt: string
-        }
-        Insert: {
-          asset_name: string
-          asset_type: string
-          created_at?: string | null
-          id?: string
-          image_url: string
-          investigation_id?: string | null
-          prompt: string
-        }
-        Update: {
-          asset_name?: string
-          asset_type?: string
-          created_at?: string | null
-          id?: string
-          image_url?: string
-          investigation_id?: string | null
-          prompt?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "generated_assets_investigation_id_fkey"
-            columns: ["investigation_id"]
-            isOneToOne: false
-            referencedRelation: "investigations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      investigation_assets: {
-        Row: {
-          asset_name: string
-          asset_type: string
-          asset_url: string
-          created_at: string | null
-          id: string
-          investigation_id: string | null
-        }
-        Insert: {
-          asset_name: string
-          asset_type: string
-          asset_url: string
-          created_at?: string | null
-          id?: string
-          investigation_id?: string | null
-        }
-        Update: {
-          asset_name?: string
-          asset_type?: string
-          asset_url?: string
-          created_at?: string | null
-          id?: string
-          investigation_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "investigation_assets_investigation_id_fkey"
-            columns: ["investigation_id"]
-            isOneToOne: false
-            referencedRelation: "investigations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       investigations: {
         Row: {
+          accusation_made: boolean | null
+          accusation_timestamp: string | null
+          accused_character_id: string | null
+          background_url: string | null
           created_at: string | null
           created_by: string | null
+          culprit_character_id: string | null
+          game_result: string | null
           id: string
           player_image_url: string | null
           player_role: string | null
@@ -398,8 +300,14 @@ export type Database = {
           title: string
         }
         Insert: {
+          accusation_made?: boolean | null
+          accusation_timestamp?: string | null
+          accused_character_id?: string | null
+          background_url?: string | null
           created_at?: string | null
           created_by?: string | null
+          culprit_character_id?: string | null
+          game_result?: string | null
           id?: string
           player_image_url?: string | null
           player_role?: string | null
@@ -408,8 +316,14 @@ export type Database = {
           title: string
         }
         Update: {
+          accusation_made?: boolean | null
+          accusation_timestamp?: string | null
+          accused_character_id?: string | null
+          background_url?: string | null
           created_at?: string | null
           created_by?: string | null
+          culprit_character_id?: string | null
+          game_result?: string | null
           id?: string
           player_image_url?: string | null
           player_role?: string | null
@@ -417,7 +331,22 @@ export type Database = {
           status?: string | null
           title?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "investigations_accused_character_id_fkey"
+            columns: ["accused_character_id"]
+            isOneToOne: false
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "investigations_culprit_character_id_fkey"
+            columns: ["culprit_character_id"]
+            isOneToOne: false
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       leads: {
         Row: {

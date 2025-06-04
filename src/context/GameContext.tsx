@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useReducer } from 'react';
 import { Investigation, Character, DialogEntry, Lead } from '../types';
 

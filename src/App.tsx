@@ -21,6 +21,7 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />
+            <Route path="/game/:investigationId" element={<Game />} />
             <Route path="/game" element={<Game />} />
             <Route path="/create" element={<CreatePrompt />} />
             <Route path="*" element={<NotFound />} />

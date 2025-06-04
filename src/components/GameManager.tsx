@@ -105,7 +105,7 @@ const GameManager: React.FC<GameManagerProps> = ({ children }) => {
 
   // Déterminer l'état de chargement global
   const globalLoading = !isInitialized || isLoading;
-  const globalAssetsReady = isInitialized && (assetsInitialized || assetManager.isReady());
+  const globalAssetsReady = isInitialized && (assetsInitialized || assetManager.isAssetManagerReady());
 
   return (
       <>

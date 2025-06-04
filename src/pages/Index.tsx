@@ -7,6 +7,7 @@ import { Wand2, Play, BookOpen, Brain, Users, Search, MessageSquare, Zap } from 
 import { useGame } from '../context/GameContext';
 import { DemoService } from '../utils/demoService';
 import { toast } from 'sonner';
+import ActiveInvestigations from '../components/ActiveInvestigations';
 
 const Index: React.FC = () => {
   const navigate = useNavigate();
@@ -109,6 +110,11 @@ const Index: React.FC = () => {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Active Investigations Section */}
+      <div className="max-w-7xl mx-auto px-6 py-10">
+        <ActiveInvestigations />
       </div>
 
       {/* Features Section */}

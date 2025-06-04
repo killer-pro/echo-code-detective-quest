@@ -5,7 +5,7 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { ScrollArea } from './ui/scroll-area';
 import { Badge } from './ui/badge';
-import { X, Send, Loader2 } from 'lucide-react';
+import { X, Send, Loader2, User } from 'lucide-react';
 
 interface DialogueBoxProps {
   character: Character;
@@ -62,66 +62,82 @@ const DialogueBox: React.FC<DialogueBoxProps> = ({
   };
 
   return (
-    <div className="h-full flex flex-col bg-slate-800">
-      {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-slate-700">
+    <div className="h-96 flex flex-col">
+      {/* Header compact */}
+      <div className="flex items-center justify-between p-3 border-b border-white/20">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 bg-purple-600 rounded-full flex items-center justify-center text-white font-bold">
-            {character.name.charAt(0)}
+          <div className="w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
+            {character.image_url ? (
+              <img
+                src={character.image_url}
+                alt={character.name}
+                className="w-full h-full rounded-full object-cover"
+              />
+            ) : (
+              character.name.charAt(0)
+            )}
           </div>
           <div>
-            <h3 className="text-white font-semibold">{character.name}</h3>
+            <h3 className="text-white font-semibold text-sm">{character.name}</h3>
             <div className="flex items-center gap-2">
-              <Badge variant="secondary" className="text-xs">
+              <Badge variant="secondary" className="text-xs py-0">
                 {character.role}
               </Badge>
               <span className={`text-xs ${getReputationColor(character.reputation_score)}`}>
-                Réputation: {character.reputation_score}%
+                {character.reputation_score}%
               </span>
             </div>
           </div>
         </div>
-        <Button variant="ghost" size="sm" onClick={onClose}>
+        <Button variant="ghost" size="sm" onClick={onClose} className="text-white/70 hover:text-white">
           <X className="w-4 h-4" />
         </Button>
       </div>
 
       {/* Messages */}
-      <ScrollArea className="flex-1 p-4" ref={scrollRef}>
-        <div className="space-y-4">
+      <ScrollArea className="flex-1 p-3" ref={scrollRef}>
+        <div className="space-y-3">
           {characterDialogs.length === 0 ? (
-            <div className="text-center text-gray-400 py-8">
-              <p>Commencez la conversation avec {character.name}</p>
-              <p className="text-sm mt-2">Posez des questions sur l'enquête...</p>
+            <div className="text-center text-gray-400 py-6">
+              <p className="text-sm">Commencez la conversation avec {character.name}</p>
+              <p className="text-xs mt-1 text-gray-500">Posez des questions sur l'enquête...</p>
             </div>
           ) : (
-            characterDialogs.map((dialog) => (
-              <div key={dialog.id} className="space-y-3">
+            characterDialogs.map((dialog, index) => (
+              <div key={dialog.id + '-' + index} className="space-y-2">
                 {/* Message utilisateur */}
                 <div className="flex justify-end">
-                  <div className="bg-blue-600 text-white p-3 rounded-lg max-w-[80%]">
+                  <div className="bg-blue-600/80 text-white p-2 rounded-lg max-w-[80%] text-sm">
+                    <div className="flex items-center gap-2 mb-1">
+                      <User className="w-3 h-3" />
+                      <span className="text-xs opacity-70">Vous</span>
+                    </div>
                     {dialog.user_input}
                   </div>
                 </div>
 
                 {/* Réponse personnage */}
                 <div className="flex justify-start">
-                  <div className="bg-slate-700 text-white p-3 rounded-lg max-w-[80%]">
-                    <p>{dialog.character_reply}</p>
+                  <div className="bg-slate-700/80 text-white p-2 rounded-lg max-w-[80%] text-sm">
+                    <div className="flex items-center gap-2 mb-1">
+                      <div className="w-3 h-3 bg-purple-600 rounded-full"></div>
+                      <span className="text-xs opacity-70">{character.name}</span>
+                    </div>
+                    <p className="mb-2">{dialog.character_reply}</p>
                     
-                    {/* Indicateurs */}
-                    <div className="flex items-center gap-2 mt-2 pt-2 border-t border-slate-600">
-                      <div className={`w-2 h-2 rounded-full ${getTruthColor(dialog.truth_likelihood)}`} />
+                    {/* Indicateurs compacts */}
+                    <div className="flex items-center gap-2 pt-1 border-t border-slate-600/50">
+                      <div className={`w-1.5 h-1.5 rounded-full ${getTruthColor(dialog.truth_likelihood)}`} />
                       <span className="text-xs text-gray-400">
-                        Fiabilité: {Math.round(dialog.truth_likelihood * 100)}%
+                        {Math.round(dialog.truth_likelihood * 100)}%
                       </span>
                       
                       {dialog.reputation_impact !== 0 && (
                         <Badge 
                           variant={dialog.reputation_impact > 0 ? "default" : "destructive"}
-                          className="text-xs"
+                          className="text-xs py-0 px-1 h-4"
                         >
-                          {dialog.reputation_impact > 0 ? '+' : ''}{dialog.reputation_impact} rep
+                          {dialog.reputation_impact > 0 ? '+' : ''}{dialog.reputation_impact}
                         </Badge>
                       )}
                     </div>
@@ -134,7 +150,7 @@ const DialogueBox: React.FC<DialogueBoxProps> = ({
                             key={index}
                             variant="outline"
                             size="sm"
-                            className="text-xs h-6 px-2"
+                            className="text-xs h-5 px-2 py-0"
                             onClick={() => setMessage(keyword)}
                           >
                             {keyword}
@@ -151,7 +167,7 @@ const DialogueBox: React.FC<DialogueBoxProps> = ({
       </ScrollArea>
 
       {/* Input */}
-      <div className="p-4 border-t border-slate-700">
+      <div className="p-3 border-t border-white/20">
         <div className="flex gap-2">
           <Input
             value={message}
@@ -159,9 +175,13 @@ const DialogueBox: React.FC<DialogueBoxProps> = ({
             onKeyPress={handleKeyPress}
             placeholder="Tapez votre message..."
             disabled={isLoading}
-            className="flex-1"
+            className="flex-1 bg-white/10 border-white/20 text-white placeholder:text-gray-400"
           />
-          <Button onClick={handleSend} disabled={!message.trim() || isLoading}>
+          <Button 
+            onClick={handleSend} 
+            disabled={!message.trim() || isLoading}
+            className="bg-blue-600 hover:bg-blue-700"
+          >
             {isLoading ? (
               <Loader2 className="w-4 h-4 animate-spin" />
             ) : (

@@ -2,8 +2,8 @@
 import { supabase } from '../integrations/supabase/client';
 import { Investigation, DialogEntry, Lead } from '../types';
 
-interface GameSaveData {
-  id?: string;
+export interface GameSave {
+  id: string;
   investigation_id: string;
   player_position: { x: number; y: number };
   game_state: {
@@ -12,9 +12,9 @@ interface GameSaveData {
     reputation: { [characterId: string]: number };
     charactersAlerted: { [characterId: string]: boolean };
   };
+  created_at: string;
   last_played_at: string;
-  player_name?: string;
-  player_role?: string;
+  investigation_title: string;
 }
 
 export class GameSaveService {
@@ -24,10 +24,14 @@ export class GameSaveService {
     dialogHistory: DialogEntry[],
     discoveredLeads: Lead[],
     reputation: { [characterId: string]: number },
-    charactersAlerted: { [characterId: string]: boolean } = {}
-  ): Promise<string> {
+    charactersAlerted: { [characterId: string]: boolean }
+  ): Promise<void> {
     try {
-      const saveData = {
+      console.log('💾 Sauvegarde de la partie...');
+      
+      // Pour l'instant, on sauvegarde dans le localStorage
+      // TODO: Créer la table game_saves dans Supabase si nécessaire
+      const saveData: Omit<GameSave, 'id' | 'created_at' | 'last_played_at'> = {
         investigation_id: investigation.id,
         player_position: playerPosition,
         game_state: {
@@ -36,84 +40,70 @@ export class GameSaveService {
           reputation,
           charactersAlerted
         },
-        last_played_at: new Date().toISOString(),
-        player_name: 'Enquêteur',
-        player_role: 'enquêteur'
+        investigation_title: investigation.title
       };
 
-      const { data, error } = await supabase
-        .from('game_saves')
-        .insert(saveData)
-        .select()
-        .single();
+      const existingSaves = this.getLocalSaves();
+      const saveIndex = existingSaves.findIndex(save => save.investigation_id === investigation.id);
+      
+      const fullSaveData: GameSave = {
+        ...saveData,
+        id: saveIndex >= 0 ? existingSaves[saveIndex].id : `save_${Date.now()}`,
+        created_at: saveIndex >= 0 ? existingSaves[saveIndex].created_at : new Date().toISOString(),
+        last_played_at: new Date().toISOString()
+      };
 
-      if (error) throw error;
+      if (saveIndex >= 0) {
+        existingSaves[saveIndex] = fullSaveData;
+      } else {
+        existingSaves.push(fullSaveData);
+      }
 
-      console.log('✅ Partie sauvegardée avec succès');
-      return data.id;
+      localStorage.setItem('gameSaves', JSON.stringify(existingSaves));
+      console.log('✅ Partie sauvegardée localement');
     } catch (error) {
-      console.error('💥 Erreur sauvegarde partie:', error);
+      console.error('💥 Erreur sauvegarde:', error);
       throw error;
     }
   }
 
-  static async loadGame(saveId: string): Promise<any | null> {
+  static async loadGameSaves(): Promise<GameSave[]> {
     try {
-      const { data, error } = await supabase
-        .from('game_saves')
-        .select('*')
-        .eq('id', saveId)
-        .single();
-
-      if (error) throw error;
+      console.log('📖 Chargement des sauvegardes...');
       
-      return {
-        ...data,
-        player_position: data.player_position as { x: number; y: number },
-        game_state: data.game_state as {
-          dialogHistory: DialogEntry[];
-          discoveredLeads: Lead[];
-          reputation: { [characterId: string]: number };
-          charactersAlerted: { [characterId: string]: boolean };
-        }
-      };
+      // Pour l'instant, charger depuis localStorage
+      // TODO: Charger depuis Supabase quand la table sera créée
+      const saves = this.getLocalSaves();
+      console.log(`✅ ${saves.length} sauvegardes trouvées`);
+      return saves;
     } catch (error) {
-      console.error('💥 Erreur chargement partie:', error);
-      return null;
-    }
-  }
-
-  static async getRecentSaves(limit: number = 10): Promise<any[]> {
-    try {
-      const { data, error } = await supabase
-        .from('game_saves')
-        .select(`
-          *,
-          investigations(title)
-        `)
-        .order('last_played_at', { ascending: false })
-        .limit(limit);
-
-      if (error) throw error;
-      return data || [];
-    } catch (error) {
-      console.error('💥 Erreur récupération sauvegardes:', error);
+      console.error('💥 Erreur chargement sauvegardes:', error);
       return [];
     }
   }
 
   static async deleteSave(saveId: string): Promise<void> {
     try {
-      const { error } = await supabase
-        .from('game_saves')
-        .delete()
-        .eq('id', saveId);
-
-      if (error) throw error;
+      console.log('🗑️ Suppression sauvegarde:', saveId);
+      
+      const saves = this.getLocalSaves();
+      const filteredSaves = saves.filter(save => save.id !== saveId);
+      localStorage.setItem('gameSaves', JSON.stringify(filteredSaves));
+      
       console.log('✅ Sauvegarde supprimée');
     } catch (error) {
-      console.error('💥 Erreur suppression sauvegarde:', error);
+      console.error('💥 Erreur suppression:', error);
       throw error;
+    }
+  }
+
+  private static getLocalSaves(): GameSave[] {
+    try {
+      const saves = localStorage.getItem('gameSaves');
+      return saves ? JSON.parse(saves) : [];
+    } catch (error) {
+      console.error('💥 Erreur lecture localStorage:', error);
+      return [];
     }
   }
 }

@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import { Stage, Layer, Image, Rect, Text, Group, Circle } from 'react-konva';
 import { Character } from '../types';
@@ -28,9 +27,9 @@ const KonvaGameCanvas: React.FC<KonvaGameCanvasProps> = ({ characters, onCharact
   // Charger l'image d'arrière-plan
   useEffect(() => {
     const loadBackground = async () => {
-      const backgroundUrl = assetManager.getBackgroundUrl();
-      if (backgroundUrl) {
-        console.log('🖼️ KonvaGameCanvas: Chargement arrière-plan:', backgroundUrl);
+      const backgroundAsset = assetManager.getAsset('background');
+      if (backgroundAsset && backgroundAsset.url) {
+        console.log('🖼️ KonvaGameCanvas: Chargement arrière-plan:', backgroundAsset.url);
         const img = new window.Image();
         img.crossOrigin = 'anonymous';
         img.onload = () => {
@@ -40,11 +39,11 @@ const KonvaGameCanvas: React.FC<KonvaGameCanvasProps> = ({ characters, onCharact
         img.onerror = (error) => {
           console.error('💥 KonvaGameCanvas: Erreur chargement arrière-plan:', error);
         };
-        img.src = backgroundUrl;
+        img.src = backgroundAsset.url;
       }
     };
 
-    if (assetManager.isReady()) {
+    if (assetManager.isAssetManagerReady()) {
       loadBackground();
     }
   }, [state.currentInvestigation]);
@@ -52,9 +51,9 @@ const KonvaGameCanvas: React.FC<KonvaGameCanvasProps> = ({ characters, onCharact
   // Charger l'image du joueur
   useEffect(() => {
     const loadPlayerImage = async () => {
-      const playerImageUrl = assetManager.getPlayerImageUrl();
-      if (playerImageUrl) {
-        console.log('👤 KonvaGameCanvas: Chargement image joueur:', playerImageUrl);
+      const playerAsset = assetManager.getAsset('player');
+      if (playerAsset && playerAsset.url) {
+        console.log('👤 KonvaGameCanvas: Chargement image joueur:', playerAsset.url);
         const img = new window.Image();
         img.crossOrigin = 'anonymous';
         img.onload = () => {
@@ -64,11 +63,11 @@ const KonvaGameCanvas: React.FC<KonvaGameCanvasProps> = ({ characters, onCharact
         img.onerror = (error) => {
           console.error('💥 KonvaGameCanvas: Erreur chargement image joueur:', error);
         };
-        img.src = playerImageUrl;
+        img.src = playerAsset.url;
       }
     };
 
-    if (assetManager.isReady()) {
+    if (assetManager.isAssetManagerReady()) {
       loadPlayerImage();
     }
   }, [state.currentInvestigation]);
@@ -80,7 +79,7 @@ const KonvaGameCanvas: React.FC<KonvaGameCanvasProps> = ({ characters, onCharact
       const newCharacterImages = new Map<string, HTMLImageElement>();
 
       for (const character of characters) {
-        const characterAssetUrl = assetManager.getCharacterAssetByName(character.name);
+        const characterAssetUrl = assetManager.getAsset(character.name)?.url;
         if (characterAssetUrl) {
           console.log(`👤 KonvaGameCanvas: Chargement image pour ${character.name}:`, characterAssetUrl);
           const img = new window.Image();
@@ -105,7 +104,7 @@ const KonvaGameCanvas: React.FC<KonvaGameCanvasProps> = ({ characters, onCharact
       console.log(`✅ KonvaGameCanvas: ${newCharacterImages.size} images de personnages chargées`);
     };
 
-    if (characters.length > 0 && assetManager.isReady()) {
+    if (characters.length > 0 && assetManager.isAssetManagerReady()) {
       loadCharacterImages();
     }
   }, [characters, state.currentInvestigation]);

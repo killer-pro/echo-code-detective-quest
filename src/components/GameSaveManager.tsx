@@ -1,200 +1,138 @@
 
 import React, { useState, useEffect } from 'react';
-import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { Button } from './ui/button';
 import { Badge } from './ui/badge';
-import { Loader2, Save, Trash2, Play, Clock } from 'lucide-react';
-import { GameSaveService } from '../utils/gameSaveService';
-import { useGame } from '../context/GameContext';
-import { supabase } from '../integrations/supabase/client';
+import { Trash2, Play, Clock } from 'lucide-react';
+import { GameSaveService, type GameSave } from '../utils/gameSaveService';
 import { toast } from 'sonner';
-import { formatDistanceToNow } from 'date-fns';
-import { fr } from 'date-fns/locale';
-
-interface GameSave {
-  id: string;
-  investigation_id: string;
-  last_played_at: string;
-  player_name?: string;
-  player_role?: string;
-  investigations?: { title: string };
-}
 
 interface GameSaveManagerProps {
-  onLoadGame?: (saveData: any) => void;
-  showLoadOnly?: boolean;
+  onLoadGame: (save: GameSave) => void;
 }
 
-const GameSaveManager: React.FC<GameSaveManagerProps> = ({ onLoadGame, showLoadOnly = false }) => {
-  const { state, dispatch } = useGame();
+const GameSaveManager: React.FC<GameSaveManagerProps> = ({ onLoadGame }) => {
   const [saves, setSaves] = useState<GameSave[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     loadSaves();
   }, []);
 
   const loadSaves = async () => {
-    setIsLoading(true);
     try {
-      const recentSaves = await GameSaveService.getRecentSaves();
-      setSaves(recentSaves);
+      setLoading(true);
+      const gameSaves = await GameSaveService.loadGameSaves();
+      setSaves(gameSaves);
     } catch (error) {
       console.error('Erreur chargement sauvegardes:', error);
       toast.error('Erreur lors du chargement des sauvegardes');
     } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleSaveGame = async () => {
-    if (!state.currentInvestigation) {
-      toast.error('Aucune enquête en cours');
-      return;
-    }
-
-    setIsSaving(true);
-    try {
-      const charactersAlerted = state.currentInvestigation.characters.reduce((acc, char) => {
-        acc[char.id] = char.alerted || false;
-        return acc;
-      }, {} as { [characterId: string]: boolean });
-
-      await GameSaveService.saveGame(
-        state.currentInvestigation,
-        state.playerPosition,
-        state.dialogHistory,
-        state.discoveredLeads,
-        state.reputation,
-        charactersAlerted
-      );
-
-      toast.success('Partie sauvegardée !');
-      await loadSaves();
-    } catch (error) {
-      console.error('Erreur sauvegarde:', error);
-      toast.error('Erreur lors de la sauvegarde');
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleLoadGame = async (saveId: string) => {
-    try {
-      const saveData = await GameSaveService.loadGame(saveId);
-      if (saveData && onLoadGame) {
-        onLoadGame(saveData);
-        toast.success('Partie chargée !');
-      }
-    } catch (error) {
-      console.error('Erreur chargement:', error);
-      toast.error('Erreur lors du chargement');
+      setLoading(false);
     }
   };
 
   const handleDeleteSave = async (saveId: string) => {
-    setDeletingId(saveId);
+    if (!confirm('Êtes-vous sûr de vouloir supprimer cette sauvegarde ?')) {
+      return;
+    }
+
     try {
       await GameSaveService.deleteSave(saveId);
+      setSaves(prev => prev.filter(save => save.id !== saveId));
       toast.success('Sauvegarde supprimée');
-      await loadSaves();
     } catch (error) {
       console.error('Erreur suppression:', error);
       toast.error('Erreur lors de la suppression');
-    } finally {
-      setDeletingId(null);
     }
   };
 
-  return (
-    <Card className="bg-slate-800 border-slate-700">
-      <CardHeader>
-        <CardTitle className="text-white flex items-center gap-2">
-          <Save className="w-5 h-5" />
-          Gestion des Sauvegardes
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {!showLoadOnly && state.currentInvestigation && (
-          <Button
-            onClick={handleSaveGame}
-            disabled={isSaving}
-            className="w-full bg-green-600 hover:bg-green-700"
-          >
-            {isSaving ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Sauvegarde...
-              </>
-            ) : (
-              <>
-                <Save className="w-4 h-4 mr-2" />
-                Sauvegarder la partie
-              </>
-            )}
-          </Button>
-        )}
+  const handleLoadGame = (save: GameSave) => {
+    onLoadGame(save);
+    toast.success(`Partie "${save.investigation_title}" chargée`);
+  };
 
-        {isLoading ? (
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
-          </div>
-        ) : saves.length === 0 ? (
-          <p className="text-gray-400 text-center py-4">Aucune sauvegarde trouvée</p>
-        ) : (
-          <div className="space-y-3">
-            <h4 className="text-sm font-medium text-gray-300">Sauvegardes récentes</h4>
-            {saves.map((save) => (
-              <div key={save.id} className="bg-slate-700 p-3 rounded-lg">
-                <div className="flex items-center justify-between mb-2">
-                  <div>
-                    <h5 className="text-white font-medium">
-                      {save.investigations?.title || 'Enquête inconnue'}
-                    </h5>
-                    <div className="flex items-center gap-2 mt-1">
-                      <Badge variant="outline" className="text-xs">
-                        {save.player_role || 'enquêteur'}
-                      </Badge>
-                      <span className="text-xs text-gray-400 flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
-                        {formatDistanceToNow(new Date(save.last_played_at), {
-                          addSuffix: true,
-                          locale: fr
-                        })}
-                      </span>
-                    </div>
-                  </div>
+  const formatDate = (dateStr: string) => {
+    return new Date(dateStr).toLocaleDateString('fr-FR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  if (loading) {
+    return (
+      <div className="p-6">
+        <h2 className="text-xl font-bold text-white mb-4">Sauvegardes</h2>
+        <div className="flex items-center justify-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400"></div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-6">
+      <h2 className="text-xl font-bold text-white mb-4">Sauvegardes</h2>
+      
+      {saves.length === 0 ? (
+        <div className="text-center py-8">
+          <p className="text-gray-400 mb-4">Aucune sauvegarde trouvée</p>
+          <p className="text-sm text-gray-500">
+            Les sauvegardes apparaîtront ici après avoir joué à une enquête
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {saves.map((save) => (
+            <Card key={save.id} className="bg-slate-800 border-slate-700">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg text-white">
+                    {save.investigation_title}
+                  </CardTitle>
                   <div className="flex gap-2">
                     <Button
                       size="sm"
-                      onClick={() => handleLoadGame(save.id)}
-                      className="bg-blue-600 hover:bg-blue-700"
+                      onClick={() => handleLoadGame(save)}
+                      className="bg-green-600 hover:bg-green-700"
                     >
-                      <Play className="w-3 h-3" />
+                      <Play className="w-4 h-4 mr-1" />
+                      Charger
                     </Button>
                     <Button
                       size="sm"
-                      variant="outline"
+                      variant="destructive"
                       onClick={() => handleDeleteSave(save.id)}
-                      disabled={deletingId === save.id}
-                      className="text-red-400 hover:text-red-300"
                     >
-                      {deletingId === save.id ? (
-                        <Loader2 className="w-3 h-3 animate-spin" />
-                      ) : (
-                        <Trash2 className="w-3 h-3" />
-                      )}
+                      <Trash2 className="w-4 h-4" />
                     </Button>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </CardContent>
-    </Card>
+              </CardHeader>
+              
+              <CardContent>
+                <div className="flex flex-wrap gap-2 mb-3">
+                  <Badge variant="secondary">
+                    {save.game_state.dialogHistory.length} dialogues
+                  </Badge>
+                  <Badge variant="secondary">
+                    {save.game_state.discoveredLeads.length} indices
+                  </Badge>
+                </div>
+                
+                <div className="flex items-center gap-2 text-sm text-gray-400">
+                  <Clock className="w-4 h-4" />
+                  <span>Dernière partie: {formatDate(save.last_played_at)}</span>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+    </div>
   );
 };
 

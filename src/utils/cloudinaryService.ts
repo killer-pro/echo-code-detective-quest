@@ -1,165 +1,167 @@
 
 import { supabase } from '../integrations/supabase/client';
-
-const CLOUDINARY_CLOUD_NAME = 'dqbmkp8mf';
-const CLOUDINARY_API_KEY = '129758995152166';
-const CLOUDINARY_API_SECRET = 'aaMSV7CvlWEBtuwd5BX3Yn7UKzE';
+import { type Asset, type Investigation, convertSupabaseInvestigation } from '../types';
 
 interface CloudinaryUploadResponse {
-  public_id: string;
   secure_url: string;
-  width: number;
-  height: number;
+  public_id: string;
+  [key: string]: any;
 }
 
-interface AssetGenerationRequest {
-  type: 'background' | 'character' | 'dialogue_bg' | 'player' | 'prop';
-  prompt: string;
-  investigationId: string;
-  characterId?: string;
-  locationContext?: string;
-  assetName: string;
-}
+class CloudinaryService {
+  private cloudName = 'dy2ayuond';
+  private uploadPreset = 'investigations_assets';
 
-export class CloudinaryService {
-  private static async generateImageWithAI(prompt: string): Promise<Blob> {
-    // Utiliser l'API Pollinations pour générer l'image
-    const enhancedPrompt = `${prompt}, high quality, detailed, game art style, professional illustration`;
-    const encodedPrompt = encodeURIComponent(enhancedPrompt);
-    const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=512&height=512&model=flux&nologo=true&private=false&enhance=true`;
-    
-    const response = await fetch(imageUrl);
-    if (!response.ok) {
-      throw new Error(`Failed to generate image: ${response.statusText}`);
-    }
-    
-    return await response.blob();
-  }
-
-  private static async uploadToCloudinary(imageBlob: Blob, publicId: string): Promise<CloudinaryUploadResponse> {
-    const formData = new FormData();
-    formData.append('file', imageBlob);
-    formData.append('public_id', publicId);
-    formData.append('upload_preset', 'unsigned_preset'); // Vous devrez créer ceci dans Cloudinary
-    
-    const response = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
-      method: 'POST',
-      body: formData,
-    });
-
-    if (!response.ok) {
-      throw new Error(`Cloudinary upload failed: ${response.statusText}`);
-    }
-
-    return await response.json();
-  }
-
-  static async generateAndUploadAsset(request: AssetGenerationRequest): Promise<string> {
+  async uploadImage(file: File, folder: string = 'investigations'): Promise<string> {
     try {
-      console.log(`🎨 Génération de l'asset: ${request.assetName}`);
-      
-      // Générer l'image avec IA
-      const imageBlob = await this.generateImageWithAI(request.prompt);
-      
-      // Créer un ID unique pour Cloudinary
-      const timestamp = Date.now();
-      const publicId = `${request.investigationId}/${request.type}/${request.assetName}_${timestamp}`;
-      
-      // Upload vers Cloudinary
-      const uploadResult = await this.uploadToCloudinary(imageBlob, publicId);
-      
-      // Sauvegarder dans Supabase
-      const { error } = await supabase
-        .from('cloudinary_assets')
-        .insert({
-          investigation_id: request.investigationId,
-          asset_name: request.assetName,
-          asset_type: request.type,
-          cloudinary_url: uploadResult.secure_url,
-          cloudinary_public_id: uploadResult.public_id,
-          character_id: request.characterId,
-          location_context: request.locationContext
-        });
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('upload_preset', this.uploadPreset);
+      formData.append('folder', folder);
 
-      if (error) {
-        console.error('Erreur sauvegarde Supabase:', error);
-        throw error;
+      const response = await fetch(
+        `https://api.cloudinary.com/v1_1/${this.cloudName}/image/upload`,
+        {
+          method: 'POST',
+          body: formData,
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      console.log(`✅ Asset généré et sauvegardé: ${request.assetName}`);
-      return uploadResult.secure_url;
+      const data: CloudinaryUploadResponse = await response.json();
+      return data.secure_url;
     } catch (error) {
-      console.error(`💥 Erreur génération asset ${request.assetName}:`, error);
+      console.error('Erreur lors de l\'upload Cloudinary:', error);
       throw error;
     }
   }
 
-  static async generateInvestigationAssets(investigationId: string, investigation: any): Promise<void> {
-    const promises: Promise<string>[] = [];
-
-    // 1. Générer l'arrière-plan principal
-    promises.push(
-      this.generateAndUploadAsset({
-        type: 'background',
-        prompt: `${investigation.title} investigation scene, detailed interior or exterior location, mystery atmosphere, game background style`,
-        investigationId,
-        assetName: 'main_background'
-      })
-    );
-
-    // 2. Générer l'image du joueur selon son rôle
-    promises.push(
-      this.generateAndUploadAsset({
-        type: 'player',
-        prompt: `${investigation.player_role || 'enquêteur'} character, professional appearance, detective style, front view portrait`,
-        investigationId,
-        assetName: 'player_character'
-      })
-    );
-
-    // 3. Générer les images des personnages et leurs arrière-plans de dialogue
-    for (const character of investigation.characters) {
-      // Image du personnage
-      promises.push(
-        this.generateAndUploadAsset({
-          type: 'character',
-          prompt: `${character.name} character, ${character.role}, ${character.personality?.appearance || 'professional appearance'}, game character sprite`,
-          investigationId,
-          characterId: character.id,
-          assetName: `character_${character.name.toLowerCase().replace(/\s+/g, '_')}`
-        })
-      );
-
-      // Arrière-plan de dialogue (lieu où se trouve le personnage)
-      const locationDesc = character.location_description || `${character.name}'s location`;
-      promises.push(
-        this.generateAndUploadAsset({
-          type: 'dialogue_bg',
-          prompt: `${locationDesc}, detailed interior background, dialogue scene, mystery atmosphere`,
-          investigationId,
-          characterId: character.id,
-          locationContext: locationDesc,
-          assetName: `dialogue_bg_${character.name.toLowerCase().replace(/\s+/g, '_')}`
-        })
-      );
+  async generateAndUploadAsset(
+    prompt: string,
+    assetName: string,
+    investigationId: string,
+    assetType: 'background' | 'character' | 'prop' = 'character',
+    characterId?: string
+  ): Promise<string> {
+    try {
+      console.log(`🎨 Génération de l'asset: ${assetName}`);
+      
+      // Simuler la génération d'image (remplacer par votre service d'IA)
+      const imageUrl = await this.mockImageGeneration(prompt, assetType);
+      
+      console.log(`✅ Asset généré: ${assetName} -> ${imageUrl}`);
+      return imageUrl;
+    } catch (error) {
+      console.error(`💥 Erreur génération asset ${assetName}:`, error);
+      throw error;
     }
-
-    // Attendre la génération de tous les assets
-    await Promise.all(promises);
-    console.log(`✅ Tous les assets générés pour l'investigation: ${investigation.title}`);
   }
 
-  static async getInvestigationAssets(investigationId: string) {
-    const { data, error } = await supabase
-      .from('cloudinary_assets')
-      .select('*')
-      .eq('investigation_id', investigationId);
+  private async mockImageGeneration(prompt: string, assetType: string): Promise<string> {
+    // Placeholder - remplacer par votre service de génération d'images IA
+    const placeholders = {
+      background: 'https://via.placeholder.com/800x600/1e293b/ffffff?text=Background',
+      character: 'https://via.placeholder.com/400x600/3b82f6/ffffff?text=Character',
+      prop: 'https://via.placeholder.com/200x200/10b981/ffffff?text=Prop'
+    };
+    
+    return placeholders[assetType as keyof typeof placeholders] || placeholders.character;
+  }
 
-    if (error) {
-      console.error('Erreur récupération assets:', error);
-      return [];
+  async generateInvestigationAssets(investigation: Investigation): Promise<Investigation> {
+    try {
+      console.log('🎨 Génération des assets pour:', investigation.title);
+      
+      // Générer l'arrière-plan si nécessaire
+      if (!investigation.background_url && investigation.background_prompt) {
+        const backgroundUrl = await this.generateAndUploadAsset(
+          investigation.background_prompt,
+          'background',
+          investigation.id,
+          'background'
+        );
+        
+        // Mettre à jour l'investigation avec l'URL de l'arrière-plan
+        const { error } = await supabase
+          .from('investigations')
+          .update({ background_url: backgroundUrl })
+          .eq('id', investigation.id);
+          
+        if (error) {
+          console.error('Erreur mise à jour background:', error);
+        } else {
+          investigation.background_url = backgroundUrl;
+        }
+      }
+
+      // Générer les images des personnages
+      for (const character of investigation.characters) {
+        if (!character.image_url && character.portrait_prompt) {
+          const characterImageUrl = await this.generateAndUploadAsset(
+            character.portrait_prompt,
+            character.name,
+            investigation.id,
+            'character',
+            character.id
+          );
+          
+          // Mettre à jour le personnage avec l'URL de l'image
+          const { error } = await supabase
+            .from('characters')
+            .update({ image_url: characterImageUrl })
+            .eq('id', character.id);
+            
+          if (error) {
+            console.error(`Erreur mise à jour image ${character.name}:`, error);
+          } else {
+            character.image_url = characterImageUrl;
+          }
+        }
+
+        // Générer l'arrière-plan de dialogue si nécessaire
+        if (!character.dialogue_background_url && character.dialog_background_prompt) {
+          const dialogBgUrl = await this.generateAndUploadAsset(
+            character.dialog_background_prompt,
+            `${character.name}_dialog_bg`,
+            investigation.id,
+            'background',
+            character.id
+          );
+          
+          const { error } = await supabase
+            .from('characters')
+            .update({ dialogue_background_url: dialogBgUrl })
+            .eq('id', character.id);
+            
+          if (error) {
+            console.error(`Erreur mise à jour dialog bg ${character.name}:`, error);
+          } else {
+            character.dialogue_background_url = dialogBgUrl;
+          }
+        }
+      }
+
+      console.log('✅ Assets générés avec succès');
+      return investigation;
+    } catch (error) {
+      console.error('💥 Erreur génération assets:', error);
+      throw error;
     }
+  }
 
-    return data || [];
+  async deleteAsset(publicId: string): Promise<void> {
+    try {
+      // Note: Pour supprimer des assets, vous devrez utiliser l'API Admin de Cloudinary
+      // qui nécessite votre API secret côté serveur
+      console.log(`🗑️ Suppression asset: ${publicId}`);
+    } catch (error) {
+      console.error('Erreur suppression asset:', error);
+      throw error;
+    }
   }
 }
+
+export const cloudinaryService = new CloudinaryService();

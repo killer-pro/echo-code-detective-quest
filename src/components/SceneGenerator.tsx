@@ -1,306 +1,39 @@
-
-import React, { useState } from 'react';
+import React from 'react';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { Badge } from './ui/badge';
-import { Loader2, Image, Download, Palette, Eye, RefreshCw } from 'lucide-react';
-import { generateAssetImage, saveGeneratedAssetToDatabase } from '../utils/imageGenerator';
-import { assetManager } from '../utils/assetManager';
+import { Image, Palette } from 'lucide-react';
+import AssetCard from './scene-generator/AssetCard';
+import { useAssetGeneration } from './scene-generator/hooks/useAssetGeneration';
+import { type Investigation } from '../types';
 import { toast } from 'sonner';
 
-interface AssetPrompt {
-  type: 'background' | 'character' | 'prop';
-  name: string;
-  prompt: string;
-  style: string;
-}
-
-interface GeneratedAsset {
-  name: string;
-  url: string;
-  type: string;
-  prompt: string;
-}
-
 interface SceneGeneratorProps {
-  investigation: any;
-  onAssetsGenerated: (assets: { name: string; url: string; type: string }[]) => void;
+  investigation: Investigation;
+  onAssetsGenerated?: (assets: any[]) => void;
 }
 
 const SceneGenerator: React.FC<SceneGeneratorProps> = ({ investigation, onAssetsGenerated }) => {
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [generatedAssets, setGeneratedAssets] = useState<GeneratedAsset[]>([]);
-  const [isDownloading, setIsDownloading] = useState<string | null>(null);
-  const [regeneratingAsset, setRegeneratingAsset] = useState<string | null>(null);
+  const {
+    isGenerating,
+    generatedAssets,
+    regeneratingAsset,
+    generateSceneAssets,
+    regenerateAsset,
+  } = useAssetGeneration(investigation);
 
-  const validateImageUrl = (url: string): Promise<boolean> => {
-    return new Promise((resolve) => {
-      const img = document.createElement('img');
-      img.onload = () => resolve(true);
-      img.onerror = () => resolve(false);
-      img.src = url;
-      setTimeout(() => resolve(false), 10000);
-    });
+  const handleGenerateAssets = () => {
+    generateSceneAssets(onAssetsGenerated);
   };
 
-  const generateSceneAssets = async () => {
-    setIsGenerating(true);
-    console.log('🎨 Début génération des assets pour investigation:', investigation.id);
-    
-    try {
-      const assetPrompts: AssetPrompt[] = investigation.assetPrompts || [];
-      const generatedAssetsList: GeneratedAsset[] = [];
-
-      // Configurer l'investigation dans l'asset manager
-      console.log('📋 Configuration AssetManager avec investigation:', investigation.id);
-      assetManager.setCurrentInvestigation(investigation.id);
-
-      for (const assetPrompt of assetPrompts) {
-        console.log(`🖼️ Génération de l'asset: ${assetPrompt.name} (${assetPrompt.type})`);
-        
-        let imageUrl: string | null = null;
-        let retryCount = 0;
-        const maxRetries = 3;
-
-        // Retry logic pour la génération d'image
-        while (!imageUrl && retryCount < maxRetries) {
-          try {
-            imageUrl = await generateAssetImage({
-              description: assetPrompt.prompt,
-              style: assetPrompt.style as any,
-              type: assetPrompt.type
-            });
-            
-            if (imageUrl) {
-              // Vérifier que l'image se charge
-              const isValid = await validateImageUrl(imageUrl);
-              if (!isValid) {
-                imageUrl = null;
-                throw new Error('Image validation failed');
-              }
-            }
-          } catch (error) {
-            console.warn(`⚠️ Tentative ${retryCount + 1} échouée pour ${assetPrompt.name}:`, error);
-            retryCount++;
-            if (retryCount < maxRetries) {
-              await new Promise(resolve => setTimeout(resolve, 1000)); // Attendre 1s avant retry
-            }
-          }
-        }
-
-        if (imageUrl) {
-          const asset = {
-            name: assetPrompt.name,
-            url: imageUrl,
-            type: assetPrompt.type,
-            prompt: assetPrompt.prompt
-          };
-          
-          generatedAssetsList.push(asset);
-          
-          // Associer les personnages aux assets
-          let characterId = undefined;
-          if (assetPrompt.type === 'character') {
-            const character = investigation.characters?.find((char: any) => 
-              assetPrompt.name.toLowerCase().includes(char.name.toLowerCase())
-            );
-            if (character) {
-              characterId = character.id;
-              console.log(`👤 Asset personnage associé: ${character.name} -> ${asset.name}`);
-            }
-          }
-
-          // Ajouter à l'asset manager avec l'ID du personnage et marquer comme venant de génération
-          await assetManager.addAsset({
-            name: assetPrompt.name,
-            url: imageUrl,
-            type: assetPrompt.type,
-            characterId
-          }, true);
-          
-          console.log(`✅ Asset "${assetPrompt.name}" généré et ajouté`);
-          toast.success(`Asset "${assetPrompt.name}" généré avec succès`);
-        } else {
-          console.error(`❌ Échec génération "${assetPrompt.name}" après ${maxRetries} tentatives`);
-          toast.error(`Échec de la génération de "${assetPrompt.name}" après ${maxRetries} tentatives`);
-        }
-      }
-
-      setGeneratedAssets(generatedAssetsList);
-      onAssetsGenerated(generatedAssetsList);
-      console.log(`🎉 Génération terminée: ${generatedAssetsList.length} assets créés`);
-      
-    } catch (error) {
-      console.error('💥 Erreur lors de la génération des assets:', error);
-      toast.error('Erreur lors de la génération des assets');
-    } finally {
-      setIsGenerating(false);
-    }
+  const handleRegenerateAsset = (index: number) => {
+    regenerateAsset(index, onAssetsGenerated);
   };
 
-  const regenerateAsset = async (assetIndex: number) => {
-    const asset = generatedAssets[assetIndex];
-    if (!asset) return;
-
-    setRegeneratingAsset(asset.name);
-    console.log(`🔄 Régénération de l'asset: ${asset.name}`);
-    
-    try {
-      toast.info(`Régénération de "${asset.name}" en cours...`);
-      
-      let newImageUrl: string | null = null;
-      let retryCount = 0;
-      const maxRetries = 3;
-
-      while (!newImageUrl && retryCount < maxRetries) {
-        try {
-          const enhancedPrompt = `${asset.prompt}, variation ${Date.now()}, style variant`;
-          
-          newImageUrl = await generateAssetImage({
-            description: enhancedPrompt,
-            style: 'cartoon' as any,
-            type: asset.type as any
-          });
-          
-          if (newImageUrl) {
-            const isValid = await validateImageUrl(newImageUrl);
-            if (!isValid) {
-              newImageUrl = null;
-              throw new Error('New image validation failed');
-            }
-          }
-        } catch (error) {
-          console.warn(`⚠️ Tentative de régénération ${retryCount + 1} échouée:`, error);
-          retryCount++;
-          if (retryCount < maxRetries) {
-            await new Promise(resolve => setTimeout(resolve, 1000));
-          }
-        }
-      }
-
-      if (newImageUrl) {
-        const updatedAssets = [...generatedAssets];
-        updatedAssets[assetIndex] = {
-          ...asset,
-          url: newImageUrl
-        };
-        
-        setGeneratedAssets(updatedAssets);
-        onAssetsGenerated(updatedAssets);
-        
-        let characterId = undefined;
-        if (asset.type === 'character') {
-          const character = investigation.characters?.find((char: any) => 
-            asset.name.toLowerCase().includes(char.name.toLowerCase())
-          );
-          if (character) {
-            characterId = character.id;
-          }
-        }
-
-        await assetManager.addAsset({
-          name: asset.name,
-          url: newImageUrl,
-          type: asset.type as any,
-          characterId
-        }, true);
-
-        await saveGeneratedAssetToDatabase(
-          investigation.id,
-          asset.name,
-          asset.type as 'background' | 'character' | 'prop',
-          newImageUrl,
-          asset.prompt
-        );
-        
-        console.log(`✅ Asset "${asset.name}" régénéré avec succès`);
-        toast.success(`Asset "${asset.name}" régénéré avec succès`);
-      } else {
-        console.error(`❌ Échec régénération "${asset.name}" après ${maxRetries} tentatives`);
-        toast.error(`Échec de la régénération de "${asset.name}" après ${maxRetries} tentatives`);
-      }
-    } catch (error) {
-      console.error(`💥 Erreur lors de la régénération de ${asset.name}:`, error);
-      toast.error(`Erreur lors de la régénération de "${asset.name}"`);
-    } finally {
-      setRegeneratingAsset(null);
-    }
-  };
-
-  const downloadAsset = async (asset: GeneratedAsset) => {
-    setIsDownloading(asset.name);
-    console.log(`💾 Téléchargement asset: ${asset.name}`);
-    
-    try {
-      // Associer les personnages aux assets character
-      let characterId = undefined;
-      if (asset.type === 'character') {
-        const character = investigation.characters?.find((char: any) => 
-          asset.name.toLowerCase().includes(char.name.toLowerCase())
-        );
-        if (character) {
-          characterId = character.id;
-        }
-      }
-
-      await assetManager.addAsset({
-        name: asset.name,
-        url: asset.url,
-        type: asset.type as any,
-        characterId
-      }, true);
-      
-      console.log(`✅ Asset "${asset.name}" ajouté au jeu`);
-      toast.success(`Asset "${asset.name}" ajouté au jeu`);
-    } catch (error) {
-      console.error(`💥 Erreur lors de l'ajout de ${asset.name}:`, error);
-      toast.error(`Erreur lors de l'ajout de "${asset.name}"`);
-    } finally {
-      setIsDownloading(null);
-    }
-  };
-
-  const downloadAllAssets = async () => {
-    setIsDownloading('all');
-    console.log('💾 Téléchargement de tous les assets...');
-    
-    try {
-      for (const asset of generatedAssets) {
-        let characterId = undefined;
-        if (asset.type === 'character') {
-          const character = investigation.characters?.find((char: any) => 
-            asset.name.toLowerCase().includes(char.name.toLowerCase())
-          );
-          if (character) {
-            characterId = character.id;
-          }
-        }
-
-        await assetManager.addAsset({
-          name: asset.name,
-          url: asset.url,
-          type: asset.type as any,
-          characterId
-        }, true);
-      }
-      
-      console.log('✅ Tous les assets ont été ajoutés au jeu');
-      toast.success('Tous les assets ont été ajoutés au jeu');
-    } catch (error) {
-      console.error('💥 Erreur lors de l\'ajout de tous les assets:', error);
-      toast.error('Erreur lors de l\'ajout des assets');
-    } finally {
-      setIsDownloading(null);
-    }
-  };
-
-  const getAssetTypeColor = (type: string) => {
-    switch (type) {
-      case 'background': return 'bg-blue-600';
-      case 'character': return 'bg-green-600';
-      case 'prop': return 'bg-purple-600';
-      default: return 'bg-gray-600';
-    }
+  const handleImageError = (index: number) => {
+    const asset = generatedAssets[index];
+    console.error(`💥 Erreur de chargement pour ${asset.asset_name}:`, asset.image_url);
+    toast.error(`Erreur de chargement de l'image "${asset.asset_name}"`);
+    handleRegenerateAsset(index);
   };
 
   return (
@@ -308,30 +41,47 @@ const SceneGenerator: React.FC<SceneGeneratorProps> = ({ investigation, onAssets
       <CardHeader>
         <CardTitle className="text-white flex items-center gap-2">
           <Palette className="w-5 h-5" />
-          Génération de Scène IA (2D)
+          Aperçu des Assets IA (Preview)
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
+        <div className="bg-blue-900/50 border border-blue-700 rounded-lg p-3 mb-4">
+          <p className="text-blue-200 text-sm">
+            ℹ️ <strong>Mode Aperçu :</strong> Les assets sont générés pour prévisualisation uniquement. 
+            Ils seront sauvegardés définitivement quand vous démarrerez l'enquête.
+          </p>
+        </div>
+
+        {investigation.background_prompt && (
+          <div className="text-xs text-blue-300 mb-2">Prompt BG: {investigation.background_prompt}</div>
+        )}
+        {investigation.characters && investigation.characters.map((char) => (
+          <div key={char.id} className="text-xs text-purple-300 mb-1">{char.name} - Portrait: {char.portrait_prompt} | BG: {char.dialog_background_prompt}</div>
+        ))}
+        {investigation.clues && investigation.clues.map((clue) => (
+          <div key={clue.id} className="text-xs text-green-300 mb-1">Indice: {clue.name} - Prompt: {clue.image_prompt}</div>
+        ))}
+
         {!generatedAssets.length ? (
           <div className="text-center">
             <Image className="w-16 h-16 text-gray-500 mx-auto mb-4" />
             <p className="text-gray-400 mb-4">
-              Générez des assets visuels 2D avec l'IA basés sur votre enquête
+              Générez un aperçu des assets visuels 2D avec l'IA basés sur votre enquête
             </p>
             <Button
-              onClick={generateSceneAssets}
+              onClick={handleGenerateAssets}
               disabled={isGenerating}
               className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
             >
               {isGenerating ? (
                 <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Génération IA...
+                  <div className="w-4 h-4 mr-2 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  Génération Aperçu...
                 </>
               ) : (
                 <>
                   <Palette className="w-4 h-4 mr-2" />
-                  Générer Assets IA
+                  Générer Aperçu Assets
                 </>
               )}
             </Button>
@@ -340,94 +90,30 @@ const SceneGenerator: React.FC<SceneGeneratorProps> = ({ investigation, onAssets
           <div className="space-y-3">
             <div className="flex justify-between items-center mb-3">
               <div className="text-sm text-gray-300">
-                {generatedAssets.length} assets générés (style 2D)
+                {generatedAssets.length} assets générés (aperçu)
               </div>
-              <Button
-                onClick={downloadAllAssets}
-                disabled={isDownloading === 'all'}
-                className="bg-green-600 hover:bg-green-700 text-xs px-3 py-1"
-              >
-                {isDownloading === 'all' ? (
-                  <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-                ) : (
-                  <Download className="w-3 h-3 mr-1" />
-                )}
-                Utiliser Tous
-              </Button>
             </div>
             
             {generatedAssets.map((asset, index) => (
-              <div key={index} className="bg-slate-700 p-3 rounded-lg">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <Badge className={`${getAssetTypeColor(asset.type)} text-white text-xs`}>
-                      {asset.type}
-                    </Badge>
-                    <span className="text-white font-medium text-sm">{asset.name}</span>
-                  </div>
-                  <div className="flex gap-1">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => window.open(asset.url, '_blank')}
-                      className="text-xs px-2 py-1"
-                    >
-                      <Eye className="w-3 h-3" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => regenerateAsset(index)}
-                      disabled={regeneratingAsset === asset.name}
-                      className="text-xs px-2 py-1"
-                    >
-                      {regeneratingAsset === asset.name ? (
-                        <Loader2 className="w-3 h-3 animate-spin" />
-                      ) : (
-                        <RefreshCw className="w-3 h-3" />
-                      )}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => downloadAsset(asset)}
-                      disabled={isDownloading === asset.name}
-                      className="text-xs px-2 py-1"
-                    >
-                      {isDownloading === asset.name ? (
-                        <Loader2 className="w-3 h-3 animate-spin" />
-                      ) : (
-                        <Download className="w-3 h-3" />
-                      )}
-                    </Button>
-                  </div>
-                </div>
-                <p className="text-gray-400 text-xs mb-2">Prompt: {asset.prompt}</p>
-                <div className="mt-2">
-                  <img
-                    src={asset.url}
-                    alt={asset.name}
-                    className="w-full h-32 object-cover rounded border border-slate-600"
-                    loading="lazy"
-                    onError={(e) => {
-                      console.error(`💥 Erreur de chargement pour ${asset.name}:`, asset.url);
-                      toast.error(`Erreur de chargement de l'image "${asset.name}"`);
-                      // Régénérer automatiquement en cas d'erreur
-                      regenerateAsset(index);
-                    }}
-                  />
-                </div>
-              </div>
+              <AssetCard
+                key={index}
+                asset={asset}
+                index={index}
+                regeneratingAsset={regeneratingAsset}
+                onViewAsset={(url) => window.open(url, '_blank')}
+                onRegenerateAsset={handleRegenerateAsset}
+                onImageError={handleImageError}
+              />
             ))}
             
             <Button
-              onClick={generateSceneAssets}
+              onClick={handleGenerateAssets}
               variant="outline"
               className="w-full mt-4"
               disabled={isGenerating}
             >
               <Palette className="w-4 h-4 mr-2" />
-              Regénérer Assets IA
+              Regénérer Aperçu Assets
             </Button>
           </div>
         )}
