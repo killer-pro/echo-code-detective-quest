@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
@@ -16,6 +15,7 @@ interface JournalProps {
     context?: string;
     description?: string;
     title?: string;
+    clues?: any[];
   };
 }
 
@@ -327,6 +327,7 @@ const Journal: React.FC<JournalProps> = ({
                 ) : (
                   discoveredLeads.map((lead) => {
                     const sourceCharacter = getCharacterById(lead.source_pnj || '');
+                    const clue = investigation?.clues?.find((c: any) => c.id === lead.id);
                     return (
                       <Card key={lead.id} className="bg-slate-700 border-slate-600">
                         <CardContent className="p-4">
@@ -344,9 +345,12 @@ const Journal: React.FC<JournalProps> = ({
                               </Badge>
                             </div>
                           </div>
-                          
+                          {clue?.image_url && (
+                            <div className="mb-3 flex justify-center">
+                              <img src={clue.image_url} alt="Indice visuel" className="max-h-32 rounded shadow border border-slate-600" />
+                            </div>
+                          )}
                           <p className="text-gray-300 text-sm mb-3">{lead.description}</p>
-                          
                           <div className="flex justify-between text-xs text-gray-500">
                             <span>
                               Source: {sourceCharacter?.name || 'Inconnue'}

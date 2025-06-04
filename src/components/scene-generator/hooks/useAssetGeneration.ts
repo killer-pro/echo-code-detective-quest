@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { generateAssetImage, getValidImageStyle } from '../../../utils/imageGenerator';
 import { toast } from 'sonner';
@@ -110,7 +109,7 @@ export const useAssetGeneration = (investigation: Investigation) => {
                 id: uuidv4(),
                 investigation_id: investigation.id,
                 asset_name: `dialog_bg_${char.name.toLowerCase().replace(/\s+/g, '_')}`,
-                asset_type: 'background',
+                asset_type: 'character',
                 image_url: dialogBgUrl,
                 prompt: char.dialog_background_prompt,
                 style: 'cartoon',
@@ -150,6 +149,7 @@ export const useAssetGeneration = (investigation: Investigation) => {
                 image_url: clueUrl,
                 prompt: clue.image_prompt,
                 style: 'cartoon',
+                clueId: clue.id,
               });
               console.log(`✅ Asset indice généré pour ${clue.name}`);
             }

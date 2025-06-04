@@ -130,7 +130,7 @@ const GameUI: React.FC<GameUIProps> = ({
 
       {/* Statistiques en overlay améliorées */}
       {assetsInitialized && (
-        <div className="absolute top-4 left-4 bg-black/70 backdrop-blur-sm rounded-lg p-4 text-white z-10 border border-slate-600">
+        <div className="absolute top-50 left-4 bg-black/70 backdrop-blur-sm rounded-lg p-4 text-white z-10 border border-slate-600">
           <div className="text-xs text-gray-300 mb-2 font-semibold">Progression de l'enquête</div>
           <div className="grid grid-cols-2 gap-3 text-sm">
             <div className="flex items-center gap-2">

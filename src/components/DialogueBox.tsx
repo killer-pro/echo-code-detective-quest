@@ -144,7 +144,7 @@ const DialogueBox: React.FC<DialogueBoxProps> = ({
 
                     {/* Mots-clés cliquables */}
                     {dialog.clickable_keywords && dialog.clickable_keywords.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mt-2">
+                      <div className="flex flex-wrap gap-1 mt-2 text-black">
                         {dialog.clickable_keywords.map((keyword, index) => (
                           <Button
                             key={index}

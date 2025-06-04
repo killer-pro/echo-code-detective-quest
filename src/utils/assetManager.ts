@@ -1,4 +1,3 @@
-
 import { Investigation, Character, Asset } from '../types';
 
 interface LocalAsset {

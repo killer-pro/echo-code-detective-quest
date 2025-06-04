@@ -86,13 +86,11 @@ export const useInvestigationCreator = () => {
                   character.image_url = uploadResult.secure_url;
                 } else if (asset.asset_name.includes('dialog_bg')) {
                   character.dialogue_background_url = uploadResult.secure_url;
+                  console.log('Ajout dialogue_background_url pour', character.name, uploadResult.secure_url);
                 }
               }
-            } else if (asset.asset_type === 'prop') {
-              const clueName = asset.asset_name.replace('clue_', '').replace(/_/g, ' ');
-              const clue = investigation.clues?.find(c => 
-                c.name.toLowerCase().replace(/\s+/g, '_') === clueName
-              );
+            } else if (asset.asset_type === 'prop' && asset.clueId) {
+              const clue = investigation.clues?.find(c => c.id === asset.clueId);
               if (clue) {
                 clue.image_url = uploadResult.secure_url;
               }
@@ -228,7 +226,9 @@ export const useInvestigationCreator = () => {
           dialogue_background_url: char.dialogue_background_url
         }));
 
-        console.log('👥 Sauvegarde des personnages:', charactersToInsert.length);
+        charactersToInsert.forEach(c => {
+          console.log('Personnage à insérer:', c.name, 'dialogue_background_url:', c.dialogue_background_url);
+        });
         
         const { error: charError } = await supabase
           .from('characters')

@@ -37,7 +37,7 @@ const DialogueOverlay: React.FC<DialogueOverlayProps> = ({
         
         {/* Portrait du personnage - gauche ou droite selon l'espace */}
         {characterImage && (
-          <div className="hidden lg:block absolute left-8 top-1/2 transform -translate-y-1/2">
+          <div className="hidden lg:block absolute left-8 transform -translate-y-1/2">
             <div className="relative">
               <img
                 src={characterImage}
@@ -74,7 +74,7 @@ const DialogueOverlay: React.FC<DialogueOverlayProps> = ({
           )}
 
           {/* Placeholder pour le contenu du dialogue */}
-          <div className="bg-black/60 backdrop-blur-sm rounded-xl p-6 border border-white/10">
+          <div className="bg-black/60 backdrop-blur-sm rounded-xl p-6 border border-white/10 transform -translate-y-1/2">
             <div className="text-center text-white">
               <h3 className="text-xl font-bold mb-2">{character.name}</h3>
               <p className="text-gray-300 mb-4">Conversation avec {character.role}</p>
