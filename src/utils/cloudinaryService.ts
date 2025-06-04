@@ -1,3 +1,4 @@
+
 import { supabase } from '../integrations/supabase/client';
 import { type Asset, type Investigation, convertSupabaseInvestigation } from '../types';
 
@@ -8,8 +9,8 @@ interface CloudinaryUploadResponse {
 }
 
 export class CloudinaryService {
-  private cloudName = 'dy2ayuond';
-  private uploadPreset = 'investigations_assets';
+  private cloudName = 'dqbmkp8mf'; // Utilisation du bon cloud name depuis .env
+  private uploadPreset = 'metalx_unsigned'; // Utilisation du preset qui fonctionne
 
   async uploadImage(file: File, folder: string = 'investigations'): Promise<string> {
     try {
@@ -56,7 +57,9 @@ export class CloudinaryService {
       );
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorData = await response.text();
+        console.error('Erreur Cloudinary:', errorData);
+        throw new Error(`HTTP error! status: ${response.status} - ${errorData}`);
       }
 
       const data: CloudinaryUploadResponse = await response.json();
@@ -78,8 +81,16 @@ export class CloudinaryService {
     try {
       console.log(`🎨 Génération de l'asset: ${assetName}`);
       
+      // Améliorer les prompts selon le type d'asset
+      let enhancedPrompt = prompt;
+      if (assetType === 'background') {
+        enhancedPrompt = `Vue de haut, perspective aérienne, plateau de jeu 2D, ${prompt}, style cartoon, couleurs vives, adapté pour un jeu d'enquête vue du dessus`;
+      } else if (assetType === 'character') {
+        enhancedPrompt = `Portrait de personnage 2D, vue de face, ${prompt}, style cartoon, adapté pour un jeu d'enquête`;
+      }
+      
       // Simuler la génération d'image (remplacer par votre service d'IA)
-      const imageUrl = await this.mockImageGeneration(prompt, assetType);
+      const imageUrl = await this.mockImageGeneration(enhancedPrompt, assetType);
       
       console.log(`✅ Asset généré: ${assetName} -> ${imageUrl}`);
       return imageUrl;
@@ -92,7 +103,7 @@ export class CloudinaryService {
   private async mockImageGeneration(prompt: string, assetType: string): Promise<string> {
     // Placeholder - remplacer par votre service de génération d'images IA
     const placeholders = {
-      background: 'https://via.placeholder.com/800x600/1e293b/ffffff?text=Background',
+      background: 'https://via.placeholder.com/1200x800/1e293b/ffffff?text=Background+Vue+Haut',
       character: 'https://via.placeholder.com/400x600/3b82f6/ffffff?text=Character',
       prop: 'https://via.placeholder.com/200x200/10b981/ffffff?text=Prop'
     };

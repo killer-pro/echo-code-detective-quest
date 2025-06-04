@@ -62,14 +62,22 @@ export const useInvestigationCreator = () => {
         
         for (const asset of previewAssets) {
           try {
-            // Upload vers Cloudinary et sauvegarde locale
-            const uploadedUrl = await cloudinaryService.uploadImageFromUrl(
-              asset.image_url, 
-              `${investigation.id}/${asset.asset_name}`
-            );
-
             // Stocker en cache local pour rapidité
             localStorage.setItem(`asset_${asset.asset_name}_${investigation.id}`, asset.image_url);
+
+            // Upload vers Cloudinary avec gestion d'erreur améliorée
+            let uploadedUrl = asset.image_url; // Fallback sur l'URL originale
+            
+            try {
+              uploadedUrl = await cloudinaryService.uploadImageFromUrl(
+                asset.image_url, 
+                `${investigation.id}/${asset.asset_name}`
+              );
+              console.log(`✅ Asset "${asset.asset_name}" uploadé vers Cloudinary: ${uploadedUrl}`);
+            } catch (uploadError) {
+              console.warn(`⚠️ Échec upload Cloudinary pour ${asset.asset_name}, utilisation de l'URL locale:`, uploadError);
+              toast.warning(`Asset ${asset.asset_name} sauvé localement seulement`);
+            }
 
             // Affecter les URLs aux bonnes propriétés de l'investigation
             if (asset.asset_type === 'background' && asset.asset_name === 'main_background') {
@@ -93,29 +101,37 @@ export const useInvestigationCreator = () => {
               }
             }
 
-            console.log(`✅ Asset "${asset.asset_name}" uploadé et assigné`);
+            console.log(`✅ Asset "${asset.asset_name}" assigné à l'investigation`);
           } catch (error) {
-            console.error(`❌ Erreur upload asset ${asset.asset_name}:`, error);
-            toast.error(`Erreur upload ${asset.asset_name}`);
+            console.error(`❌ Erreur traitement asset ${asset.asset_name}:`, error);
+            toast.error(`Erreur asset ${asset.asset_name}`);
           }
         }
       } else {
         // Génération d'assets de base si pas d'assets preview
         console.log('🎨 Génération d\'assets de base...');
         
-        // Background principal
+        // Background principal avec prompt amélioré
         if (investigation.background_prompt && !investigation.background_url) {
+          const enhancedBackgroundPrompt = `Vue de haut, perspective aérienne, plateau de jeu 2D, ${investigation.background_prompt}, style cartoon, couleurs vives, adapté pour un jeu d'enquête vue du dessus`;
+          
           const imageUrl = await generateAssetImage({ 
-            description: investigation.background_prompt, 
+            description: enhancedBackgroundPrompt, 
             type: 'background' 
           });
           if (imageUrl) {
-            const uploadedUrl = await cloudinaryService.uploadImageFromUrl(
-              imageUrl, 
-              `${investigation.id}/main_background`
-            );
-            investigation.background_url = uploadedUrl;
             localStorage.setItem(`asset_main_background_${investigation.id}`, imageUrl);
+            
+            try {
+              const uploadedUrl = await cloudinaryService.uploadImageFromUrl(
+                imageUrl, 
+                `${investigation.id}/main_background`
+              );
+              investigation.background_url = uploadedUrl;
+            } catch (uploadError) {
+              console.warn('⚠️ Échec upload background, utilisation locale:', uploadError);
+              investigation.background_url = imageUrl;
+            }
           }
         }
 
