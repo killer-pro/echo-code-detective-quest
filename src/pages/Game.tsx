@@ -40,7 +40,6 @@ const Game: React.FC = () => {
     try {
       console.log('📖 Chargement de l\'investigation:', id);
       
-      // Corriger la requête en spécifiant explicitement la relation pour éviter l'ambiguïté
       const { data, error } = await supabase
         .from('investigations')
         .select(`
@@ -54,7 +53,6 @@ const Game: React.FC = () => {
       if (error) {
         console.error('💥 Erreur chargement investigation:', error);
         
-        // Si l'investigation n'est pas trouvée, rediriger vers l'accueil
         if (error.code === 'PGRST116') {
           console.log('Investigation non trouvée, redirection vers l\'accueil');
           navigate('/');
@@ -71,6 +69,12 @@ const Game: React.FC = () => {
       }
 
       const investigation = convertSupabaseInvestigation(data);
+      
+      // Ajouter l'image du joueur par défaut si pas définie
+      if (!investigation.player_image_url) {
+        investigation.player_image_url = 'https://res.cloudinary.com/dyvgd3xak/image/upload/v1748974162/bb1ac672-1096-498c-9287-dd7626326b26/character/D%C3%A9tective_1748974160161.jpg';
+      }
+      
       dispatch({ type: 'SET_INVESTIGATION', payload: investigation });
       
       console.log('✅ Investigation chargée:', investigation.title);
@@ -144,7 +148,6 @@ const Game: React.FC = () => {
     const result = await makeAccusation(state.currentInvestigation, characterId);
     
     if (result.success) {
-      // Mettre à jour l'état local
       const updatedInvestigation = {
         ...state.currentInvestigation,
         accused_character_id: characterId,
@@ -165,7 +168,6 @@ const Game: React.FC = () => {
     totalCharacters: state.currentInvestigation?.characters.length || 0
   };
 
-  // Vérifier si l'enquête est terminée
   const isGameFinished = state.currentInvestigation?.accusation_made || false;
   const gameResult = state.currentInvestigation?.game_result || 'ongoing';
 

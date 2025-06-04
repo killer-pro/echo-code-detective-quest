@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../../integrations/supabase/client';
@@ -5,7 +6,7 @@ import { useGame } from '../../../context/GameContext';
 import { type Investigation, type Character, type Clue } from '../../../types';
 import { v4 as uuidv4 } from 'uuid';
 import { toast } from 'sonner';
-import { CloudinaryUploadService } from '../../../utils/cloudinaryUpload';
+import { cloudinaryUploadService } from '../../../utils/cloudinaryUpload';
 import { generateAssetImage } from '../../../utils/imageGenerator';
 
 export const useInvestigationCreator = () => {
@@ -39,7 +40,8 @@ export const useInvestigationCreator = () => {
           }
         ],
         status: 'en_cours',
-        clues: []
+        clues: [],
+        player_image_url: 'https://res.cloudinary.com/dyvgd3xak/image/upload/v1748974162/bb1ac672-1096-498c-9287-dd7626326b26/character/D%C3%A9tective_1748974160161.jpg'
       };
 
       await startGame(simpleInvestigation, []);
@@ -56,6 +58,11 @@ export const useInvestigationCreator = () => {
       console.log('🚀 Démarrage du jeu avec investigation:', investigation.title);
       console.log('🎨 Assets preview disponibles:', previewAssets.length);
 
+      // Ajouter l'image du joueur par défaut si pas déjà définie
+      if (!investigation.player_image_url) {
+        investigation.player_image_url = 'https://res.cloudinary.com/dyvgd3xak/image/upload/v1748974162/bb1ac672-1096-498c-9287-dd7626326b26/character/D%C3%A9tective_1748974160161.jpg';
+      }
+
       // Si on a des assets preview, les utiliser et les sauvegarder sur Cloudinary
       if (previewAssets.length > 0) {
         console.log('📤 Upload des assets vers Cloudinary...');
@@ -64,9 +71,9 @@ export const useInvestigationCreator = () => {
           try {
             console.log(`📤 Upload de l'asset: ${asset.asset_name}`);
             
-            // Utiliser CloudinaryUploadService pour uploader l'image
+            // Utiliser cloudinaryUploadService pour uploader l'image
             const publicId = `${asset.asset_name}_${Date.now()}`;
-            const uploadResult = await CloudinaryUploadService.uploadImageFromUrl(asset.image_url, publicId);
+            const uploadResult = await cloudinaryUploadService.uploadImage(asset.image_url, publicId);
             console.log(`✅ Asset "${asset.asset_name}" uploadé vers Cloudinary: ${uploadResult.secure_url}`);
 
             // Affecter les URLs aux bonnes propriétés de l'investigation
@@ -103,7 +110,7 @@ export const useInvestigationCreator = () => {
         
         // Background principal avec prompt amélioré pour vue de haut
         if (investigation.background_prompt && !investigation.background_url) {
-          const enhancedBackgroundPrompt = `Vue de haut isométrique, perspective aérienne, plateau de jeu 2D, ${investigation.background_prompt}, style cartoon, couleurs vives, adapté pour un jeu d'enquête vue du dessus, topdown view, les personnages seront placés sur ce plateau, scène vue d'en haut comme un plateau de jeu de société`;
+          const enhancedBackgroundPrompt = `Vue isométrique de haut, perspective aérienne, plateau de jeu 2D style cartoon, ${investigation.background_prompt}, vue du dessus topdown view, scène adaptée pour placer des personnages dessus, style jeu de société vue d'en haut, couleurs vives et contrastées, perspective bird's eye view`;
           
           const imageUrl = await generateAssetImage({ 
             description: enhancedBackgroundPrompt, 
@@ -112,9 +119,9 @@ export const useInvestigationCreator = () => {
           
           if (imageUrl) {
             try {
-              // Utiliser CloudinaryUploadService pour uploader
+              // Utiliser cloudinaryUploadService pour uploader
               const publicId = `background_${investigation.id}`;
-              const uploadResult = await CloudinaryUploadService.uploadImageFromUrl(imageUrl, publicId);
+              const uploadResult = await cloudinaryUploadService.uploadImage(imageUrl, publicId);
               investigation.background_url = uploadResult.secure_url;
             } catch (uploadError) {
               console.warn('⚠️ Échec upload background, utilisation locale:', uploadError);
@@ -133,7 +140,7 @@ export const useInvestigationCreator = () => {
             if (imageUrl) {
               try {
                 const publicId = `character_${char.id}`;
-                const uploadResult = await CloudinaryUploadService.uploadImageFromUrl(imageUrl, publicId);
+                const uploadResult = await cloudinaryUploadService.uploadImage(imageUrl, publicId);
                 char.image_url = uploadResult.secure_url;
               } catch (uploadError) {
                 console.warn(`⚠️ Échec upload ${char.name}:`, uploadError);
@@ -150,7 +157,7 @@ export const useInvestigationCreator = () => {
             if (imageUrl) {
               try {
                 const publicId = `dialog_${char.id}`;
-                const uploadResult = await CloudinaryUploadService.uploadImageFromUrl(imageUrl, publicId);
+                const uploadResult = await cloudinaryUploadService.uploadImage(imageUrl, publicId);
                 char.dialogue_background_url = uploadResult.secure_url;
               } catch (uploadError) {
                 console.warn(`⚠️ Échec upload dialog ${char.name}:`, uploadError);
@@ -170,7 +177,7 @@ export const useInvestigationCreator = () => {
             if (imageUrl) {
               try {
                 const publicId = `clue_${clue.id}`;
-                const uploadResult = await CloudinaryUploadService.uploadImageFromUrl(imageUrl, publicId);
+                const uploadResult = await cloudinaryUploadService.uploadImage(imageUrl, publicId);
                 clue.image_url = uploadResult.secure_url;
               } catch (uploadError) {
                 console.warn(`⚠️ Échec upload clue ${clue.name}:`, uploadError);
