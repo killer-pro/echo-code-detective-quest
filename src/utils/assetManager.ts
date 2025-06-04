@@ -1,9 +1,17 @@
 
 import { Investigation, Character, Asset } from '../types';
 
+interface LocalAsset {
+  name: string;
+  url: string;
+  type: 'background' | 'character' | 'prop';
+  characterId?: string;
+}
+
 class AssetManager {
   private currentInvestigation: string | null = null;
   private assets: Map<string, string> = new Map();
+  private localAssets: Map<string, LocalAsset> = new Map();
   private isReady = false;
 
   setCurrentInvestigation(investigationId: string) {
@@ -42,12 +50,14 @@ class AssetManager {
     // Charger l'arrière-plan de l'investigation
     if (investigation.background_url) {
       this.assets.set('background_main', investigation.background_url);
+      this.assets.set('background', investigation.background_url); // Alias pour compatibilité
       console.log('🖼️ Arrière-plan principal chargé');
     }
 
     // Charger l'image du joueur si disponible
     if (investigation.player_image_url) {
       this.assets.set('player_image', investigation.player_image_url);
+      this.assets.set('player', investigation.player_image_url); // Alias pour compatibilité
       console.log('👤 Image du joueur chargée');
     }
 
@@ -55,6 +65,7 @@ class AssetManager {
     investigation.characters.forEach(character => {
       if (character.image_url) {
         this.assets.set(`character_${character.id}`, character.image_url);
+        this.assets.set(character.name, character.image_url); // Alias par nom pour compatibilité
         console.log(`👤 Image de ${character.name} chargée`);
       }
       
@@ -64,8 +75,39 @@ class AssetManager {
       }
     });
 
+    // Charger les assets des indices si disponibles
+    if (investigation.clues) {
+      investigation.clues.forEach(clue => {
+        if (clue.image_url) {
+          this.assets.set(`clue_${clue.id}`, clue.image_url);
+          console.log(`🔍 Image de l'indice ${clue.name} chargée`);
+        }
+      });
+    }
+
     console.log(`✅ ${this.assets.size} assets chargés depuis l'investigation`);
     this.markAsReady();
+  }
+
+  registerLocalAsset(asset: LocalAsset) {
+    console.log(`📝 AssetManager: Enregistrement asset local: ${asset.name}`);
+    this.localAssets.set(asset.name, asset);
+    this.assets.set(asset.name, asset.url);
+    
+    // Ajouter des alias pour compatibilité
+    if (asset.type === 'character' && asset.characterId) {
+      this.assets.set(asset.characterId, asset.url);
+    }
+  }
+
+  markAsReadyForLocalAssets() {
+    console.log('✅ AssetManager: Marqué comme prêt pour les assets locaux');
+    this.markAsReady();
+  }
+
+  getAsset(assetName: string): { url: string } | null {
+    const url = this.assets.get(assetName);
+    return url ? { url } : null;
   }
 
   getAssetUrl(assetName: string): string | null {
@@ -81,11 +123,15 @@ class AssetManager {
   }
 
   getBackgroundImage(): string | null {
-    return this.getAssetUrl('background_main');
+    return this.getAssetUrl('background_main') || this.getAssetUrl('background');
   }
 
   getPlayerImage(): string | null {
-    return this.getAssetUrl('player_image');
+    return this.getAssetUrl('player_image') || this.getAssetUrl('player');
+  }
+
+  getClueImage(clueId: string): string | null {
+    return this.getAssetUrl(`clue_${clueId}`);
   }
 
   markAsReady() {
@@ -109,6 +155,7 @@ class AssetManager {
     console.log('🔄 AssetManager: Reset');
     this.currentInvestigation = null;
     this.assets.clear();
+    this.localAssets.clear();
     this.isReady = false;
   }
 }

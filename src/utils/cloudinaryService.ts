@@ -1,4 +1,3 @@
-
 import { supabase } from '../integrations/supabase/client';
 import { type Asset, type Investigation, convertSupabaseInvestigation } from '../types';
 
@@ -8,7 +7,7 @@ interface CloudinaryUploadResponse {
   [key: string]: any;
 }
 
-class CloudinaryService {
+export class CloudinaryService {
   private cloudName = 'dy2ayuond';
   private uploadPreset = 'investigations_assets';
 
@@ -35,6 +34,36 @@ class CloudinaryService {
       return data.secure_url;
     } catch (error) {
       console.error('Erreur lors de l\'upload Cloudinary:', error);
+      throw error;
+    }
+  }
+
+  async uploadImageFromUrl(imageUrl: string, fileName: string): Promise<string> {
+    try {
+      console.log(`📤 CloudinaryService: Upload depuis URL: ${fileName}`);
+      
+      const formData = new FormData();
+      formData.append('file', imageUrl);
+      formData.append('upload_preset', this.uploadPreset);
+      formData.append('public_id', fileName);
+
+      const response = await fetch(
+        `https://api.cloudinary.com/v1_1/${this.cloudName}/image/upload`,
+        {
+          method: 'POST',
+          body: formData,
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data: CloudinaryUploadResponse = await response.json();
+      console.log(`✅ CloudinaryService: Image uploadée: ${data.secure_url}`);
+      return data.secure_url;
+    } catch (error) {
+      console.error('Erreur lors de l\'upload Cloudinary depuis URL:', error);
       throw error;
     }
   }

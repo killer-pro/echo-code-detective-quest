@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../../integrations/supabase/client';
@@ -6,7 +5,7 @@ import { useGame } from '../../../context/GameContext';
 import { type Investigation, type Character, type Clue } from '../../../types';
 import { v4 as uuidv4 } from 'uuid';
 import { toast } from 'sonner';
-import { CloudinaryService } from '../../../utils/cloudinaryService';
+import { cloudinaryService } from '../../../utils/cloudinaryService';
 import { generateAssetImage } from '../../../utils/imageGenerator';
 
 export const useInvestigationCreator = () => {
@@ -64,7 +63,7 @@ export const useInvestigationCreator = () => {
         for (const asset of previewAssets) {
           try {
             // Upload vers Cloudinary et sauvegarde locale
-            const uploadedUrl = await CloudinaryService.uploadImageFromUrl(
+            const uploadedUrl = await cloudinaryService.uploadImageFromUrl(
               asset.image_url, 
               `${investigation.id}/${asset.asset_name}`
             );
@@ -111,7 +110,7 @@ export const useInvestigationCreator = () => {
             type: 'background' 
           });
           if (imageUrl) {
-            const uploadedUrl = await CloudinaryService.uploadImageFromUrl(
+            const uploadedUrl = await cloudinaryService.uploadImageFromUrl(
               imageUrl, 
               `${investigation.id}/main_background`
             );
@@ -128,7 +127,7 @@ export const useInvestigationCreator = () => {
               type: 'character' 
             });
             if (imageUrl) {
-              const uploadedUrl = await CloudinaryService.uploadImageFromUrl(
+              const uploadedUrl = await cloudinaryService.uploadImageFromUrl(
                 imageUrl, 
                 `${investigation.id}/character_${char.id}`
               );
@@ -143,7 +142,7 @@ export const useInvestigationCreator = () => {
               type: 'background' 
             });
             if (imageUrl) {
-              const uploadedUrl = await CloudinaryService.uploadImageFromUrl(
+              const uploadedUrl = await cloudinaryService.uploadImageFromUrl(
                 imageUrl, 
                 `${investigation.id}/dialog_${char.id}`
               );
@@ -161,7 +160,7 @@ export const useInvestigationCreator = () => {
               type: 'prop' 
             });
             if (imageUrl) {
-              const uploadedUrl = await CloudinaryService.uploadImageFromUrl(
+              const uploadedUrl = await cloudinaryService.uploadImageFromUrl(
                 imageUrl, 
                 `${investigation.id}/clue_${clue.id}`
               );
