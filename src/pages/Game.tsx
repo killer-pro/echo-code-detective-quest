@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useGame } from '../context/GameContext';
@@ -41,11 +40,12 @@ const Game: React.FC = () => {
     try {
       console.log('📖 Chargement de l\'investigation:', id);
       
+      // Corriger la requête en spécifiant explicitement la relation pour éviter l'ambiguïté
       const { data, error } = await supabase
         .from('investigations')
         .select(`
           *,
-          characters(*),
+          characters!characters_investigation_id_fkey(*),
           clues(*)
         `)
         .eq('id', id)
