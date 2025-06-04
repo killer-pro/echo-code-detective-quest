@@ -44,14 +44,15 @@ Most mystery games are too scripted, limiting player freedom and replayability. 
 
 1. **Clone the repository:**
    ```sh
-   git clone <YOUR_GIT_URL>
-   cd <YOUR_PROJECT_NAME>
+   git clone https://github.com/killer-pro/echo-code-detective-quest
+   cd echo-code-detective-quest
    ```
 2. **Install dependencies:**
    ```sh
    npm install
    ```
-3. **Configure environment variables:**
+3. **Configure environment variables:** 
+### (To make things easier for you in the context of the hackathon, API keys are hard-coded, but they will be revoked after the evaluation period.)
    - Create a `.env` file if needed for API keys (Gemini, Supabase, Cloudinary, etc.)
    - Example:
      ```env
@@ -65,7 +66,7 @@ Most mystery games are too scripted, limiting player freedom and replayability. 
    npm run dev
    ```
 5. **Open your browser:**
-   - Visit [http://localhost:5173](http://localhost:5173) (or the port shown in your terminal)
+   - Visit [http://localhost:8080](http://localhost:8080) (or the port shown in your terminal)
 
 ## Deployment
 
