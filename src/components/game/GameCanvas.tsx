@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import { Character } from '../../types';
 import { useGame } from '../../context/GameContext';
@@ -23,6 +22,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
   const [hoveredCharacter, setHoveredCharacter] = useState<string | null>(null);
   const [characterImages, setCharacterImages] = useState<Map<string, HTMLImageElement>>(new Map());
   const [backgroundImage, setBackgroundImage] = useState<HTMLImageElement | null>(null);
+  const [playerImage, setPlayerImage] = useState<HTMLImageElement | null>(null);
 
   // Dimensions du canvas
   const CANVAS_WIDTH = 800;
@@ -70,6 +70,17 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       loadCharacterImages();
     }
   }, [characters]);
+
+  // Charger l'image du joueur
+  useEffect(() => {
+    if (state.currentInvestigation?.player_image_url) {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => setPlayerImage(img);
+      img.onerror = () => setPlayerImage(null);
+      img.src = state.currentInvestigation.player_image_url;
+    }
+  }, [state.currentInvestigation?.player_image_url]);
 
   // Gestion du clavier
   useEffect(() => {
@@ -242,11 +253,18 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
     ctx.fill();
 
-    ctx.fillStyle = '#0ea5e9';
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 3;
-    ctx.fillRect(playerPosition.x - 20, playerPosition.y - 30, 40, 50);
-    ctx.strokeRect(playerPosition.x - 20, playerPosition.y - 30, 40, 50);
+    if (playerImage) {
+      ctx.drawImage(playerImage, playerPosition.x - 20, playerPosition.y - 30, 40, 50);
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 3;
+      ctx.strokeRect(playerPosition.x - 20, playerPosition.y - 30, 40, 50);
+    } else {
+      ctx.fillStyle = '#0ea5e9';
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 3;
+      ctx.fillRect(playerPosition.x - 20, playerPosition.y - 30, 40, 50);
+      ctx.strokeRect(playerPosition.x - 20, playerPosition.y - 30, 40, 50);
+    }
 
     // Indicateur de direction
     ctx.beginPath();
@@ -254,7 +272,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     ctx.fillStyle = '#0ea5e9';
     ctx.fill();
 
-  }, [characters, characterImages, backgroundImage, playerPosition, hoveredCharacter]);
+  }, [characters, characterImages, backgroundImage, playerPosition, hoveredCharacter, playerImage]);
 
   // Gestion des clics
   const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {

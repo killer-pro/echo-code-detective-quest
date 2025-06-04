@@ -1,13 +1,13 @@
-
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../../integrations/supabase/client';
 import { useGame } from '../../../context/GameContext';
-import { type Investigation, type Character, type Clue } from '../../../types';
+import { type Investigation, type Character, type Clue, GeneratedAsset } from '../../../types';
 import { v4 as uuidv4 } from 'uuid';
 import { toast } from 'sonner';
 import { cloudinaryUploadService } from '../../../utils/cloudinaryUpload';
 import { generateAssetImage } from '../../../utils/imageGenerator';
+import { type Json } from '../../../integrations/supabase/types';
 
 export const useInvestigationCreator = () => {
   const [isStartingGame, setIsStartingGame] = useState(false);
@@ -51,7 +51,7 @@ export const useInvestigationCreator = () => {
     }
   };
 
-  const startGame = async (investigation: Investigation, previewAssets: any[]) => {
+  const startGame = async (investigation: Investigation, previewAssets: GeneratedAsset[]) => {
     setIsStartingGame(true);
     
     try {
@@ -73,7 +73,7 @@ export const useInvestigationCreator = () => {
             
             // Utiliser cloudinaryUploadService pour uploader l'image
             const publicId = `${asset.asset_name}_${Date.now()}`;
-            const uploadResult = await cloudinaryUploadService.uploadImage(asset.image_url, publicId);
+            const uploadResult = await cloudinaryUploadService.uploadImageFromUrl(asset.image_url, publicId);
             console.log(`✅ Asset "${asset.asset_name}" uploadé vers Cloudinary: ${uploadResult.secure_url}`);
 
             // Affecter les URLs aux bonnes propriétés de l'investigation
@@ -121,7 +121,7 @@ export const useInvestigationCreator = () => {
             try {
               // Utiliser cloudinaryUploadService pour uploader
               const publicId = `background_${investigation.id}`;
-              const uploadResult = await cloudinaryUploadService.uploadImage(imageUrl, publicId);
+              const uploadResult = await cloudinaryUploadService.uploadImageFromUrl(imageUrl, publicId);
               investigation.background_url = uploadResult.secure_url;
             } catch (uploadError) {
               console.warn('⚠️ Échec upload background, utilisation locale:', uploadError);
@@ -140,7 +140,7 @@ export const useInvestigationCreator = () => {
             if (imageUrl) {
               try {
                 const publicId = `character_${char.id}`;
-                const uploadResult = await cloudinaryUploadService.uploadImage(imageUrl, publicId);
+                const uploadResult = await cloudinaryUploadService.uploadImageFromUrl(imageUrl, publicId);
                 char.image_url = uploadResult.secure_url;
               } catch (uploadError) {
                 console.warn(`⚠️ Échec upload ${char.name}:`, uploadError);
@@ -157,7 +157,7 @@ export const useInvestigationCreator = () => {
             if (imageUrl) {
               try {
                 const publicId = `dialog_${char.id}`;
-                const uploadResult = await cloudinaryUploadService.uploadImage(imageUrl, publicId);
+                const uploadResult = await cloudinaryUploadService.uploadImageFromUrl(imageUrl, publicId);
                 char.dialogue_background_url = uploadResult.secure_url;
               } catch (uploadError) {
                 console.warn(`⚠️ Échec upload dialog ${char.name}:`, uploadError);
@@ -177,7 +177,7 @@ export const useInvestigationCreator = () => {
             if (imageUrl) {
               try {
                 const publicId = `clue_${clue.id}`;
-                const uploadResult = await cloudinaryUploadService.uploadImage(imageUrl, publicId);
+                const uploadResult = await cloudinaryUploadService.uploadImageFromUrl(imageUrl, publicId);
                 clue.image_url = uploadResult.secure_url;
               } catch (uploadError) {
                 console.warn(`⚠️ Échec upload clue ${clue.name}:`, uploadError);
@@ -216,7 +216,7 @@ export const useInvestigationCreator = () => {
           investigation_id: investigation.id,
           name: char.name,
           role: char.role,
-          personality: char.personality as any,
+          personality: char.personality as Json,
           knowledge: char.knowledge,
           position: char.position,
           reputation_score: char.reputation_score,
