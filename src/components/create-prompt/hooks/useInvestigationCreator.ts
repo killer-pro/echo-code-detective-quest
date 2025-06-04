@@ -5,7 +5,7 @@ import { useGame } from '../../../context/GameContext';
 import { type Investigation, type Character, type Clue } from '../../../types';
 import { v4 as uuidv4 } from 'uuid';
 import { toast } from 'sonner';
-import { cloudinaryService } from '../../../utils/cloudinaryService';
+import { uploadToCloudinary } from '../../../utils/cloudinaryUpload';
 import { generateAssetImage } from '../../../utils/imageGenerator';
 
 export const useInvestigationCreator = () => {
@@ -62,22 +62,21 @@ export const useInvestigationCreator = () => {
         
         for (const asset of previewAssets) {
           try {
-            // Stocker en cache local pour rapidité
-            localStorage.setItem(`asset_${asset.asset_name}_${investigation.id}`, asset.image_url);
-
-            // Upload vers Cloudinary avec gestion d'erreur améliorée
-            let uploadedUrl = asset.image_url; // Fallback sur l'URL originale
+            console.log(`📤 Upload de l'asset: ${asset.asset_name}`);
             
-            try {
-              uploadedUrl = await cloudinaryService.uploadImageFromUrl(
-                asset.image_url, 
-                `${investigation.id}/${asset.asset_name}`
-              );
-              console.log(`✅ Asset "${asset.asset_name}" uploadé vers Cloudinary: ${uploadedUrl}`);
-            } catch (uploadError) {
-              console.warn(`⚠️ Échec upload Cloudinary pour ${asset.asset_name}, utilisation de l'URL locale:`, uploadError);
-              toast.warning(`Asset ${asset.asset_name} sauvé localement seulement`);
+            // Convertir l'URL d'image en Blob puis en File
+            const response = await fetch(asset.image_url);
+            if (!response.ok) {
+              throw new Error(`Erreur lors du téléchargement de l'image: ${response.status}`);
             }
+            
+            const blob = await response.blob();
+            const fileName = `${asset.asset_name}_${Date.now()}`;
+            const file = new File([blob], fileName, { type: blob.type });
+            
+            // Upload vers Cloudinary avec cloudinaryUpload
+            const uploadedUrl = await uploadToCloudinary(file, 'investigations');
+            console.log(`✅ Asset "${asset.asset_name}" uploadé vers Cloudinary: ${uploadedUrl}`);
 
             // Affecter les URLs aux bonnes propriétés de l'investigation
             if (asset.asset_type === 'background' && asset.asset_name === 'main_background') {
@@ -101,32 +100,32 @@ export const useInvestigationCreator = () => {
               }
             }
 
-            console.log(`✅ Asset "${asset.asset_name}" assigné à l'investigation`);
           } catch (error) {
-            console.error(`❌ Erreur traitement asset ${asset.asset_name}:`, error);
-            toast.error(`Erreur asset ${asset.asset_name}`);
+            console.error(`❌ Erreur upload asset ${asset.asset_name}:`, error);
+            toast.warning(`Erreur upload ${asset.asset_name}, utilisation de l'image par défaut`);
+            // En cas d'erreur, on garde l'URL originale
           }
         }
       } else {
         // Génération d'assets de base si pas d'assets preview
         console.log('🎨 Génération d\'assets de base...');
         
-        // Background principal avec prompt amélioré
+        // Background principal avec prompt amélioré pour vue de haut
         if (investigation.background_prompt && !investigation.background_url) {
-          const enhancedBackgroundPrompt = `Vue de haut, perspective aérienne, plateau de jeu 2D, ${investigation.background_prompt}, style cartoon, couleurs vives, adapté pour un jeu d'enquête vue du dessus`;
+          const enhancedBackgroundPrompt = `Vue de haut, perspective aérienne, plateau de jeu 2D, ${investigation.background_prompt}, style cartoon, couleurs vives, adapté pour un jeu d'enquête vue du dessus, topdown view`;
           
           const imageUrl = await generateAssetImage({ 
             description: enhancedBackgroundPrompt, 
             type: 'background' 
           });
+          
           if (imageUrl) {
-            localStorage.setItem(`asset_main_background_${investigation.id}`, imageUrl);
-            
             try {
-              const uploadedUrl = await cloudinaryService.uploadImageFromUrl(
-                imageUrl, 
-                `${investigation.id}/main_background`
-              );
+              // Convertir et uploader
+              const response = await fetch(imageUrl);
+              const blob = await response.blob();
+              const file = new File([blob], `background_${investigation.id}`, { type: blob.type });
+              const uploadedUrl = await uploadToCloudinary(file, 'investigations');
               investigation.background_url = uploadedUrl;
             } catch (uploadError) {
               console.warn('⚠️ Échec upload background, utilisation locale:', uploadError);
@@ -143,12 +142,16 @@ export const useInvestigationCreator = () => {
               type: 'character' 
             });
             if (imageUrl) {
-              const uploadedUrl = await cloudinaryService.uploadImageFromUrl(
-                imageUrl, 
-                `${investigation.id}/character_${char.id}`
-              );
-              char.image_url = uploadedUrl;
-              localStorage.setItem(`asset_character_${char.id}_${investigation.id}`, imageUrl);
+              try {
+                const response = await fetch(imageUrl);
+                const blob = await response.blob();
+                const file = new File([blob], `character_${char.id}`, { type: blob.type });
+                const uploadedUrl = await uploadToCloudinary(file, 'investigations');
+                char.image_url = uploadedUrl;
+              } catch (uploadError) {
+                console.warn(`⚠️ Échec upload ${char.name}:`, uploadError);
+                char.image_url = imageUrl;
+              }
             }
           }
 
@@ -158,12 +161,16 @@ export const useInvestigationCreator = () => {
               type: 'background' 
             });
             if (imageUrl) {
-              const uploadedUrl = await cloudinaryService.uploadImageFromUrl(
-                imageUrl, 
-                `${investigation.id}/dialog_${char.id}`
-              );
-              char.dialogue_background_url = uploadedUrl;
-              localStorage.setItem(`asset_dialog_${char.id}_${investigation.id}`, imageUrl);
+              try {
+                const response = await fetch(imageUrl);
+                const blob = await response.blob();
+                const file = new File([blob], `dialog_${char.id}`, { type: blob.type });
+                const uploadedUrl = await uploadToCloudinary(file, 'investigations');
+                char.dialogue_background_url = uploadedUrl;
+              } catch (uploadError) {
+                console.warn(`⚠️ Échec upload dialog ${char.name}:`, uploadError);
+                char.dialogue_background_url = imageUrl;
+              }
             }
           }
         }
@@ -176,12 +183,16 @@ export const useInvestigationCreator = () => {
               type: 'prop' 
             });
             if (imageUrl) {
-              const uploadedUrl = await cloudinaryService.uploadImageFromUrl(
-                imageUrl, 
-                `${investigation.id}/clue_${clue.id}`
-              );
-              clue.image_url = uploadedUrl;
-              localStorage.setItem(`asset_clue_${clue.id}_${investigation.id}`, imageUrl);
+              try {
+                const response = await fetch(imageUrl);
+                const blob = await response.blob();
+                const file = new File([blob], `clue_${clue.id}`, { type: blob.type });
+                const uploadedUrl = await uploadToCloudinary(file, 'investigations');
+                clue.image_url = uploadedUrl;
+              } catch (uploadError) {
+                console.warn(`⚠️ Échec upload clue ${clue.name}:`, uploadError);
+                clue.image_url = imageUrl;
+              }
             }
           }
         }

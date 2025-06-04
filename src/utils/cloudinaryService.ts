@@ -1,6 +1,7 @@
 
 import { supabase } from '../integrations/supabase/client';
 import { type Asset, type Investigation, convertSupabaseInvestigation } from '../types';
+import { uploadToCloudinary } from './cloudinaryUpload';
 
 interface CloudinaryUploadResponse {
   secure_url: string;
@@ -9,30 +10,9 @@ interface CloudinaryUploadResponse {
 }
 
 export class CloudinaryService {
-  private cloudName = 'dqbmkp8mf'; // Utilisation du bon cloud name depuis .env
-  private uploadPreset = 'metalx_unsigned'; // Utilisation du preset qui fonctionne
-
   async uploadImage(file: File, folder: string = 'investigations'): Promise<string> {
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('upload_preset', this.uploadPreset);
-      formData.append('folder', folder);
-
-      const response = await fetch(
-        `https://api.cloudinary.com/v1_1/${this.cloudName}/image/upload`,
-        {
-          method: 'POST',
-          body: formData,
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data: CloudinaryUploadResponse = await response.json();
-      return data.secure_url;
+      return await uploadToCloudinary(file, folder);
     } catch (error) {
       console.error('Erreur lors de l\'upload Cloudinary:', error);
       throw error;
@@ -43,28 +23,19 @@ export class CloudinaryService {
     try {
       console.log(`📤 CloudinaryService: Upload depuis URL: ${fileName}`);
       
-      const formData = new FormData();
-      formData.append('file', imageUrl);
-      formData.append('upload_preset', this.uploadPreset);
-      formData.append('public_id', fileName);
-
-      const response = await fetch(
-        `https://api.cloudinary.com/v1_1/${this.cloudName}/image/upload`,
-        {
-          method: 'POST',
-          body: formData,
-        }
-      );
-
+      // Convertir l'URL d'image en Blob
+      const response = await fetch(imageUrl);
       if (!response.ok) {
-        const errorData = await response.text();
-        console.error('Erreur Cloudinary:', errorData);
-        throw new Error(`HTTP error! status: ${response.status} - ${errorData}`);
+        throw new Error(`Erreur lors du téléchargement de l'image: ${response.status}`);
       }
-
-      const data: CloudinaryUploadResponse = await response.json();
-      console.log(`✅ CloudinaryService: Image uploadée: ${data.secure_url}`);
-      return data.secure_url;
+      
+      const blob = await response.blob();
+      const file = new File([blob], fileName, { type: blob.type });
+      
+      // Utiliser cloudinaryUpload pour l'upload
+      const uploadedUrl = await uploadToCloudinary(file, 'investigations');
+      console.log(`✅ CloudinaryService: Image uploadée: ${uploadedUrl}`);
+      return uploadedUrl;
     } catch (error) {
       console.error('Erreur lors de l\'upload Cloudinary depuis URL:', error);
       throw error;

@@ -51,9 +51,21 @@ const Game: React.FC = () => {
         .eq('id', id)
         .single();
 
-      if (error || !data) {
+      if (error) {
         console.error('💥 Erreur chargement investigation:', error);
-        toast.error('Investigation non trouvée');
+        
+        // Si l'investigation n'est pas trouvée, rediriger vers l'accueil
+        if (error.code === 'PGRST116') {
+          console.log('Investigation non trouvée, redirection vers l\'accueil');
+          navigate('/');
+          return;
+        }
+        
+        throw error;
+      }
+
+      if (!data) {
+        console.error('💥 Aucune donnée retournée pour l\'investigation:', id);
         navigate('/');
         return;
       }
@@ -64,7 +76,6 @@ const Game: React.FC = () => {
       console.log('✅ Investigation chargée:', investigation.title);
     } catch (error) {
       console.error('💥 Erreur:', error);
-      toast.error('Erreur lors du chargement');
       navigate('/');
     } finally {
       setIsLoading(false);
