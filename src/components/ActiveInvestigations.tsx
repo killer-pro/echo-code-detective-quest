@@ -28,6 +28,7 @@ const ActiveInvestigations: React.FC = () => {
 
   const loadInvestigations = async () => {
     try {
+      // Corrigé: spécifie explicitement la relation pour éviter l'ambiguïté
       const { data, error } = await supabase
         .from('investigations')
         .select(`
@@ -35,7 +36,7 @@ const ActiveInvestigations: React.FC = () => {
           title,
           status,
           created_at,
-          characters(id)
+          characters!characters_investigation_id_fkey(id)
         `)
         .eq('status', 'en_cours')
         .order('created_at', { ascending: false })

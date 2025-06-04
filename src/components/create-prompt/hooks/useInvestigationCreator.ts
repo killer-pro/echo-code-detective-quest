@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../../integrations/supabase/client';
@@ -5,7 +6,7 @@ import { useGame } from '../../../context/GameContext';
 import { type Investigation, type Character, type Clue } from '../../../types';
 import { v4 as uuidv4 } from 'uuid';
 import { toast } from 'sonner';
-import { CloudinaryUploadService } from '../../../utils/cloudinaryUpload';
+import { CloudinaryService } from '../../../utils/cloudinaryService';
 import { generateAssetImage } from '../../../utils/imageGenerator';
 
 export const useInvestigationCreator = () => {
@@ -56,36 +57,118 @@ export const useInvestigationCreator = () => {
       console.log('🚀 Démarrage du jeu avec investigation:', investigation.title);
       console.log('🎨 Assets preview disponibles:', previewAssets.length);
 
-      // Génération et upload des images pour chaque asset
-      // 1. Background général
-      if (investigation.background_prompt && !investigation.background_url) {
-        const imageUrl = await generateAssetImage({ description: investigation.background_prompt, type: 'background' });
-        const uploadResult = await CloudinaryUploadService.uploadImageFromUrl(imageUrl, `investigations/${investigation.id}_background`);
-        investigation.background_url = uploadResult.secure_url;
-      }
+      // Si on a des assets preview, les utiliser et les sauvegarder sur Cloudinary
+      if (previewAssets.length > 0) {
+        console.log('📤 Upload des assets vers Cloudinary...');
+        
+        for (const asset of previewAssets) {
+          try {
+            // Upload vers Cloudinary et sauvegarde locale
+            const uploadedUrl = await CloudinaryService.uploadImageFromUrl(
+              asset.image_url, 
+              `${investigation.id}/${asset.asset_name}`
+            );
 
-      // 2. Personnages
-      for (const char of investigation.characters) {
-        // Portrait
-        if (char.portrait_prompt && !char.image_url) {
-          const imageUrl = await generateAssetImage({ description: char.portrait_prompt, type: 'character' });
-          const uploadResult = await CloudinaryUploadService.uploadImageFromUrl(imageUrl, `characters/${char.id}_portrait`);
-          char.image_url = uploadResult.secure_url;
-        }
-        // Background de dialogue
-        if (char.dialog_background_prompt && !char.dialogue_background_url) {
-          const imageUrl = await generateAssetImage({ description: char.dialog_background_prompt, type: 'background' });
-          const uploadResult = await CloudinaryUploadService.uploadImageFromUrl(imageUrl, `characters/${char.id}_dialog_bg`);
-          char.dialogue_background_url = uploadResult.secure_url;
-        }
-      }
+            // Stocker en cache local pour rapidité
+            localStorage.setItem(`asset_${asset.asset_name}_${investigation.id}`, asset.image_url);
 
-      // 3. Indices
-      for (const clue of investigation.clues || []) {
-        if (clue.image_prompt && !clue.image_url) {
-          const imageUrl = await generateAssetImage({ description: clue.image_prompt, type: 'prop' });
-          const uploadResult = await CloudinaryUploadService.uploadImageFromUrl(imageUrl, `clues/${clue.id}`);
-          clue.image_url = uploadResult.secure_url;
+            // Affecter les URLs aux bonnes propriétés de l'investigation
+            if (asset.asset_type === 'background' && asset.asset_name === 'main_background') {
+              investigation.background_url = uploadedUrl;
+            } else if (asset.asset_type === 'character' && asset.characterId) {
+              const character = investigation.characters.find(c => c.id === asset.characterId);
+              if (character) {
+                if (asset.asset_name.includes('portrait')) {
+                  character.image_url = uploadedUrl;
+                } else if (asset.asset_name.includes('dialog_bg')) {
+                  character.dialogue_background_url = uploadedUrl;
+                }
+              }
+            } else if (asset.asset_type === 'prop') {
+              const clueName = asset.asset_name.replace('clue_', '').replace(/_/g, ' ');
+              const clue = investigation.clues?.find(c => 
+                c.name.toLowerCase().replace(/\s+/g, '_') === clueName
+              );
+              if (clue) {
+                clue.image_url = uploadedUrl;
+              }
+            }
+
+            console.log(`✅ Asset "${asset.asset_name}" uploadé et assigné`);
+          } catch (error) {
+            console.error(`❌ Erreur upload asset ${asset.asset_name}:`, error);
+            toast.error(`Erreur upload ${asset.asset_name}`);
+          }
+        }
+      } else {
+        // Génération d'assets de base si pas d'assets preview
+        console.log('🎨 Génération d\'assets de base...');
+        
+        // Background principal
+        if (investigation.background_prompt && !investigation.background_url) {
+          const imageUrl = await generateAssetImage({ 
+            description: investigation.background_prompt, 
+            type: 'background' 
+          });
+          if (imageUrl) {
+            const uploadedUrl = await CloudinaryService.uploadImageFromUrl(
+              imageUrl, 
+              `${investigation.id}/main_background`
+            );
+            investigation.background_url = uploadedUrl;
+            localStorage.setItem(`asset_main_background_${investigation.id}`, imageUrl);
+          }
+        }
+
+        // Images des personnages
+        for (const char of investigation.characters) {
+          if (char.portrait_prompt && !char.image_url) {
+            const imageUrl = await generateAssetImage({ 
+              description: char.portrait_prompt, 
+              type: 'character' 
+            });
+            if (imageUrl) {
+              const uploadedUrl = await CloudinaryService.uploadImageFromUrl(
+                imageUrl, 
+                `${investigation.id}/character_${char.id}`
+              );
+              char.image_url = uploadedUrl;
+              localStorage.setItem(`asset_character_${char.id}_${investigation.id}`, imageUrl);
+            }
+          }
+
+          if (char.dialog_background_prompt && !char.dialogue_background_url) {
+            const imageUrl = await generateAssetImage({ 
+              description: char.dialog_background_prompt, 
+              type: 'background' 
+            });
+            if (imageUrl) {
+              const uploadedUrl = await CloudinaryService.uploadImageFromUrl(
+                imageUrl, 
+                `${investigation.id}/dialog_${char.id}`
+              );
+              char.dialogue_background_url = uploadedUrl;
+              localStorage.setItem(`asset_dialog_${char.id}_${investigation.id}`, imageUrl);
+            }
+          }
+        }
+
+        // Images des indices
+        for (const clue of investigation.clues || []) {
+          if (clue.image_prompt && !clue.image_url) {
+            const imageUrl = await generateAssetImage({ 
+              description: clue.image_prompt, 
+              type: 'prop' 
+            });
+            if (imageUrl) {
+              const uploadedUrl = await CloudinaryService.uploadImageFromUrl(
+                imageUrl, 
+                `${investigation.id}/clue_${clue.id}`
+              );
+              clue.image_url = uploadedUrl;
+              localStorage.setItem(`asset_clue_${clue.id}_${investigation.id}`, imageUrl);
+            }
+          }
         }
       }
 
@@ -99,6 +182,7 @@ export const useInvestigationCreator = () => {
           status: investigation.status || 'en_cours',
           player_role: investigation.player_role || 'enquêteur',
           background_url: investigation.background_url,
+          player_image_url: investigation.player_image_url,
           created_at: new Date().toISOString()
         })
         .select('*')
@@ -116,7 +200,7 @@ export const useInvestigationCreator = () => {
           investigation_id: investigation.id,
           name: char.name,
           role: char.role,
-          personality: char.personality as any, // Cast to any for JSON compatibility
+          personality: char.personality as any,
           knowledge: char.knowledge,
           position: char.position,
           reputation_score: char.reputation_score,
