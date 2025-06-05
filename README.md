@@ -69,10 +69,6 @@ Most mystery games are too scripted, limiting player freedom and replayability. 
 5. **Open your browser:**
    - Visit [http://localhost:8080](http://localhost:8080) (or the port shown in your terminal)
 
-## Deployment
-
-You can deploy this project easily on [Lovable](https://lovable.dev/) or your preferred platform. For custom domains, see the Lovable documentation.
-
 ## License
 
 MIT
