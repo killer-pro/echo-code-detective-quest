@@ -41,7 +41,7 @@ const CreatePrompt: React.FC = () => {
   } = useAIInvestigationSuggestions();
 
   const [prompt, setPrompt] = React.useState('');
-  const [showExamples, setShowExamples] = React.useState(false);
+  const [showExamples, setShowExamples] = React.useState(true); // Show by default
   const [generatedInvestigation, setGeneratedInvestigation] = React.useState<Investigation | null>(null);
   const [generatedAssets, setGeneratedAssets] = React.useState<any[]>([]);
 
@@ -218,7 +218,7 @@ const CreatePrompt: React.FC = () => {
               </div>
             )}
 
-            {/* Examples button */}
+            {/* Examples toggle button */}
             {!generatedInvestigation && (
               <div className="flex flex-col gap-3">
                 <Button
@@ -233,12 +233,12 @@ const CreatePrompt: React.FC = () => {
             )}
           </div>
 
-          {/* Examples panel */}
+          {/* AI Suggestions panel */}
           <div className="space-y-4 md:space-y-6">
             {showExamples && !generatedInvestigation && (
               <Card className="bg-slate-800/80 backdrop-blur border-slate-700">
                 <CardHeader className="pb-3 md:pb-6">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
                     <CardTitle className="text-white flex items-center gap-2 text-base md:text-lg">
                       <Search className="w-4 h-4 md:w-5 md:h-5 text-yellow-400" />
                       AI Investigation Suggestions
@@ -285,7 +285,7 @@ const CreatePrompt: React.FC = () => {
                             <Badge variant="outline" className="text-blue-400 border-blue-400 text-xs">
                               {example.category}
                             </Badge>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 flex-wrap">
                               <Badge className={`${getComplexityColor(example.complexity)} text-white text-xs`}>
                                 {example.complexity}
                               </Badge>
