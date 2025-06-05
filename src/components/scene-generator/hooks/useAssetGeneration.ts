@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { type Investigation, type GeneratedAsset, type AssetType } from '../../types';
-import { generateAssetImage, type GenerateImageParams, getValidImageStyle } from '../../../utils/imageGenerator';
+import { generateAssetImage, type GenerateImageParams, getValidImageStyle } from '@/utils/imageGenerator.ts';
 import { v4 as uuidv4 } from 'uuid';
+import {AssetType, GeneratedAsset, Investigation} from "@/types";
 
 interface UseAssetGenerationProps {
   investigation: Investigation;

@@ -44,9 +44,8 @@ interface PromptGeneratorProps {
 }
 
 // Constants for validation
-const validRoles: CharacterRole[] = ['witness', 'suspect', 'investigator', 'innocent'];
-const validExpressionStates: ExpressionState[] = ['neutral', 'nervous', 'angry', 'cooperative', 'suspicious'];
-
+const validRoles: CharacterRole[] = ['témoin', 'suspect', 'enquêteur', 'innocent'];
+const validExpressionStates: ExpressionState[] = ['neutre', 'nerveux', 'en_colère', 'coopératif', 'méfiant'];
 const PromptGenerator: React.FC<PromptGeneratorProps> = ({
   onPromptUpdate,
   onInvestigationGenerated,
@@ -113,7 +112,7 @@ RESPOND ONLY IN VALID JSON with this EXACT structure:
   "characters": [
     {
       "name": "Character Name",
-      "role": "witness|suspect|innocent",
+      "role": "témoin|suspect|innocent",
       "personality": { // Using Record<string, any> because the structure of personality traits is dynamic and depends on AI output
         "traits": ["trait1", "trait2"],
         "secrets": "character's secrets",
@@ -173,20 +172,20 @@ RULES:
             id: uuidv4(),
             investigation_id: investigationId,
             name: char.name || 'Unnamed Character',
-            role: validRoles.includes(char.role as CharacterRole) ? char.role as CharacterRole : 'witness', // Translate role value
+            role: validRoles.includes(char.role as CharacterRole) ? char.role as CharacterRole : 'témoin',
             personality: char.personality || {},
             knowledge: char.knowledge || '',
             reputation_score: char.reputation_score || 50,
             position: char.position || { x: Math.random() * 600 + 100, y: Math.random() * 400 + 100 },
             sprite: 'character',
-            expression_state: 'neutral' as ExpressionState, // Translate state value
+            expression_state: 'neutre' as ExpressionState,
             alerted: false,
             portrait_prompt: char.portrait_prompt || `2D character sprite, front view, ${char.name}, cartoon style, game character`,
             dialog_background_prompt: char.dialog_background_prompt || `2D game background, ${char.location_description || 'generic location'}, cartoon style`,
             location_description: char.location_description || `Location of ${char.name}`,
           };
         }),
-        status: 'en_cours', // Keep French status value for internal logic, as per ActiveInvestigations.tsx
+        status: 'en_cours',
         assetPrompts: [],
         clues: investigationResponse.clues?.map((clue: GeminiClue) => {
           return {

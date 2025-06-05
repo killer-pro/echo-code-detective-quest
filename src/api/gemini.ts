@@ -64,7 +64,7 @@ class GeminiAPI {
       });
 
       if (!response.ok) {
-        throw new Error(`Erreur API: ${response.status} ${response.statusText}`);
+        throw new Error(`API Error: ${response.status} ${response.statusText}`);
       }
 
       const data = await response.json();
@@ -72,91 +72,91 @@ class GeminiAPI {
       if (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0]) {
          return data.candidates[0].content.parts[0].text;
       } else {
-         throw new Error('Format de réponse API inattendu');
+         throw new Error('Unexpected API response format');
       }
     } catch (error) {
-      console.error('Erreur lors de l\'appel à l\'API Gemini:', error);
+      console.error('Error calling Gemini API:', error);
       throw error;
     }
   }
 
   async generateInvestigation(userPrompt: string): Promise<InvestigationData> {
     const prompt = `
-Crée une enquête procédurale basée sur ce prompt utilisateur: "${userPrompt}"
+Create a procedural investigation based on this user prompt: "${userPrompt}"
 
-Tu dois répondre uniquement en JSON valide avec cette structure exacte:
+You must respond only in valid JSON with this exact structure:
 {
-  "title": "Titre de l'enquête",
-  "description": "Description détaillée du mystère",
-  "context": "Contexte narratif initial de l'enquête expliquant la situation de départ",
+  "title": "Investigation Title",
+  "description": "Detailed description of the mystery",
+  "context": "Initial narrative context explaining the starting situation",
   "assetPrompts": [
     {
       "type": "background",
-      "name": "Scene principale",
-      "prompt": "Description pour un décor de jeu 2D, vue de côté, pixel art style",
+      "name": "Main Scene",
+      "prompt": "Description for a 2D game background, side view, pixel art style",
       "style": "cartoon"
     },
     {
       "type": "character",
-      "name": "Personnage principal",
-      "prompt": "Sprite de personnage 2D, vue de face, style cartoon/pixel art",
+      "name": "Main Character",
+      "prompt": "2D character sprite, front view, cartoon/pixel art style",
       "style": "cartoon"
     }
   ],
   "characters": [
     {
       "id": "unique_id",
-      "name": "Nom du personnage",
-      "role": "témoin",
+      "name": "Character Name",
+      "role": "witness",
       personality: { // Keep Record<string, any> for personality as its structure is flexible
         "traits": ["trait1", "trait2"],
-        "secrets": "secrets du personnage",
+        "secrets": "character's secrets",
         "motivations": "motivations"
       },
-      "knowledge": "Ce que le personnage sait sur l'enquête",
+      "knowledge": "What the character knows about the investigation",
       "position": {"x": 200, "y": 150},
       "reputation_score": 50
     }
   ]
 }
 
-IMPORTANT pour les assetPrompts (JEU 2D):
-- Crée 1 arrière-plan principal : "2D game background, side view, [description], cartoon/pixel art style, flat design, game environment"
-- Crée 1 prompt par personnage : "2D character sprite, front view, [description], cartoon style, game character, flat design, simple shapes"
-- Crée 2-3 props/objets : "2D game object, [description], simple flat design, cartoon style, game prop"
-- Toujours spécifier "2D", "flat design", "cartoon style" ou "pixel art"
-- Éviter "realistic", "3D", "photographic"
-- Utilise des styles: "cartoon", "pixel-art", "flat-design"
+IMPORTANT for assetPrompts (2D GAME):
+- Create 1 main background: "2D game background, side view, [description], cartoon/pixel art style, flat design, game environment"
+- Create 1 prompt per character: "2D character sprite, front view, [description], cartoon style, game character, flat design, simple shapes"
+- Create 2-3 props/objects: "2D game object, [description], simple flat design, cartoon style, game prop"
+- Always specify "2D", "flat design", "cartoon style" or "pixel art"
+- Avoid "realistic", "3D", "photographic"
+- Use styles: "cartoon", "pixel-art", "flat-design"
 
-Crée 3-5 personnages avec des rôles variés (témoin, suspect, innocent). 
-Les positions doivent être entre x:100-700 et y:100-500.
+Create 3-5 characters with varied roles (witness, suspect, innocent).
+Positions must be between x:100-700 and y:100-500.
 `;
 
     try {
       const responseText = await this.makeRequest(prompt);
       const jsonMatch = responseText.match(/\{[\s\S]*\}/); // Match JSON object
       if (!jsonMatch) {
-        throw new Error('Réponse JSON d\'enquête invalide');
+        throw new Error('Invalid investigation JSON response');
       }
       
       return JSON.parse(jsonMatch[0]);
     } catch (error) {
-      console.error('Erreur lors de la génération d\'enquête:', error);
-      // Enquête de fallback
+      console.error('Error generating investigation:', error);
+      // Fallback investigation
       return {
-        title: "Mystère au Manoir",
-        description: "Un vol mystérieux s'est produit au manoir. Interrogez les témoins pour découvrir la vérité.",
-        context: "Vous êtes appelé pour enquêter sur un vol dans un manoir victorien. L'atmosphère est tendue et les suspects nombreux.",
+        title: "Mystery at the Manor",
+        description: "A mysterious theft occurred at the manor. Interrogate the witnesses to discover the truth.",
+        context: "You are called to investigate a theft in a Victorian manor. The atmosphere is tense and there are many suspects.",
         assetPrompts: [
           {
             type: "background",
-            name: "Manoir victorien",
+            name: "Victorian Manor",
             prompt: "2D game background, Victorian manor interior, side view, cartoon style, flat design, game environment, library with bookshelves",
             style: "cartoon"
           },
           {
             type: "character",
-            name: "Majordome",
+            name: "Butler",
             prompt: "2D character sprite, English butler, front view, cartoon style, flat design, black suit, elderly man, game character",
             style: "cartoon"
           }
@@ -164,14 +164,14 @@ Les positions doivent être entre x:100-700 et y:100-500.
         characters: [
           {
             id: "butler_1",
-            name: "James le Majordome",
-            role: "témoin",
+            name: "James the Butler",
+            role: "témoin", // Keep French value for internal logic
             personality: { 
-              traits: ["Discret", "Loyal", "Observateur"], 
-              secrets: "Connaît tous les secrets de la famille",
-              motivations: "Protéger la réputation de la famille"
+              traits: ["Discrete", "Loyal", "Observant"], 
+              secrets: "Knows all the family's secrets",
+              motivations: "Protect the family's reputation"
             },
-            knowledge: "A vu quelqu'un rôder près du coffre-fort",
+            knowledge: "Saw someone lurking near the safe",
             position: { x: 200, y: 200 },
             reputation_score: 60
           }
@@ -199,7 +199,7 @@ Les positions doivent être entre x:100-700 et y:100-500.
         }
       }
     } catch (error) {
-      console.error('Erreur lors de la génération des suggestions d\'enquête:', error);
+      console.error('Error generating investigation suggestions:', error);
       // Fallback suggestions (same as in the hook currently)
       return [
         {
@@ -230,45 +230,45 @@ Les positions doivent être entre x:100-700 et y:100-500.
     conversationHistory: string[]
   ): Promise<GeminiResponse> {
     const prompt = `
-Tu incarnes ${characterName}, un ${role} dans une enquête.
+You are ${characterName}, a ${role} in an investigation.
 
-Personnalité: ${JSON.stringify(personality)}
-Connaissances: ${knowledge}
-Réputation actuelle: ${reputation}/100
-Historique: ${conversationHistory.slice(-3).join('\n')}
+Personality: ${JSON.stringify(personality)}
+Knowledge: ${knowledge}
+Current Reputation: ${reputation}/100
+History: ${conversationHistory.slice(-3).join('\n')}
 
-L'enquêteur te dit: "${userMessage}"
+The investigator tells you: "${userMessage}"
 
-Tu dois répondre en JSON avec cette structure:
+You must respond in JSON with this structure:
 {
-  "text": "Ta réponse en tant que personnage",
-  "keywords": ["mot1", "mot2"],
+  "text": "Your response as the character",
+  "keywords": ["keyword1", "keyword2"],
   "reputationImpact": 0,
   "truthLikelihood": 0.5
 }
 
-Règles:
-- Reste dans le caractère
-- Si réputation < 30, sois méfiant
-- Si réputation > 70, sois coopératif
-- reputationImpact: -5 à +5 selon l'interaction
-- truthLikelihood: 0.0 (mensonge) à 1.0 (vérité)
-- keywords: 2-4 mots-clés importants de ta réponse
+Rules:
+- Stay in character
+- If reputation < 30, be suspicious
+- If reputation > 70, be cooperative
+- reputationImpact: -5 to +5 depending on interaction
+- truthLikelihood: 0.0 (lie) to 1.0 (truth)
+- keywords: 2-4 important keywords from your response
 `;
 
     try {
       const responseText = await this.makeRequest(prompt);
       const jsonMatch = responseText.match(/\{[\s\S]*\}/); // Match JSON object
       if (!jsonMatch) {
-        throw new Error('Réponse JSON de personnage invalide');
+        throw new Error('Invalid character JSON response');
       }
       
       return JSON.parse(jsonMatch[0]);
     } catch (error) {
-      console.error('Erreur lors de la génération de réponse:', error);
+      console.error('Error generating response:', error);
       return {
-        text: "Je ne peux pas vous répondre maintenant...",
-        keywords: ["silence", "mystère"],
+        text: "I cannot answer you now...",
+        keywords: ["silence", "mystery"],
         reputationImpact: -1,
         truthLikelihood: 0.1
       };

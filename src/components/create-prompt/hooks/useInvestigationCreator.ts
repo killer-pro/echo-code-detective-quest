@@ -32,7 +32,7 @@ export const useInvestigationCreator = () => {
             investigation_id: investigationId,
             name: 'Main Witness',
             role: 'témoin',
-            personality: { traits: ['observant'] },
+            personality: { traits: ['observateur'] },
             knowledge: 'Basic information',
             position: { x: 300, y: 300 },
             reputation_score: 50,
@@ -271,7 +271,7 @@ export const useInvestigationCreator = () => {
       });
 
       console.log('✅ Game started successfully');
-      toast.success('Investigation created and game started!');
+      toast.success('Investigation saved and game starting!');
       
       // Navigate to game with investigation ID
       navigate(`/game/${investigation.id}`);

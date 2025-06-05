@@ -22,7 +22,7 @@ import PromptGenerator from '../components/PromptGenerator';
 import SceneGenerator from '../components/SceneGenerator';
 import { useInvestigationCreator } from '../components/create-prompt/hooks/useInvestigationCreator';
 import { useAIInvestigationSuggestions } from '../components/create-prompt/hooks/useAIInvestigationSuggestions';
-import { type Investigation } from '../types';
+import { type Investigation, type Asset, type GeneratedAsset } from '../types';
 
 const CreatePrompt: React.FC = () => {
   const navigate = useNavigate();
@@ -42,8 +42,10 @@ const CreatePrompt: React.FC = () => {
   const [prompt, setPrompt] = React.useState('');
   const [showExamples, setShowExamples] = React.useState(true); // Show by default
   const [generatedInvestigation, setGeneratedInvestigation] = React.useState<Investigation | null>(null);
-  const [generatedAssets, setGeneratedAssets] = React.useState<any[]>([]); // Using any[] as the exact structure of generated assets is not strictly defined
+  const [generatedAssets, setGeneratedAssets] = React.useState<GeneratedAsset[]>([]); // Using GeneratedAsset[] as the exact structure of generated assets
 
+  // Note: The investigation ID is generated here in PromptGenerator before being passed to the hook.
+  // This might cause issues if the startGame hook expects to generate the ID or handle potential duplicates.
   const handleCreateInvestigation = async () => {
     if (!prompt.trim()) return;
     
@@ -55,7 +57,7 @@ const CreatePrompt: React.FC = () => {
     setGeneratedInvestigation(investigation);
   };
 
-  const handleAssetsGenerated = (assets: any[]) => { // Using any[] as the exact structure of generated assets is not strictly defined
+  const handleAssetsGenerated = (assets: GeneratedAsset[]) => { // Using GeneratedAsset[] as the exact structure of generated assets
     console.log('🎨 Assets generated:', assets);
     setGeneratedAssets(assets);
   };
