@@ -50,15 +50,15 @@ const GameUI: React.FC<GameUIProps> = ({
 
   const getGameStatusText = () => {
     switch (gameResult) {
-      case 'won': return '🎉 Enquête résolue !';
-      case 'lost': return '❌ Enquête échouée';
-      default: return assetsInitialized ? 'Enquête active' : 'Chargement des assets...';
+      case 'won': return '🎉 Investigation solved!';
+      case 'lost': return '❌ Investigation failed';
+      default: return assetsInitialized ? 'Investigation active' : 'Loading assets...';
     }
   };
 
   return (
     <>
-      {/* Header amélioré */}
+      {/* Enhanced header */}
       <div className="bg-gradient-to-r from-slate-800 to-slate-700 border-b border-slate-600 p-4 shadow-lg">
         <div className="flex items-center justify-between max-w-7xl mx-auto">
           <div className="flex items-center gap-4">
@@ -68,7 +68,7 @@ const GameUI: React.FC<GameUIProps> = ({
               className="text-gray-300 hover:text-white hover:bg-slate-600 transition-colors"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Retour
+              Back
             </Button>
             <div className="border-l border-slate-600 pl-4">
               <h1 className="text-xl font-bold text-white">{investigation.title}</h1>
@@ -93,17 +93,17 @@ const GameUI: React.FC<GameUIProps> = ({
                   className="bg-green-600 hover:bg-green-700 text-white border-green-600"
                 >
                   <Save className="w-4 h-4 mr-2" />
-                  {isSaving ? 'Sauvegarde...' : 'Sauvegarder'}
+                  {isSaving ? 'Saving...' : 'Save'}
                 </Button>
 
                 <Button
                   onClick={onShowAccusation}
                   disabled={playerStats.dialogCount < 3}
                   className="bg-red-600 hover:bg-red-700 text-white border-red-600"
-                  title={playerStats.dialogCount < 3 ? 'Interrogez au moins 3 personnages avant d\'accuser' : 'Accuser le coupable'}
+                  title={playerStats.dialogCount < 3 ? 'Interrogate at least 3 characters before accusing' : 'Accuse the culprit'}
                 >
                   <Target className="w-4 h-4 mr-2" />
-                  Accuser
+                  Accuse
                 </Button>
               </>
             )}
@@ -128,10 +128,10 @@ const GameUI: React.FC<GameUIProps> = ({
         </div>
       </div>
 
-      {/* Statistiques en overlay améliorées */}
+      {/* Enhanced statistics overlay */}
       {assetsInitialized && (
         <div className="absolute top-50 left-4 bg-black/70 backdrop-blur-sm rounded-lg p-4 text-white z-10 border border-slate-600">
-          <div className="text-xs text-gray-300 mb-2 font-semibold">Progression de l'enquête</div>
+          <div className="text-xs text-gray-300 mb-2 font-semibold">Investigation Progress</div>
           <div className="grid grid-cols-2 gap-3 text-sm">
             <div className="flex items-center gap-2">
               <span className="text-blue-400">💬</span>
@@ -139,29 +139,29 @@ const GameUI: React.FC<GameUIProps> = ({
             </div>
             <div className="flex items-center gap-2">
               <span className="text-yellow-400">🕵️</span>
-              <span>{playerStats.leadsCount} indices</span>
+              <span>{playerStats.leadsCount} clues</span>
             </div>
             <div className="flex items-center gap-2">
               <span className="text-red-400">👥</span>
-              <span>{playerStats.alertedCharacters}/{playerStats.totalCharacters} alertés</span>
+              <span>{playerStats.alertedCharacters}/{playerStats.totalCharacters} alerted</span>
             </div>
             <div className="flex items-center gap-2">
               <span className="text-green-400">🎯</span>
-              <span>{Math.round((playerStats.leadsCount / Math.max(playerStats.dialogCount, 1)) * 100)}% efficacité</span>
+              <span>{Math.round((playerStats.leadsCount / Math.max(playerStats.dialogCount, 1)) * 100)}% efficiency</span>
             </div>
           </div>
           
           {isGameFinished && (
             <div className="mt-3 pt-3 border-t border-slate-600">
               <div className={`text-center font-semibold ${getGameStatusColor()}`}>
-                {gameResult === 'won' ? '🏆 Victoire !' : '💀 Défaite'}
+                {gameResult === 'won' ? '🏆 Victory!' : '💀 Defeat'}
               </div>
             </div>
           )}
         </div>
       )}
 
-      {/* Instructions améliorées */}
+      {/* Enhanced instructions */}
       <div className="absolute bottom-0 left-0 right-0 bg-slate-800/90 backdrop-blur-sm border-t border-slate-700 p-3 z-10">
         <div className="max-w-7xl mx-auto text-center text-sm text-gray-300">
           <div className="flex items-center justify-center gap-6 flex-wrap">
@@ -169,24 +169,24 @@ const GameUI: React.FC<GameUIProps> = ({
               <>
                 <span className="flex items-center gap-2">
                   <kbd className="px-2 py-1 bg-slate-700 rounded text-xs">↑↓←→</kbd>
-                  <span>Se déplacer</span>
+                  <span>Move</span>
                 </span>
                 <span className="flex items-center gap-2">
-                  <kbd className="px-2 py-1 bg-slate-700 rounded text-xs">ESPACE</kbd>
-                  <span>Interagir</span>
+                  <kbd className="px-2 py-1 bg-slate-700 rounded text-xs">SPACE</kbd>
+                  <span>Interact</span>
                 </span>
                 <span className="flex items-center gap-2">
-                  <kbd className="px-2 py-1 bg-slate-700 rounded text-xs">CLIC</kbd>
-                  <span>Sélectionner</span>
+                  <kbd className="px-2 py-1 bg-slate-700 rounded text-xs">CLICK</kbd>
+                  <span>Select</span>
                 </span>
-                <span className="text-yellow-400">💾 Sauvegardez régulièrement votre progression</span>
-                <span className="text-red-400">🎯 Rassemblez des indices avant d'accuser</span>
+                <span className="text-yellow-400">💾 Save your progress regularly</span>
+                <span className="text-red-400">🎯 Gather clues before accusing</span>
               </>
             ) : (
               <span className={getGameStatusColor()}>
                 {gameResult === 'won' 
-                  ? '🎉 Félicitations ! Vous avez résolu l\'enquête !' 
-                  : '😞 Enquête échouée. Le vrai coupable s\'en tire...'}
+                  ? '🎉 Congratulations! You solved the investigation!' 
+                  : '😞 Investigation failed. The real culprit gets away...'}
               </span>
             )}
           </div>

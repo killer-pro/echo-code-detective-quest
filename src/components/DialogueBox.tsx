@@ -63,7 +63,7 @@ const DialogueBox: React.FC<DialogueBoxProps> = ({
 
   return (
     <div className="h-96 flex flex-col">
-      {/* Header compact */}
+      {/* Compact header */}
       <div className="flex items-center justify-between p-3 border-b border-white/20">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
@@ -99,24 +99,24 @@ const DialogueBox: React.FC<DialogueBoxProps> = ({
         <div className="space-y-3">
           {characterDialogs.length === 0 ? (
             <div className="text-center text-gray-400 py-6">
-              <p className="text-sm">Commencez la conversation avec {character.name}</p>
-              <p className="text-xs mt-1 text-gray-500">Posez des questions sur l'enquête...</p>
+              <p className="text-sm">Start the conversation with {character.name}</p>
+              <p className="text-xs mt-1 text-gray-500">Ask questions about the investigation...</p>
             </div>
           ) : (
             characterDialogs.map((dialog, index) => (
               <div key={dialog.id + '-' + index} className="space-y-2">
-                {/* Message utilisateur */}
+                {/* User message */}
                 <div className="flex justify-end">
                   <div className="bg-blue-600/80 text-white p-2 rounded-lg max-w-[80%] text-sm">
                     <div className="flex items-center gap-2 mb-1">
                       <User className="w-3 h-3" />
-                      <span className="text-xs opacity-70">Vous</span>
+                      <span className="text-xs opacity-70">You</span>
                     </div>
                     {dialog.user_input}
                   </div>
                 </div>
 
-                {/* Réponse personnage */}
+                {/* Character response */}
                 <div className="flex justify-start">
                   <div className="bg-slate-700/80 text-white p-2 rounded-lg max-w-[80%] text-sm">
                     <div className="flex items-center gap-2 mb-1">
@@ -125,7 +125,7 @@ const DialogueBox: React.FC<DialogueBoxProps> = ({
                     </div>
                     <p className="mb-2">{dialog.character_reply}</p>
                     
-                    {/* Indicateurs compacts */}
+                    {/* Compact indicators */}
                     <div className="flex items-center gap-2 pt-1 border-t border-slate-600/50">
                       <div className={`w-1.5 h-1.5 rounded-full ${getTruthColor(dialog.truth_likelihood)}`} />
                       <span className="text-xs text-gray-400">
@@ -142,7 +142,7 @@ const DialogueBox: React.FC<DialogueBoxProps> = ({
                       )}
                     </div>
 
-                    {/* Mots-clés cliquables */}
+                    {/* Clickable keywords */}
                     {dialog.clickable_keywords && dialog.clickable_keywords.length > 0 && (
                       <div className="flex flex-wrap gap-1 mt-2 text-black">
                         {dialog.clickable_keywords.map((keyword, index) => (
@@ -173,7 +173,7 @@ const DialogueBox: React.FC<DialogueBoxProps> = ({
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder="Tapez votre message..."
+            placeholder="Type your message..."
             disabled={isLoading}
             className="flex-1 bg-white/10 border-white/20 text-white placeholder:text-gray-400"
           />

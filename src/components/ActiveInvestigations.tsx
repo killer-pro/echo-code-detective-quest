@@ -7,7 +7,7 @@ import { Badge } from './ui/badge';
 import { Play, Clock, Users } from 'lucide-react';
 import { supabase } from '../integrations/supabase/client';
 import { formatDistanceToNow } from 'date-fns';
-import { fr } from 'date-fns/locale';
+import { enUS } from 'date-fns/locale';
 
 interface Investigation {
   id: string;
@@ -28,7 +28,7 @@ const ActiveInvestigations: React.FC = () => {
 
   const loadInvestigations = async () => {
     try {
-      // Corrigé: spécifie explicitement la relation pour éviter l'ambiguïté
+      // Fixed: explicitly specify the relationship to avoid ambiguity
       const { data, error } = await supabase
         .from('investigations')
         .select(`
@@ -43,13 +43,13 @@ const ActiveInvestigations: React.FC = () => {
         .limit(5);
 
       if (error) {
-        console.error('Erreur chargement investigations:', error);
+        console.error('Error loading investigations:', error);
         return;
       }
 
       setInvestigations(data || []);
     } catch (error) {
-      console.error('Erreur:', error);
+      console.error('Error:', error);
     } finally {
       setIsLoading(false);
     }
@@ -63,7 +63,7 @@ const ActiveInvestigations: React.FC = () => {
     return (
       <Card className="bg-slate-800/50 border-slate-700/50">
         <CardHeader>
-          <CardTitle className="text-white">Enquêtes en cours</CardTitle>
+          <CardTitle className="text-white">Active Investigations</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center py-8">
@@ -78,11 +78,11 @@ const ActiveInvestigations: React.FC = () => {
     return (
       <Card className="bg-slate-800/50 border-slate-700/50">
         <CardHeader>
-          <CardTitle className="text-white">Enquêtes en cours</CardTitle>
+          <CardTitle className="text-white">Active Investigations</CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-gray-400 text-center py-4">
-            Aucune enquête en cours. Créez votre première enquête !
+            No active investigations. Create your first investigation!
           </p>
         </CardContent>
       </Card>
@@ -94,7 +94,7 @@ const ActiveInvestigations: React.FC = () => {
       <CardHeader>
         <CardTitle className="text-white flex items-center gap-2">
           <Play className="w-5 h-5" />
-          Enquêtes en cours
+          Active Investigations
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -109,13 +109,13 @@ const ActiveInvestigations: React.FC = () => {
                   </Badge>
                   <span className="text-xs text-gray-400 flex items-center gap-1">
                     <Users className="w-3 h-3" />
-                    {investigation.characters?.length || 0} personnages
+                    {investigation.characters?.length || 0} characters
                   </span>
                   <span className="text-xs text-gray-400 flex items-center gap-1">
                     <Clock className="w-3 h-3" />
                     {formatDistanceToNow(new Date(investigation.created_at), {
                       addSuffix: true,
-                      locale: fr
+                      locale: enUS
                     })}
                   </span>
                 </div>
@@ -126,7 +126,7 @@ const ActiveInvestigations: React.FC = () => {
                 className="bg-blue-600 hover:bg-blue-700"
               >
                 <Play className="w-3 h-3 mr-1" />
-                Continuer
+                Continue
               </Button>
             </div>
           </div>

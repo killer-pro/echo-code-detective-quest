@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/button';
@@ -15,44 +16,44 @@ const Index: React.FC = () => {
 
   const handleDemoClick = async () => {
     try {
-      toast.info('Chargement de l\'enquête de démo...');
+      toast.info('Loading demo investigation...');
       
-      // Obtenir les données de l'enquête de démo
+      // Get demo investigation data
       const demoInvestigation = await DemoService.getDemoInvestigationData();
       
-      // Mettre à jour le contexte
+      // Update context
       dispatch({ type: 'SET_INVESTIGATION', payload: demoInvestigation });
       
-      toast.success('Enquête de démo chargée !');
+      toast.success('Demo investigation loaded!');
       
-      // Naviguer vers le jeu
+      // Navigate to game
       navigate('/game');
     } catch (error) {
-      console.error('Erreur lors du chargement de la démo:', error);
-      toast.error('Erreur lors du chargement de l\'enquête de démo');
+      console.error('Error loading demo:', error);
+      toast.error('Error loading demo investigation');
     }
   };
 
   const features = [
     {
       icon: <Brain className="w-6 h-6" />,
-      title: "IA Générative",
-      description: "Dialogues dynamiques avec personnalités uniques et mémoire persistante"
+      title: "Generative AI",
+      description: "Dynamic dialogues with unique personalities and persistent memory"
     },
     {
       icon: <Users className="w-6 h-6" />,
-      title: "Réputation Sociale",
-      description: "Vos interactions influencent la coopération des témoins"
+      title: "Social Reputation",
+      description: "Your interactions influence witness cooperation"
     },
     {
       icon: <Search className="w-6 h-6" />,
-      title: "Indices Flous",
-      description: "Informations incertaines, mensonges et fausses pistes"
+      title: "Blurred Clues",
+      description: "Uncertain information, lies and red herrings"
     },
     {
       icon: <MessageSquare className="w-6 h-6" />,
-      title: "Dialogues Avancés",
-      description: "Historique cliquable et mots-clés interactifs"
+      title: "Advanced Dialogues",
+      description: "Clickable history and interactive keywords"
     }
   ];
 
@@ -67,7 +68,7 @@ const Index: React.FC = () => {
             <div className="flex justify-center mb-6">
               <Badge variant="secondary" className="bg-purple-600/20 text-purple-300 border-purple-500/30 px-4 py-2">
                 <Wand2 className="w-4 h-4 mr-2" />
-                Propulsé par l'IA Gemini + Cloudinary
+                Powered by Gemini AI + Cloudinary
               </Badge>
             </div>
             
@@ -76,8 +77,8 @@ const Index: React.FC = () => {
             </h1>
             
             <p className="text-xl md:text-2xl text-gray-300 mb-8 max-w-3xl mx-auto leading-relaxed">
-              Plongez dans des enquêtes procédurales où chaque dialogue compte. 
-              Explorez des mystères générés par IA avec des personnages qui se souviennent, mentent et évoluent.
+              Dive into procedural investigations where every dialogue matters. 
+              Explore AI-generated mysteries with characters who remember, lie, and evolve.
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
@@ -87,7 +88,7 @@ const Index: React.FC = () => {
                 className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white px-8 py-4 text-lg"
               >
                 <Wand2 className="w-5 h-5 mr-2" />
-                Créer une enquête
+                Create Investigation
               </Button>
               
               <Button 
@@ -98,14 +99,14 @@ const Index: React.FC = () => {
               >
                 <div className="absolute inset-0 bg-gradient-to-r from-amber-600/20 to-orange-600/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
                 <Zap className="w-5 h-5 mr-2 relative z-10" />
-                <span className="relative z-10">Enquête de démo</span>
+                <span className="relative z-10">Demo Investigation</span>
               </Button>
             </div>
 
             <div className="mt-6">
               <p className="text-sm text-gray-400">
                 <Zap className="w-4 h-4 inline mr-1" />
-                L'enquête de démo inclut 4 personnages, dialogues pré-écrits et assets de fallback
+                Demo investigation includes 4 characters, pre-written dialogues and fallback assets
               </p>
             </div>
           </div>
@@ -121,10 +122,10 @@ const Index: React.FC = () => {
       <div className="max-w-7xl mx-auto px-6 py-20">
         <div className="text-center mb-16">
           <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-            Une expérience d'enquête révolutionnaire
+            A revolutionary investigation experience
           </h2>
           <p className="text-xl text-gray-400 max-w-2xl mx-auto">
-            Découvrez un gameplay d'enquête où l'intelligence artificielle crée des interactions sociales complexes et réalistes.
+            Discover investigation gameplay where artificial intelligence creates complex and realistic social interactions.
           </p>
         </div>
 
@@ -149,7 +150,7 @@ const Index: React.FC = () => {
         <div className="max-w-7xl mx-auto px-6 py-20">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-              Comment ça fonctionne
+              How it works
             </h2>
           </div>
 
@@ -158,24 +159,24 @@ const Index: React.FC = () => {
               <div className="w-16 h-16 bg-gradient-to-r from-purple-600 to-purple-700 rounded-full flex items-center justify-center text-white text-2xl font-bold mx-auto mb-4">
                 1
               </div>
-              <h3 className="text-xl font-semibold text-white mb-3">Créez votre enquête</h3>
-              <p className="text-gray-400">Décrivez un scénario et laissez l'IA générer personnages, lieux et mystères</p>
+              <h3 className="text-xl font-semibold text-white mb-3">Create your investigation</h3>
+              <p className="text-gray-400">Describe a scenario and let AI generate characters, locations and mysteries</p>
             </div>
 
             <div className="text-center">
               <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-blue-700 rounded-full flex items-center justify-center text-white text-2xl font-bold mx-auto mb-4">
                 2
               </div>
-              <h3 className="text-xl font-semibold text-white mb-3">Explorez et interrogez</h3>
-              <p className="text-gray-400">Naviguez sur la carte, interagissez avec les personnages et collectez des indices</p>
+              <h3 className="text-xl font-semibold text-white mb-3">Explore and interrogate</h3>
+              <p className="text-gray-400">Navigate the map, interact with characters and collect clues</p>
             </div>
 
             <div className="text-center">
               <div className="w-16 h-16 bg-gradient-to-r from-green-600 to-green-700 rounded-full flex items-center justify-center text-white text-2xl font-bold mx-auto mb-4">
                 3
               </div>
-              <h3 className="text-xl font-semibold text-white mb-3">Résolvez le mystère</h3>
-              <p className="text-gray-400">Utilisez votre journal d'enquête pour rassembler les pièces du puzzle</p>
+              <h3 className="text-xl font-semibold text-white mb-3">Solve the mystery</h3>
+              <p className="text-gray-400">Use your investigation journal to piece together the puzzle</p>
             </div>
           </div>
         </div>
@@ -187,10 +188,10 @@ const Index: React.FC = () => {
           <CardContent className="p-12 text-center">
             <BookOpen className="w-16 h-16 text-purple-400 mx-auto mb-6" />
             <h2 className="text-3xl font-bold text-white mb-4">
-              Prêt à commencer votre enquête ?
+              Ready to start your investigation?
             </h2>
             <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
-              Créez des histoires uniques où chaque conversation révèle de nouveaux secrets et où vos choix façonnent l'enquête.
+              Create unique stories where every conversation reveals new secrets and your choices shape the investigation.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button 
@@ -199,7 +200,7 @@ const Index: React.FC = () => {
                 className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white px-8 py-4 text-lg"
               >
                 <Wand2 className="w-5 h-5 mr-2" />
-                Lancer le générateur
+                Launch Generator
               </Button>
               <Button 
                 onClick={handleDemoClick}
@@ -208,7 +209,7 @@ const Index: React.FC = () => {
                 className="border-amber-500/50 text-amber-300 hover:bg-amber-500/10 px-8 py-4 text-lg"
               >
                 <Zap className="w-5 h-5 mr-2" />
-                Essayer la démo
+                Try Demo
               </Button>
             </div>
           </CardContent>
@@ -219,8 +220,8 @@ const Index: React.FC = () => {
       <div className="border-t border-slate-700/50 bg-slate-900/50">
         <div className="max-w-7xl mx-auto px-6 py-8">
           <div className="text-center text-gray-400">
-            <p>EchoCode - Enquêtes procédurales alimentées par l'IA</p>
-            <p className="text-sm mt-2">Développé avec React, Phaser 3, l'API Gemini et Cloudinary</p>
+            <p>Echo Code Detective - AI-powered procedural investigations</p>
+            <p className="text-sm mt-2">Built with React, Phaser 3, Gemini API and Cloudinary</p>
           </div>
         </div>
       </div>

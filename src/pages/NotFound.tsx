@@ -13,10 +13,10 @@ const NotFound: React.FC = () => {
         <div className="space-y-4">
           <Search className="w-24 h-24 text-purple-400 mx-auto opacity-50" />
           <h1 className="text-6xl font-bold text-white">404</h1>
-          <h2 className="text-2xl font-semibold text-gray-300">Page introuvable</h2>
+          <h2 className="text-2xl font-semibold text-gray-300">Page not found</h2>
           <p className="text-gray-400">
-            Cette page semble avoir disparu mystérieusement... 
-            Peut-être une nouvelle enquête pour EchoCode ?
+            This page seems to have mysteriously disappeared... 
+            Perhaps a new case for Echo Code Detective?
           </p>
         </div>
 
@@ -26,7 +26,7 @@ const NotFound: React.FC = () => {
             className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
           >
             <Home className="w-4 h-4 mr-2" />
-            Retour à l'accueil
+            Return to home
           </Button>
           
           <Button
@@ -34,7 +34,7 @@ const NotFound: React.FC = () => {
             variant="outline"
             className="w-full border-purple-500/30 text-purple-300 hover:bg-purple-600/10"
           >
-            Créer une nouvelle enquête
+            Create a new investigation
           </Button>
         </div>
       </div>

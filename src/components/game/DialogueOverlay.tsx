@@ -15,13 +15,13 @@ const DialogueOverlay: React.FC<DialogueOverlayProps> = ({
 }) => {
   if (!isVisible) return null;
 
-  // Utiliser dialogue_background_url au lieu de dialog_background_url
+  // Use dialogue_background_url instead of dialog_background_url
   const backgroundImage = character.dialogue_background_url;
   const characterImage = character.image_url;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      {/* Background avec image du personnage ou fallback */}
+      {/* Background with character image or fallback */}
       <div 
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
         style={{
@@ -32,10 +32,10 @@ const DialogueOverlay: React.FC<DialogueOverlayProps> = ({
         onClick={onClose}
       />
       
-      {/* Container principal du dialogue */}
+      {/* Main dialogue container */}
       <div className="relative w-full h-full max-w-7xl mx-auto flex items-center justify-center p-4">
         
-        {/* Portrait du personnage - gauche ou droite selon l'espace */}
+        {/* Character portrait - left or right depending on space */}
         {characterImage && (
           <div className="hidden lg:block absolute left-8 transform -translate-y-1/2">
             <div className="relative">
@@ -55,9 +55,9 @@ const DialogueOverlay: React.FC<DialogueOverlayProps> = ({
           </div>
         )}
 
-        {/* Zone de dialogue - centrée ou décalée si portrait */}
+        {/* Dialogue area - centered or offset if portrait */}
         <div className={`relative ${characterImage ? 'lg:ml-80' : ''} w-full max-w-2xl`}>
-          {/* Version mobile du portrait */}
+          {/* Mobile version of portrait */}
           {characterImage && (
             <div className="lg:hidden mb-6 flex justify-center">
               <div className="relative">
@@ -73,22 +73,22 @@ const DialogueOverlay: React.FC<DialogueOverlayProps> = ({
             </div>
           )}
 
-          {/* Placeholder pour le contenu du dialogue */}
+          {/* Placeholder for dialogue content */}
           <div className="bg-black/60 backdrop-blur-sm rounded-xl p-6 border border-white/10 transform -translate-y-1/2">
             <div className="text-center text-white">
               <h3 className="text-xl font-bold mb-2">{character.name}</h3>
-              <p className="text-gray-300 mb-4">Conversation avec {character.role}</p>
+              <p className="text-gray-300 mb-4">Conversation with {character.role}</p>
               <div className="text-sm text-gray-400">
                 {character.location_description && (
                   <p className="mb-2">📍 {character.location_description}</p>
                 )}
-                <p>Réputation: {character.reputation_score}%</p>
+                <p>Reputation: {character.reputation_score}%</p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Bouton de fermeture */}
+        {/* Close button */}
         <button
           onClick={onClose}
           className="absolute top-4 right-4 w-10 h-10 bg-black/50 hover:bg-black/70 text-white rounded-full flex items-center justify-center transition-colors"
