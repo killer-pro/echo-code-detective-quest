@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
@@ -8,10 +7,10 @@ import { type GeneratedAsset } from '../../types';
 interface AssetCardProps {
   asset: GeneratedAsset;
   index: number;
-  regeneratingAsset: string | null;
+  regeneratingAsset?: string | null;
   onViewAsset: (url: string) => void;
-  onRegenerateAsset: (index: number) => void;
-  onImageError: (index: number) => void;
+  onRegenerateAsset?: (index: number) => void;
+  onImageError?: (index: number) => void;
 }
 
 const AssetCard: React.FC<AssetCardProps> = ({
@@ -49,19 +48,21 @@ const AssetCard: React.FC<AssetCardProps> = ({
           >
             <Eye className="w-3 h-3" />
           </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => onRegenerateAsset(index)}
-            disabled={regeneratingAsset === asset.asset_name}
-            className="text-xs px-2 py-1"
-          >
-            {regeneratingAsset === asset.asset_name ? (
-              <Loader2 className="w-3 h-3 animate-spin" />
-            ) : (
-              <RefreshCw className="w-3 h-3" />
-            )}
-          </Button>
+          {onRegenerateAsset && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => onRegenerateAsset(index)}
+              disabled={regeneratingAsset === asset.asset_name}
+              className="text-xs px-2 py-1"
+            >
+              {regeneratingAsset === asset.asset_name ? (
+                <Loader2 className="w-3 h-3 animate-spin" />
+              ) : (
+                <RefreshCw className="w-3 h-3" />
+              )}
+            </Button>
+          )}
         </div>
       </div>
       <p className="text-gray-400 text-xs mb-2">Prompt: {asset.prompt}</p>
@@ -71,7 +72,7 @@ const AssetCard: React.FC<AssetCardProps> = ({
           alt={asset.asset_name}
           className="w-full h-32 object-cover rounded border border-slate-600"
           loading="lazy"
-          onError={() => onImageError(index)}
+          {...(onImageError && { onError: () => onImageError(index) })}
         />
       </div>
     </div>

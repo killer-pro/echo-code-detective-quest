@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -43,7 +42,7 @@ const CreatePrompt: React.FC = () => {
   const [prompt, setPrompt] = React.useState('');
   const [showExamples, setShowExamples] = React.useState(true); // Show by default
   const [generatedInvestigation, setGeneratedInvestigation] = React.useState<Investigation | null>(null);
-  const [generatedAssets, setGeneratedAssets] = React.useState<any[]>([]);
+  const [generatedAssets, setGeneratedAssets] = React.useState<any[]>([]); // Using any[] as the exact structure of generated assets is not strictly defined
 
   const handleCreateInvestigation = async () => {
     if (!prompt.trim()) return;
@@ -56,7 +55,7 @@ const CreatePrompt: React.FC = () => {
     setGeneratedInvestigation(investigation);
   };
 
-  const handleAssetsGenerated = (assets: any[]) => {
+  const handleAssetsGenerated = (assets: any[]) => { // Using any[] as the exact structure of generated assets is not strictly defined
     console.log('🎨 Assets generated:', assets);
     setGeneratedAssets(assets);
   };
@@ -109,58 +108,11 @@ const CreatePrompt: React.FC = () => {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <PromptGenerator 
+                    <PromptGenerator
                       onPromptUpdate={setPrompt}
                       onInvestigationGenerated={handleInvestigationGenerated}
+                      prompt={prompt}
                     />
-                  </CardContent>
-                </Card>
-
-                {/* Quick creation */}
-                <Card className="bg-slate-800/80 backdrop-blur border-slate-700">
-                  <CardHeader className="pb-3 md:pb-6">
-                    <CardTitle className="text-white flex items-center gap-2 text-base md:text-lg">
-                      <Sparkles className="w-4 h-4 md:w-5 md:h-5 text-purple-400" />
-                      Or Create Quickly
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4 md:space-y-6">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">
-                        Describe your investigation quickly
-                      </label>
-                      <Textarea
-                        value={prompt}
-                        onChange={(e) => setPrompt(e.target.value)}
-                        placeholder="Ex: A mysterious theft in an art museum. Suspects include the night guard, the ambitious curator, and a private collector..."
-                        className="bg-slate-700 border-slate-600 text-white placeholder-gray-400 min-h-[100px] md:min-h-[120px] text-sm"
-                        rows={5}
-                      />
-                      <p className="text-xs md:text-sm text-gray-400 mt-2">
-                        💡 Include context, potential characters, and basic plot
-                      </p>
-                    </div>
-
-                    <div className="flex flex-col gap-3">
-                      <Button
-                        onClick={handleCreateInvestigation}
-                        disabled={!prompt.trim() || isStartingGame}
-                        className="w-full bg-purple-600 hover:bg-purple-700 text-white py-3 md:py-4 text-sm md:text-lg"
-                        size="lg"
-                      >
-                        {isStartingGame ? (
-                          <div className="flex items-center gap-2">
-                            <div className="animate-spin rounded-full h-4 w-4 md:h-5 md:w-5 border-b-2 border-white"></div>
-                            Creating...
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-2">
-                            <Play className="w-4 h-4 md:w-5 md:h-5" />
-                            Create and Play Quickly
-                          </div>
-                        )}
-                      </Button>
-                    </div>
                   </CardContent>
                 </Card>
               </>
@@ -274,7 +226,7 @@ const CreatePrompt: React.FC = () => {
                       </Button>
                     </div>
                   ) : (
-                    <div className="space-y-3 md:space-y-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
                       {suggestions.map((example, index) => (
                         <div 
                           key={index}

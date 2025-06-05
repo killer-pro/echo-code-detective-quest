@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
@@ -12,7 +12,7 @@ import { v4 as uuidv4 } from 'uuid';
 interface GeminiCharacter {
   name: string;
   role: string;
-  personality?: Record<string, any>;
+  personality?: Record<string, any>; // Using Record<string, any> because the structure of personality traits is dynamic and depends on AI output
   knowledge?: string;
   reputation_score?: number;
   position?: { x: number; y: number };
@@ -40,45 +40,51 @@ interface GeminiInvestigationData {
 interface PromptGeneratorProps {
   onPromptUpdate: (prompt: string) => void;
   onInvestigationGenerated?: (investigation: Investigation) => void;
+  prompt: string;
 }
 
 // Constantes pour la validation
 const validRoles: CharacterRole[] = ['témoin', 'suspect', 'enquêteur', 'innocent'];
 const validExpressionStates: ExpressionState[] = ['neutre', 'nerveux', 'en_colère', 'coopératif', 'méfiant'];
 
-const PromptGenerator: React.FC<PromptGeneratorProps> = ({ 
-  onPromptUpdate, 
-  onInvestigationGenerated 
+const PromptGenerator: React.FC<PromptGeneratorProps> = ({
+  onPromptUpdate,
+  onInvestigationGenerated,
+  prompt: externalPrompt
 }) => {
-  const [prompt, setPrompt] = useState('');
+  const [prompt, setPrompt] = useState(externalPrompt);
   const [isGenerating, setIsGenerating] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
   const [generatedInvestigation, setGeneratedInvestigation] = useState<Investigation | null>(null);
   const [generationStep, setGenerationStep] = useState<string>('');
 
+  useEffect(() => {
+    setPrompt(externalPrompt);
+  }, [externalPrompt]);
+
   const templates = [
     {
       id: 'manor',
-      title: 'Mystère au Manoir',
-      description: 'Vol dans une grande propriété avec personnages suspects',
+      title: 'Manor Mystery',
+      description: 'Theft in a large property with suspicious characters',
       prompt: 'Un bijou précieux a été volé lors d\'une réception dans un manoir victorien. Les invités et le personnel sont tous suspects.'
     },
     {
       id: 'office',
-      title: 'Crime en Entreprise',
-      description: 'Enquête dans un environnement corporatif moderne',
+      title: 'Corporate Crime',
+      description: 'Investigation in a modern corporate environment',
       prompt: 'Des documents confidentiels ont disparu d\'une entreprise de technologie. L\'espionnage industriel est suspecté.'
     },
     {
       id: 'school',
-      title: 'Incident Scolaire',
-      description: 'Mystère dans un établissement d\'enseignement',
+      title: 'School Incident',
+      description: 'Mystery in an educational institution',
       prompt: 'Un objet de valeur a disparu du bureau du directeur d\'un lycée prestigieux pendant les examens.'
     },
     {
       id: 'village',
-      title: 'Secret de Village',
-      description: 'Enquête dans une petite communauté rurale',
+      title: 'Village Secret',
+      description: 'Investigation in a small rural community',
       prompt: 'Un événement étrange perturbe la tranquillité d\'un petit village où tout le monde se connaît.'
     }
   ];
@@ -108,7 +114,7 @@ RÉPONDS UNIQUEMENT EN JSON VALIDE avec cette structure EXACTE:
     {
       "name": "Nom du personnage",
       "role": "témoin|suspect|innocent",
-      "personality": {
+      "personality": { // Using Record<string, any> because the structure of personality traits is dynamic and depends on AI output
         "traits": ["trait1", "trait2"],
         "secrets": "secrets du personnage",
         "motivations": "motivations du personnage",
@@ -246,28 +252,29 @@ RÈGLES:
 
       {/* Zone de saisie personnalisée */}
       <div>
-        <h3 className="text-lg font-semibold text-white mb-4">Ou créez votre propre scénario</h3>
+        <h3 className="text-lg font-semibold text-white mb-4">Or Create Your Own Scenario</h3>
         <Card className="bg-slate-800 border-slate-700">
           <CardHeader>
             <CardTitle className="text-white flex items-center gap-2">
               <Zap className="w-5 h-5" />
-              Décrivez votre enquête
+              Describe Your Investigation
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <Textarea
               value={prompt}
               onChange={(e) => handlePromptChange(e.target.value)}
-              placeholder="Décrivez le mystère que vous voulez créer... Par exemple: 'Un meurtre dans un train de nuit avec 6 passagers suspects' ou 'Vol dans une galerie d'art moderne pendant un vernissage'"
+              placeholder="Describe the mystery you want to create... For example: 'A murder on a night train with 6 suspicious passengers' or 'Theft in a modern art gallery during an opening'"
               className="min-h-[120px] bg-slate-700 border-slate-600 text-white placeholder-gray-400"
               disabled={isGenerating}
             />
             
-            <div className="flex items-center justify-between">
+            {/* Modified div for responsiveness */}
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between md:gap-8">
               <div className="text-sm text-gray-400">
-                <p>💡 Plus vous donnez de détails, plus l'enquête sera riche</p>
-                <p>✨ L'IA créera automatiquement tous les prompts d'images</p>
-                <p>🎨 Génération optimisée en une seule étape</p>
+                <p>💡 The more details you provide, the richer the investigation</p>
+                <p>✨ AI will automatically create all image prompts</p>
+                <p>🎨 Optimized single-step generation</p>
               </div>
               
               <Button
@@ -298,18 +305,18 @@ RÈGLES:
           <div className="grid md:grid-cols-3 gap-4 text-center">
             <div>
               <Users className="w-8 h-8 text-purple-400 mx-auto mb-2" />
-              <h4 className="text-white font-medium">Personnages Uniques</h4>
-              <p className="text-gray-400 text-sm">Chaque personnage a sa personnalité, ses secrets et ses motivations</p>
+              <h4 className="text-white font-medium">Unique Characters</h4>
+              <p className="text-gray-400 text-sm">Each character has a unique personality, secrets, and motivations</p>
             </div>
             <div>
               <MapPin className="w-8 h-8 text-blue-400 mx-auto mb-2" />
-              <h4 className="text-white font-medium">Environnement Immersif</h4>
-              <p className="text-gray-400 text-sm">Un monde interactif où chaque dialogue compte</p>
+              <h4 className="text-white font-medium">Immersive Environment</h4>
+              <p className="text-gray-400 text-sm">An interactive world where every dialogue counts</p>
             </div>
             <div>
               <Zap className="w-8 h-8 text-green-400 mx-auto mb-2" />
-              <h4 className="text-white font-medium">IA Dynamique</h4>
-              <p className="text-gray-400 text-sm">Les personnages réagissent et évoluent selon vos interactions</p>
+              <h4 className="text-white font-medium">Dynamic AI</h4>
+              <p className="text-gray-400 text-sm">Characters react and evolve based on your interactions</p>
             </div>
           </div>
         </CardContent>

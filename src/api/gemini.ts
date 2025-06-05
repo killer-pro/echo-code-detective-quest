@@ -1,4 +1,3 @@
-
 interface GeminiResponse {
   text: string;
   keywords: string[];
@@ -22,18 +21,27 @@ interface InvestigationData {
     id: string;
     name: string;
     role: string;
-    personality: Record<string, any>;
+    personality: Record<string, any>; // Using Record<string, any> because the structure of personality traits is dynamic and depends on AI output
     knowledge: string;
     position: { x: number; y: number };
     reputation_score: number;
   }>;
 }
 
+// New interface for investigation suggestions
+interface InvestigationSuggestion {
+  category: string;
+  title: string;
+  prompt: string;
+  complexity: string;
+  characters: number;
+}
+
 const GEMINI_API_KEY = "AIzaSyDTz4uts8cIeNp9D2IxK1Zyk8sfu2X_Ybo";
 const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
 
 class GeminiAPI {
-  private async makeRequest(prompt: string): Promise<any> {
+  private async makeRequest(prompt: string): Promise<string> {
     try {
       const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
         method: 'POST',
@@ -60,7 +68,12 @@ class GeminiAPI {
       }
 
       const data = await response.json();
-      return data.candidates[0].content.parts[0].text;
+      // Assuming the API response structure is { candidates: [{ content: { parts: [{ text: "..." }] } }] }
+      if (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0]) {
+         return data.candidates[0].content.parts[0].text;
+      } else {
+         throw new Error('Format de réponse API inattendu');
+      }
     } catch (error) {
       console.error('Erreur lors de l\'appel à l\'API Gemini:', error);
       throw error;
@@ -95,7 +108,7 @@ Tu dois répondre uniquement en JSON valide avec cette structure exacte:
       "id": "unique_id",
       "name": "Nom du personnage",
       "role": "témoin",
-      "personality": {
+      personality: { // Keep Record<string, any> for personality as its structure is flexible
         "traits": ["trait1", "trait2"],
         "secrets": "secrets du personnage",
         "motivations": "motivations"
@@ -120,10 +133,10 @@ Les positions doivent être entre x:100-700 et y:100-500.
 `;
 
     try {
-      const response = await this.makeRequest(prompt);
-      const jsonMatch = response.match(/\{[\s\S]*\}/);
+      const responseText = await this.makeRequest(prompt);
+      const jsonMatch = responseText.match(/\{[\s\S]*\}/); // Match JSON object
       if (!jsonMatch) {
-        throw new Error('Réponse JSON invalide');
+        throw new Error('Réponse JSON d\'enquête invalide');
       }
       
       return JSON.parse(jsonMatch[0]);
@@ -167,10 +180,50 @@ Les positions doivent être entre x:100-700 et y:100-500.
     }
   }
 
+  // New method to generate investigation suggestions
+  async generateInvestigationSuggestions(prompt: string): Promise<InvestigationSuggestion[]> {
+    try {
+      const responseText = await this.makeRequest(prompt);
+      // The hook expects a JSON array directly
+      const jsonMatch = responseText.match(/\[[\s\S]*\]/); // Match JSON array
+      
+      if (jsonMatch) {
+        return JSON.parse(jsonMatch[0]);
+      } else {
+        // If no JSON array is found, try parsing the whole response as JSON
+        try {
+             return JSON.parse(responseText) as InvestigationSuggestion[];
+        } catch (parseError) {
+             console.error('Error parsing full AI response as JSON:', parseError);
+             throw new Error('Invalid response format from AI (no JSON array or object found)');
+        }
+      }
+    } catch (error) {
+      console.error('Erreur lors de la génération des suggestions d\'enquête:', error);
+      // Fallback suggestions (same as in the hook currently)
+      return [
+        {
+          category: "Classic Mystery",
+          title: "Manor Murder",
+          prompt: "A wealthy heir is found dead in his library during a family gathering. The guests are his jealous sister, his indebted nephew, and the loyal butler.",
+          complexity: "Easy",
+          characters: 3
+        },
+        {
+          category: "Modern Crime",
+          title: "Corporate Theft",
+          prompt: "Confidential documents have disappeared from a tech startup. Investigate among the team: the stressed founder, the ambitious developer, and the mysterious investor.",
+          complexity: "Medium",
+          characters: 3
+        }
+      ];
+    }
+  }
+
   async generateCharacterResponse(
     characterName: string,
     role: string,
-    personality: Record<string, any>,
+    personality: Record<string, any>, // Using Record<string, any> because the structure of personality traits is dynamic and depends on AI output
     knowledge: string,
     reputation: number,
     userMessage: string,
@@ -204,10 +257,10 @@ Règles:
 `;
 
     try {
-      const response = await this.makeRequest(prompt);
-      const jsonMatch = response.match(/\{[\s\S]*\}/);
+      const responseText = await this.makeRequest(prompt);
+      const jsonMatch = responseText.match(/\{[\s\S]*\}/); // Match JSON object
       if (!jsonMatch) {
-        throw new Error('Réponse JSON invalide');
+        throw new Error('Réponse JSON de personnage invalide');
       }
       
       return JSON.parse(jsonMatch[0]);

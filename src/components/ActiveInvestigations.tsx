@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from './ui/button';
@@ -100,7 +99,7 @@ const ActiveInvestigations: React.FC = () => {
       <CardContent className="space-y-3">
         {investigations.map((investigation) => (
           <div key={investigation.id} className="bg-slate-700/50 p-4 rounded-lg">
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 md:gap-0">
               <div>
                 <h4 className="text-white font-medium">{investigation.title}</h4>
                 <div className="flex items-center gap-2 mt-1">
@@ -123,7 +122,7 @@ const ActiveInvestigations: React.FC = () => {
               <Button
                 size="sm"
                 onClick={() => handleContinueInvestigation(investigation.id)}
-                className="bg-blue-600 hover:bg-blue-700"
+                className="bg-blue-600 hover:bg-blue-700 flex-shrink-0"
               >
                 <Play className="w-3 h-3 mr-1" />
                 Continue

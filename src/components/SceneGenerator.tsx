@@ -1,39 +1,33 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Image, Palette } from 'lucide-react';
 import AssetCard from './scene-generator/AssetCard';
 import { useAssetGeneration } from './scene-generator/hooks/useAssetGeneration';
-import { type Investigation } from '../types';
-import { toast } from 'sonner';
+import { type Investigation, type GeneratedAsset } from '../types';
+import { RefreshCw } from 'lucide-react';
 
 interface SceneGeneratorProps {
   investigation: Investigation;
-  onAssetsGenerated?: (assets: any[]) => void;
+  onAssetsGenerated?: (assets: GeneratedAsset[]) => void;
 }
 
 const SceneGenerator: React.FC<SceneGeneratorProps> = ({ investigation, onAssetsGenerated }) => {
   const {
-    isGenerating,
-    generatedAssets,
-    regeneratingAsset,
-    generateSceneAssets,
-    regenerateAsset,
-  } = useAssetGeneration(investigation);
+    isLoading,
+    assets: generatedAssets,
+    generateAssets,
+    error
+  } = useAssetGeneration({ investigation });
+
+  useEffect(() => {
+    if (!isLoading && generatedAssets.length > 0 && onAssetsGenerated) {
+      onAssetsGenerated(generatedAssets);
+    }
+  }, [generatedAssets, isLoading, onAssetsGenerated]);
 
   const handleGenerateAssets = () => {
-    generateSceneAssets(onAssetsGenerated);
-  };
-
-  const handleRegenerateAsset = (index: number) => {
-    regenerateAsset(index, onAssetsGenerated);
-  };
-
-  const handleImageError = (index: number) => {
-    const asset = generatedAssets[index];
-    console.error(`💥 Erreur de chargement pour ${asset.asset_name}:`, asset.image_url);
-    toast.error(`Erreur de chargement de l'image "${asset.asset_name}"`);
-    handleRegenerateAsset(index);
+    generateAssets();
   };
 
   return (
@@ -62,7 +56,7 @@ const SceneGenerator: React.FC<SceneGeneratorProps> = ({ investigation, onAssets
           <div key={clue.id} className="text-xs text-green-300 mb-1">Indice: {clue.name} - Prompt: {clue.image_prompt}</div>
         ))}
 
-        {!generatedAssets.length ? (
+        {!generatedAssets.length && !isLoading && !error ? (
           <div className="text-center">
             <Image className="w-16 h-16 text-gray-500 mx-auto mb-4" />
             <p className="text-gray-400 mb-4">
@@ -70,20 +64,29 @@ const SceneGenerator: React.FC<SceneGeneratorProps> = ({ investigation, onAssets
             </p>
             <Button
               onClick={handleGenerateAssets}
-              disabled={isGenerating}
+              disabled={isLoading}
               className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
             >
-              {isGenerating ? (
-                <>
-                  <div className="w-4 h-4 mr-2 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                  Génération Aperçu...
-                </>
-              ) : (
-                <>
-                  <Palette className="w-4 h-4 mr-2" />
-                  Générer Aperçu Assets
-                </>
-              )}
+              <Palette className="w-4 h-4 mr-2" />
+              Générer Aperçu Assets
+            </Button>
+          </div>
+        ) : isLoading ? (
+          <div className="text-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-400 mx-auto mb-4"></div>
+            <p className="text-gray-400 text-sm">Génération des assets...</p>
+          </div>
+        ) : error ? (
+          <div className="text-center py-8">
+            <p className="text-red-400 text-sm mb-4">Erreur lors de la génération des assets: {error}</p>
+            <Button
+              onClick={handleGenerateAssets}
+              variant="outline"
+              size="sm"
+              className="border-slate-600 text-slate-300 hover:bg-slate-700"
+            >
+              <RefreshCw className="w-3 h-3 mr-2" />
+              Réessayer
             </Button>
           </div>
         ) : (
@@ -99,10 +102,7 @@ const SceneGenerator: React.FC<SceneGeneratorProps> = ({ investigation, onAssets
                 key={index}
                 asset={asset}
                 index={index}
-                regeneratingAsset={regeneratingAsset}
                 onViewAsset={(url) => window.open(url, '_blank')}
-                onRegenerateAsset={handleRegenerateAsset}
-                onImageError={handleImageError}
               />
             ))}
             
@@ -110,7 +110,7 @@ const SceneGenerator: React.FC<SceneGeneratorProps> = ({ investigation, onAssets
               onClick={handleGenerateAssets}
               variant="outline"
               className="w-full mt-4"
-              disabled={isGenerating}
+              disabled={isLoading}
             >
               <Palette className="w-4 h-4 mr-2" />
               Regénérer Aperçu Assets
