@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/button';
@@ -57,11 +56,11 @@ const Index: React.FC = () => {
               Explore AI-generated mysteries with characters who remember, lie, and evolve.
             </p>
             
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center px-4">
+            <div className="flex flex-col gap-4 justify-center items-center px-4 max-w-md mx-auto">
               <Button 
                 onClick={() => navigate('/create')}
                 size="lg"
-                className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white px-6 md:px-8 py-3 md:py-4 text-base md:text-lg w-full sm:w-auto"
+                className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white px-6 md:px-8 py-3 md:py-4 text-base md:text-lg w-full"
               >
                 <Wand2 className="w-4 h-4 md:w-5 md:h-5 mr-2" />
                 Create Investigation
@@ -151,11 +150,11 @@ const Index: React.FC = () => {
             <p className="text-lg md:text-xl text-gray-300 mb-6 md:mb-8 max-w-2xl mx-auto px-4">
               Create unique stories where every conversation reveals new secrets and your choices shape the investigation.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center px-4">
+            <div className="flex justify-center px-4 max-w-md mx-auto">
               <Button 
                 onClick={() => navigate('/create')}
                 size="lg"
-                className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white px-6 md:px-8 py-3 md:py-4 text-base md:text-lg w-full sm:w-auto"
+                className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white px-6 md:px-8 py-3 md:py-4 text-base md:text-lg w-full"
               >
                 <Wand2 className="w-4 h-4 md:w-5 md:h-5 mr-2" />
                 Launch Generator

@@ -15,12 +15,14 @@ import {
   Sparkles,
   Target,
   Search,
-  Wand2
+  Wand2,
+  RefreshCw
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import PromptGenerator from '../components/PromptGenerator';
 import SceneGenerator from '../components/SceneGenerator';
 import { useInvestigationCreator } from '../components/create-prompt/hooks/useInvestigationCreator';
+import { useAIInvestigationSuggestions } from '../components/create-prompt/hooks/useAIInvestigationSuggestions';
 import { type Investigation } from '../types';
 
 const CreatePrompt: React.FC = () => {
@@ -31,41 +33,17 @@ const CreatePrompt: React.FC = () => {
     startGame,
   } = useInvestigationCreator();
 
+  const {
+    suggestions,
+    isLoading: suggestionsLoading,
+    error: suggestionsError,
+    refreshSuggestions
+  } = useAIInvestigationSuggestions();
+
   const [prompt, setPrompt] = React.useState('');
   const [showExamples, setShowExamples] = React.useState(false);
   const [generatedInvestigation, setGeneratedInvestigation] = React.useState<Investigation | null>(null);
   const [generatedAssets, setGeneratedAssets] = React.useState<any[]>([]);
-
-  const examplePrompts = [
-    {
-      category: "Classic Mystery",
-      title: "Manor Murder",
-      prompt: "A wealthy heir is found dead in his library during a family gathering. The guests are his jealous sister, his indebted nephew, and the loyal butler.",
-      complexity: "Easy",
-      characters: 3
-    },
-    {
-      category: "Modern Crime",
-      title: "Corporate Theft", 
-      prompt: "Confidential documents have disappeared from a tech startup. Investigate among the team: the stressed founder, the ambitious developer, and the mysterious investor.",
-      complexity: "Medium",
-      characters: 3
-    },
-    {
-      category: "School Mystery",
-      title: "High School Sabotage",
-      prompt: "The winning science project for the competition was sabotaged the night before the finale. Question the perfectionist student, the jealous rival, and the biased teacher.",
-      complexity: "Easy", 
-      characters: 3
-    },
-    {
-      category: "Historical Intrigue",
-      title: "Court Betrayal",
-      prompt: "State secrets have been sold to the enemy in an 18th-century castle. Suspect the ambitious lady-in-waiting, the loyal guard, and the foreign diplomat.",
-      complexity: "Hard",
-      characters: 3
-    }
-  ];
 
   const handleCreateInvestigation = async () => {
     if (!prompt.trim()) return;
@@ -108,7 +86,7 @@ const CreatePrompt: React.FC = () => {
       <div className="container mx-auto px-4 py-4 md:py-8">
         {/* Header */}
         <div className="text-center mb-6 md:mb-8">
-          <h1 className="text-2xl md:text-4xl font-bold text-white mb-2 md:mb-4 flex items-center justify-center gap-2 md:gap-3">
+          <h1 className="text-2xl md:text-4xl font-bold text-white mb-2 md:mb-4 flex items-center justify-center gap-2 md:gap-3 flex-wrap">
             <Brain className="w-6 h-6 md:w-10 md:h-10 text-blue-400" />
             AI Investigation Creator
           </h1>
@@ -163,24 +141,26 @@ const CreatePrompt: React.FC = () => {
                       </p>
                     </div>
 
-                    <Button
-                      onClick={handleCreateInvestigation}
-                      disabled={!prompt.trim() || isStartingGame}
-                      className="w-full bg-purple-600 hover:bg-purple-700 text-white py-3 md:py-4 text-sm md:text-lg"
-                      size="lg"
-                    >
-                      {isStartingGame ? (
-                        <div className="flex items-center gap-2">
-                          <div className="animate-spin rounded-full h-4 w-4 md:h-5 md:w-5 border-b-2 border-white"></div>
-                          Creating...
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-2">
-                          <Play className="w-4 h-4 md:w-5 md:h-5" />
-                          Create and Play Quickly
-                        </div>
-                      )}
-                    </Button>
+                    <div className="flex flex-col gap-3">
+                      <Button
+                        onClick={handleCreateInvestigation}
+                        disabled={!prompt.trim() || isStartingGame}
+                        className="w-full bg-purple-600 hover:bg-purple-700 text-white py-3 md:py-4 text-sm md:text-lg"
+                        size="lg"
+                      >
+                        {isStartingGame ? (
+                          <div className="flex items-center gap-2">
+                            <div className="animate-spin rounded-full h-4 w-4 md:h-5 md:w-5 border-b-2 border-white"></div>
+                            Creating...
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <Play className="w-4 h-4 md:w-5 md:h-5" />
+                            Create and Play Quickly
+                          </div>
+                        )}
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               </>
@@ -212,24 +192,26 @@ const CreatePrompt: React.FC = () => {
                 {generatedAssets.length > 0 && (
                   <Card className="bg-blue-900/20 border-blue-700">
                     <CardContent className="p-4 md:p-6">
-                      <Button
-                        onClick={handleStartGame}
-                        disabled={isStartingGame}
-                        className="w-full bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white py-3 md:py-4 text-sm md:text-lg"
-                        size="lg"
-                      >
-                        {isStartingGame ? (
-                          <div className="flex items-center gap-2">
-                            <div className="animate-spin rounded-full h-4 w-4 md:h-5 md:w-5 border-b-2 border-white"></div>
-                            Starting game...
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-2">
-                            <Play className="w-4 h-4 md:w-6 md:h-6" />
-                            Begin Investigation ({generatedAssets.length} assets ready)
-                          </div>
-                        )}
-                      </Button>
+                      <div className="flex flex-col gap-3">
+                        <Button
+                          onClick={handleStartGame}
+                          disabled={isStartingGame}
+                          className="w-full bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white py-3 md:py-4 text-sm md:text-lg"
+                          size="lg"
+                        >
+                          {isStartingGame ? (
+                            <div className="flex items-center gap-2">
+                              <div className="animate-spin rounded-full h-4 w-4 md:h-5 md:w-5 border-b-2 border-white"></div>
+                              Starting game...
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              <Play className="w-4 h-4 md:w-6 md:h-6" />
+                              Begin Investigation ({generatedAssets.length} assets ready)
+                            </div>
+                          )}
+                        </Button>
+                      </div>
                     </CardContent>
                   </Card>
                 )}
@@ -238,14 +220,16 @@ const CreatePrompt: React.FC = () => {
 
             {/* Examples button */}
             {!generatedInvestigation && (
-              <Button
-                onClick={() => setShowExamples(!showExamples)}
-                variant="outline"
-                className="w-full border-slate-600 text-slate-300 hover:bg-slate-700 text-sm py-3 md:py-4"
-              >
-                <Lightbulb className="w-4 h-4 mr-2" />
-                {showExamples ? 'Hide' : 'Show'} investigation examples
-              </Button>
+              <div className="flex flex-col gap-3">
+                <Button
+                  onClick={() => setShowExamples(!showExamples)}
+                  variant="outline"
+                  className="w-full border-slate-600 text-slate-300 hover:bg-slate-700 text-sm py-3 md:py-4"
+                >
+                  <Lightbulb className="w-4 h-4 mr-2" />
+                  {showExamples ? 'Hide' : 'Show'} investigation examples
+                </Button>
+              </div>
             )}
           </div>
 
@@ -254,40 +238,71 @@ const CreatePrompt: React.FC = () => {
             {showExamples && !generatedInvestigation && (
               <Card className="bg-slate-800/80 backdrop-blur border-slate-700">
                 <CardHeader className="pb-3 md:pb-6">
-                  <CardTitle className="text-white flex items-center gap-2 text-base md:text-lg">
-                    <Search className="w-4 h-4 md:w-5 md:h-5 text-yellow-400" />
-                    Investigation Examples
-                  </CardTitle>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-white flex items-center gap-2 text-base md:text-lg">
+                      <Search className="w-4 h-4 md:w-5 md:h-5 text-yellow-400" />
+                      AI Investigation Suggestions
+                    </CardTitle>
+                    <Button
+                      onClick={refreshSuggestions}
+                      variant="outline"
+                      size="sm"
+                      disabled={suggestionsLoading}
+                      className="border-slate-600 text-slate-300 hover:bg-slate-700"
+                    >
+                      <RefreshCw className={`w-3 h-3 ${suggestionsLoading ? 'animate-spin' : ''}`} />
+                    </Button>
+                  </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-3 md:space-y-4">
-                    {examplePrompts.map((example, index) => (
-                      <div 
-                        key={index}
-                        className="p-3 md:p-4 bg-slate-700/50 rounded-lg border border-slate-600 hover:border-slate-500 transition-colors cursor-pointer"
-                        onClick={() => setPrompt(example.prompt)}
+                  {suggestionsLoading ? (
+                    <div className="text-center py-8">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-400 mx-auto mb-4"></div>
+                      <p className="text-gray-400 text-sm">Generating AI suggestions...</p>
+                    </div>
+                  ) : suggestionsError ? (
+                    <div className="text-center py-8">
+                      <p className="text-red-400 text-sm mb-4">Error generating suggestions</p>
+                      <Button
+                        onClick={refreshSuggestions}
+                        variant="outline"
+                        size="sm"
+                        className="border-slate-600 text-slate-300 hover:bg-slate-700"
                       >
-                        <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
-                          <Badge variant="outline" className="text-blue-400 border-blue-400 text-xs">
-                            {example.category}
-                          </Badge>
-                          <div className="flex items-center gap-2">
-                            <Badge className={`${getComplexityColor(example.complexity)} text-white text-xs`}>
-                              {example.complexity}
+                        <RefreshCw className="w-3 h-3 mr-2" />
+                        Try Again
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-3 md:space-y-4">
+                      {suggestions.map((example, index) => (
+                        <div 
+                          key={index}
+                          className="p-3 md:p-4 bg-slate-700/50 rounded-lg border border-slate-600 hover:border-slate-500 transition-colors cursor-pointer"
+                          onClick={() => setPrompt(example.prompt)}
+                        >
+                          <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
+                            <Badge variant="outline" className="text-blue-400 border-blue-400 text-xs">
+                              {example.category}
                             </Badge>
-                            <div className="flex items-center gap-1 text-gray-400">
-                              <Users className="w-3 h-3" />
-                              <span className="text-xs">{example.characters}</span>
+                            <div className="flex items-center gap-2">
+                              <Badge className={`${getComplexityColor(example.complexity)} text-white text-xs`}>
+                                {example.complexity}
+                              </Badge>
+                              <div className="flex items-center gap-1 text-gray-400">
+                                <Users className="w-3 h-3" />
+                                <span className="text-xs">{example.characters}</span>
+                              </div>
                             </div>
                           </div>
+                          <h4 className="font-semibold text-white mb-2 text-sm md:text-base">{example.title}</h4>
+                          <p className="text-xs md:text-sm text-gray-300 leading-relaxed">
+                            {example.prompt}
+                          </p>
                         </div>
-                        <h4 className="font-semibold text-white mb-2 text-sm md:text-base">{example.title}</h4>
-                        <p className="text-xs md:text-sm text-gray-300 leading-relaxed">
-                          {example.prompt}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             )}

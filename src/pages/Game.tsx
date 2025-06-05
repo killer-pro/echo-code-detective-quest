@@ -176,8 +176,8 @@ const Game: React.FC = () => {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 md:h-32 md:w-32 border-b-2 border-blue-400 mx-auto mb-4"></div>
-          <h1 className="text-xl md:text-2xl font-bold text-white mb-4">Loading investigation...</h1>
+          <div className="animate-spin rounded-full h-12 w-12 sm:h-16 sm:w-16 md:h-32 md:w-32 border-b-2 border-blue-400 mx-auto mb-4"></div>
+          <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-white mb-4">Loading investigation...</h1>
         </div>
       </div>
     );
@@ -187,10 +187,10 @@ const Game: React.FC = () => {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
         <div className="text-center">
-          <h1 className="text-xl md:text-2xl font-bold text-white mb-4">No active investigation</h1>
+          <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-white mb-4">No active investigation</h1>
           <button 
             onClick={() => navigate('/')} 
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 md:px-6 py-2 rounded-lg text-sm md:text-base"
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 sm:px-6 py-2 rounded-lg text-sm md:text-base"
           >
             Back to home
           </button>
@@ -227,65 +227,47 @@ const Game: React.FC = () => {
             gameResult={gameResult}
           />
 
-          {/* Main layout */}
-          <div className="flex h-[calc(100vh-100px)] md:h-[calc(100vh-140px)] relative">
-            {/* Game area */}
-            {assetsInitialized ? (
-              <GameCanvas
-                characters={state.currentInvestigation.characters}
-                onCharacterClick={(character: Character) => {
-                  if (isGameFinished) {
-                    toast.info('Investigation is complete. Cannot interact.');
-                    return;
-                  }
-                  handleCharacterClick(character);
-                  setIsDialogueOpen(true);
-                  setIsJournalOpen(false);
-                  setIsMenuOpen(false);
-                }}
-                backgroundUrl={state.currentInvestigation.background_url}
-                isDialogueOpen={isDialogueOpen}
-              />
-            ) : (
-              <div className="flex-1 flex items-center justify-center text-white text-center p-4">
-                <div>
-                  <div className="animate-spin rounded-full h-16 w-16 md:h-32 md:w-32 border-b-2 border-blue-400 mx-auto mb-4"></div>
-                  <p className="text-base md:text-lg mb-2">Generating assets...</p>
-                  <p className="text-xs md:text-sm text-gray-400">
-                    Creating characters and backgrounds with AI
-                  </p>
-                  {error && (
-                    <p className="text-red-400 text-xs md:text-sm mt-2">{error}</p>
-                  )}
+          {/* Main layout - responsive */}
+          <div className="flex flex-col md:flex-row h-[calc(100vh-80px)] sm:h-[calc(100vh-100px)] md:h-[calc(100vh-140px)] relative">
+            {/* Game area - responsive */}
+            <div className="flex-1 relative min-h-0">
+              {assetsInitialized ? (
+                <GameCanvas
+                  characters={state.currentInvestigation.characters}
+                  onCharacterClick={(character: Character) => {
+                    if (isGameFinished) {
+                      toast.info('Investigation is complete. Cannot interact.');
+                      return;
+                    }
+                    handleCharacterClick(character);
+                    setIsDialogueOpen(true);
+                    setIsJournalOpen(false);
+                    setIsMenuOpen(false);
+                  }}
+                  backgroundUrl={state.currentInvestigation.background_url}
+                  isDialogueOpen={isDialogueOpen}
+                />
+              ) : (
+                <div className="flex items-center justify-center h-full text-white text-center p-4">
+                  <div>
+                    <div className="animate-spin rounded-full h-12 w-12 sm:h-16 sm:w-16 md:h-32 md:w-32 border-b-2 border-blue-400 mx-auto mb-4"></div>
+                    <p className="text-sm sm:text-base md:text-lg mb-2">Generating assets...</p>
+                    <p className="text-xs sm:text-sm text-gray-400">
+                      Creating characters and backgrounds with AI
+                    </p>
+                    {error && (
+                      <p className="text-red-400 text-xs sm:text-sm mt-2">{error}</p>
+                    )}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
 
-            {/* Accusation modal */}
-            {showAccusationModal && !isGameFinished && (
-              <AccusationModal
-                investigation={state.currentInvestigation}
-                characters={state.currentInvestigation.characters}
-                onAccuse={handleAccusation}
-                onCancel={() => setShowAccusationModal(false)}
-                isLoading={isAccusing}
-              />
-            )}
-
-            {/* Immersive dialogue overlay */}
-            {state.activeCharacter && (
-              <DialogueOverlay
-                character={state.activeCharacter}
-                isVisible={isDialogueOpen}
-                onClose={closeDialogue}
-              />
-            )}
-
-            {/* Side panel for journal and menu */}
+            {/* Side panel for journal and menu - responsive */}
             {(isJournalOpen || isMenuOpen) && !isDialogueOpen && (
-              <div className="absolute top-0 right-0 w-full md:w-1/3 md:min-w-[400px] h-full bg-gradient-to-b from-slate-800 to-slate-900 border-l border-slate-700 shadow-2xl z-40 overflow-hidden">
+              <div className="absolute md:relative top-0 right-0 w-full sm:w-3/4 md:w-1/3 md:min-w-[320px] lg:min-w-[400px] h-full bg-gradient-to-b from-slate-800 to-slate-900 border-l border-slate-700 shadow-2xl z-40 overflow-hidden">
                 {isJournalOpen && (
-                  <div className="h-full p-2 md:p-4">
+                  <div className="h-full p-2 sm:p-3 md:p-4">
                     <Journal
                       dialogHistory={state.dialogHistory}
                       discoveredLeads={state.discoveredLeads}
@@ -296,16 +278,36 @@ const Game: React.FC = () => {
                 )}
 
                 {isMenuOpen && (
-                  <div className="h-full p-2 md:p-4 overflow-y-auto">
+                  <div className="h-full p-2 sm:p-3 md:p-4 overflow-y-auto">
                     <GameSaveManager onLoadGame={handleLoadGame} />
                   </div>
                 )}
               </div>
             )}
 
-            {/* DialogueBox integrated in overlay for dialogue mode */}
+            {/* Accusation modal - responsive */}
+            {showAccusationModal && !isGameFinished && (
+              <AccusationModal
+                investigation={state.currentInvestigation}
+                characters={state.currentInvestigation.characters}
+                onAccuse={handleAccusation}
+                onCancel={() => setShowAccusationModal(false)}
+                isLoading={isAccusing}
+              />
+            )}
+
+            {/* Immersive dialogue overlay - responsive */}
+            {state.activeCharacter && (
+              <DialogueOverlay
+                character={state.activeCharacter}
+                isVisible={isDialogueOpen}
+                onClose={closeDialogue}
+              />
+            )}
+
+            {/* DialogueBox integrated in overlay for dialogue mode - responsive */}
             {isDialogueOpen && state.activeCharacter && !isGameFinished && (
-              <div className="absolute bottom-2 md:bottom-4 left-1/2 transform -translate-x-1/2 w-full max-w-xs md:max-w-4xl z-50 px-2 md:px-4">
+              <div className="absolute bottom-2 sm:bottom-3 md:bottom-4 left-1/2 transform -translate-x-1/2 w-[calc(100%-16px)] sm:w-[calc(100%-24px)] md:w-full max-w-xs sm:max-w-md md:max-w-4xl z-50 px-2 sm:px-3 md:px-4">
                 <div className="bg-black/80 backdrop-blur-sm rounded-xl border border-white/20">
                   <DialogueBox
                     character={state.activeCharacter}

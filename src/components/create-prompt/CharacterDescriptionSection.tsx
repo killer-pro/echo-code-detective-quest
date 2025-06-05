@@ -17,7 +17,7 @@ interface CharacterDescriptionSectionProps {
 interface EditForm {
   name?: string;
   role?: string;
-  personality?: string;
+  personality?: Record<string, unknown>;
   location_description?: string;
   reputation_score?: number;
 }
@@ -35,7 +35,9 @@ const CharacterDescriptionSection: React.FC<CharacterDescriptionSectionProps> = 
     setEditForm({
       name: character.name,
       role: character.role,
-      personality: typeof character.personality === 'string' ? character.personality : JSON.stringify(character.personality),
+      personality: typeof character.personality === 'string' 
+        ? { traits: [character.personality] } 
+        : character.personality,
       location_description: character.location_description,
       reputation_score: character.reputation_score
     });
@@ -44,8 +46,11 @@ const CharacterDescriptionSection: React.FC<CharacterDescriptionSectionProps> = 
   const handleSave = () => {
     if (editingCharacter) {
       const updates: Partial<Character> = {
-        ...editForm,
-        role: editForm.role as any // Type assertion for role
+        name: editForm.name,
+        role: editForm.role as any,
+        personality: editForm.personality,
+        location_description: editForm.location_description,
+        reputation_score: editForm.reputation_score
       };
       onCharacterUpdate(editingCharacter, updates);
       setEditingCharacter(null);
@@ -75,6 +80,15 @@ const CharacterDescriptionSection: React.FC<CharacterDescriptionSectionProps> = 
       return JSON.stringify(personality);
     }
     return 'No personality defined';
+  };
+
+  const handlePersonalityChange = (value: string) => {
+    try {
+      const parsed = JSON.parse(value);
+      setEditForm({ ...editForm, personality: parsed });
+    } catch {
+      setEditForm({ ...editForm, personality: { traits: [value] } });
+    }
   };
 
   return (
@@ -165,8 +179,8 @@ const CharacterDescriptionSection: React.FC<CharacterDescriptionSectionProps> = 
                   <div>
                     <label className="text-xs text-gray-400 mb-1 block">Personality</label>
                     <Textarea
-                      value={editForm.personality || ''}
-                      onChange={(e) => setEditForm({ ...editForm, personality: e.target.value })}
+                      value={JSON.stringify(editForm.personality || {})}
+                      onChange={(e) => handlePersonalityChange(e.target.value)}
                       className="bg-slate-700/50 border-slate-600 resize-none text-sm"
                       rows={2}
                     />
