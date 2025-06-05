@@ -166,7 +166,7 @@ const CreatePrompt: React.FC = () => {
                     <Button
                       onClick={handleCreateInvestigation}
                       disabled={!prompt.trim() || isStartingGame}
-                      className="w-full bg-purple-600 hover:bg-purple-700 text-white py-2 md:py-3 text-sm md:text-lg"
+                      className="w-full bg-purple-600 hover:bg-purple-700 text-white py-3 md:py-4 text-sm md:text-lg"
                       size="lg"
                     >
                       {isStartingGame ? (
@@ -241,7 +241,7 @@ const CreatePrompt: React.FC = () => {
               <Button
                 onClick={() => setShowExamples(!showExamples)}
                 variant="outline"
-                className="w-full border-slate-600 text-slate-300 hover:bg-slate-700 text-sm"
+                className="w-full border-slate-600 text-slate-300 hover:bg-slate-700 text-sm py-3 md:py-4"
               >
                 <Lightbulb className="w-4 h-4 mr-2" />
                 {showExamples ? 'Hide' : 'Show'} investigation examples

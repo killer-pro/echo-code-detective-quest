@@ -35,7 +35,7 @@ const CharacterDescriptionSection: React.FC<CharacterDescriptionSectionProps> = 
     setEditForm({
       name: character.name,
       role: character.role,
-      personality: character.personality,
+      personality: typeof character.personality === 'string' ? character.personality : JSON.stringify(character.personality),
       location_description: character.location_description,
       reputation_score: character.reputation_score
     });
@@ -43,7 +43,11 @@ const CharacterDescriptionSection: React.FC<CharacterDescriptionSectionProps> = 
 
   const handleSave = () => {
     if (editingCharacter) {
-      onCharacterUpdate(editingCharacter, editForm);
+      const updates: Partial<Character> = {
+        ...editForm,
+        role: editForm.role as any // Type assertion for role
+      };
+      onCharacterUpdate(editingCharacter, updates);
       setEditingCharacter(null);
       setEditForm({});
     }
@@ -58,6 +62,19 @@ const CharacterDescriptionSection: React.FC<CharacterDescriptionSectionProps> = 
     if (score > 70) return 'text-green-400';
     if (score > 30) return 'text-yellow-400';
     return 'text-red-400';
+  };
+
+  const renderPersonality = (personality: any) => {
+    if (typeof personality === 'string') {
+      return personality;
+    }
+    if (typeof personality === 'object' && personality !== null) {
+      if (personality.traits) {
+        return `Traits: ${Array.isArray(personality.traits) ? personality.traits.join(', ') : personality.traits}`;
+      }
+      return JSON.stringify(personality);
+    }
+    return 'No personality defined';
   };
 
   return (
@@ -180,7 +197,7 @@ const CharacterDescriptionSection: React.FC<CharacterDescriptionSectionProps> = 
                 <div className="space-y-2 text-sm">
                   <div>
                     <span className="text-gray-400">Personality:</span>
-                    <p className="text-gray-300 mt-1 text-sm leading-relaxed">{character.personality}</p>
+                    <p className="text-gray-300 mt-1 text-sm leading-relaxed">{renderPersonality(character.personality)}</p>
                   </div>
                   
                   {character.location_description && (

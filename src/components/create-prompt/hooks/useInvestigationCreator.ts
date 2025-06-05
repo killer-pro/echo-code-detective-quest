@@ -16,27 +16,27 @@ export const useInvestigationCreator = () => {
 
   const createSimpleInvestigation = async (prompt: string) => {
     try {
-      console.log('🎯 Création enquête simple avec prompt:', prompt);
+      console.log('🎯 Creating simple investigation with prompt:', prompt);
       
-      // Créer une enquête basique
+      // Create a basic investigation
       const investigationId = uuidv4();
       const simpleInvestigation: Investigation = {
         id: investigationId,
-        title: 'Enquête Simple',
+        title: 'Simple Investigation',
         prompt: prompt,
-        description: 'Une enquête créée rapidement',
-        context: 'Contexte de base pour cette enquête',
+        description: 'A quickly created investigation',
+        context: 'Basic context for this investigation',
         characters: [
           {
             id: uuidv4(),
             investigation_id: investigationId,
-            name: 'Témoin Principal',
+            name: 'Main Witness',
             role: 'témoin',
-            personality: { traits: ['observateur'] },
-            knowledge: 'Informations de base',
+            personality: { traits: ['observant'] },
+            knowledge: 'Basic information',
             position: { x: 300, y: 300 },
             reputation_score: 50,
-            location_description: 'Sur les lieux'
+            location_description: 'At the scene'
           }
         ],
         status: 'en_cours',
@@ -46,8 +46,8 @@ export const useInvestigationCreator = () => {
 
       await startGame(simpleInvestigation, []);
     } catch (error) {
-      console.error('Erreur création enquête simple:', error);
-      toast.error('Erreur lors de la création de l\'enquête');
+      console.error('Error creating simple investigation:', error);
+      toast.error('Error creating investigation');
     }
   };
 
@@ -55,28 +55,28 @@ export const useInvestigationCreator = () => {
     setIsStartingGame(true);
     
     try {
-      console.log('🚀 Démarrage du jeu avec investigation:', investigation.title);
-      console.log('🎨 Assets preview disponibles:', previewAssets.length);
+      console.log('🚀 Starting game with investigation:', investigation.title);
+      console.log('🎨 Available preview assets:', previewAssets.length);
 
-      // Ajouter l'image du joueur par défaut si pas déjà définie
+      // Add default player image if not already defined
       if (!investigation.player_image_url) {
         investigation.player_image_url = 'https://res.cloudinary.com/dyvgd3xak/image/upload/v1748974162/bb1ac672-1096-498c-9287-dd7626326b26/character/D%C3%A9tective_1748974160161.jpg';
       }
 
-      // Si on a des assets preview, les utiliser et les sauvegarder sur Cloudinary
+      // If we have preview assets, use them and save to Cloudinary
       if (previewAssets.length > 0) {
-        console.log('📤 Upload des assets vers Cloudinary...');
+        console.log('📤 Uploading assets to Cloudinary...');
         
         for (const asset of previewAssets) {
           try {
-            console.log(`📤 Upload de l'asset: ${asset.asset_name}`);
+            console.log(`📤 Uploading asset: ${asset.asset_name}`);
             
-            // Utiliser cloudinaryUploadService pour uploader l'image
+            // Use cloudinaryUploadService to upload the image
             const publicId = `${asset.asset_name}_${Date.now()}`;
             const uploadResult = await cloudinaryUploadService.uploadImageFromUrl(asset.image_url, publicId);
-            console.log(`✅ Asset "${asset.asset_name}" uploadé vers Cloudinary: ${uploadResult.secure_url}`);
+            console.log(`✅ Asset "${asset.asset_name}" uploaded to Cloudinary: ${uploadResult.secure_url}`);
 
-            // Affecter les URLs aux bonnes propriétés de l'investigation
+            // Assign URLs to the right investigation properties
             if (asset.asset_type === 'background' && asset.asset_name === 'main_background') {
               investigation.background_url = uploadResult.secure_url;
             } else if (asset.asset_type === 'character' && asset.characterId) {
@@ -86,29 +86,30 @@ export const useInvestigationCreator = () => {
                   character.image_url = uploadResult.secure_url;
                 } else if (asset.asset_name.includes('dialog_bg')) {
                   character.dialogue_background_url = uploadResult.secure_url;
-                  console.log('Ajout dialogue_background_url pour', character.name, uploadResult.secure_url);
+                  console.log('Adding dialogue_background_url for', character.name, uploadResult.secure_url);
                 }
               }
-            } else if (asset.asset_type === 'prop' && asset.clueId) {
-              const clue = investigation.clues?.find(c => c.id === asset.clueId);
+            } else if (asset.asset_type === 'prop') {
+              // Find matching clue by name instead of clueId
+              const clue = investigation.clues?.find(c => c.name === asset.asset_name);
               if (clue) {
                 clue.image_url = uploadResult.secure_url;
               }
             }
 
           } catch (error) {
-            console.error(`❌ Erreur upload asset ${asset.asset_name}:`, error);
-            toast.warning(`Erreur upload ${asset.asset_name}, utilisation de l'image par défaut`);
-            // En cas d'erreur, on garde l'URL originale
+            console.error(`❌ Error uploading asset ${asset.asset_name}:`, error);
+            toast.warning(`Error uploading ${asset.asset_name}, using default image`);
+            // In case of error, keep the original URL
           }
         }
       } else {
-        // Génération d'assets de base si pas d'assets preview
-        console.log('🎨 Génération d\'assets de base...');
+        // Generate basic assets if no preview assets
+        console.log('🎨 Generating basic assets...');
         
-        // Background principal avec prompt amélioré pour vue de haut
+        // Main background with improved prompt for top-down view
         if (investigation.background_prompt && !investigation.background_url) {
-          const enhancedBackgroundPrompt = `Vue isométrique de haut, perspective aérienne, plateau de jeu 2D style cartoon, ${investigation.background_prompt}, vue du dessus topdown view, scène adaptée pour placer des personnages dessus, style jeu de société vue d'en haut, couleurs vives et contrastées, perspective bird's eye view`;
+          const enhancedBackgroundPrompt = `Isometric top view, aerial perspective, 2D game board cartoon style, ${investigation.background_prompt}, top-down view, scene suitable for placing characters on, board game style top view, bright and contrasted colors, bird's eye view perspective`;
           
           const imageUrl = await generateAssetImage({ 
             description: enhancedBackgroundPrompt, 
@@ -117,18 +118,18 @@ export const useInvestigationCreator = () => {
           
           if (imageUrl) {
             try {
-              // Utiliser cloudinaryUploadService pour uploader
+              // Use cloudinaryUploadService to upload
               const publicId = `background_${investigation.id}`;
               const uploadResult = await cloudinaryUploadService.uploadImageFromUrl(imageUrl, publicId);
               investigation.background_url = uploadResult.secure_url;
             } catch (uploadError) {
-              console.warn('⚠️ Échec upload background, utilisation locale:', uploadError);
+              console.warn('⚠️ Background upload failed, using local:', uploadError);
               investigation.background_url = imageUrl;
             }
           }
         }
 
-        // Images des personnages
+        // Character images
         for (const char of investigation.characters) {
           if (char.portrait_prompt && !char.image_url) {
             const imageUrl = await generateAssetImage({ 
@@ -141,7 +142,7 @@ export const useInvestigationCreator = () => {
                 const uploadResult = await cloudinaryUploadService.uploadImageFromUrl(imageUrl, publicId);
                 char.image_url = uploadResult.secure_url;
               } catch (uploadError) {
-                console.warn(`⚠️ Échec upload ${char.name}:`, uploadError);
+                console.warn(`⚠️ Upload failed for ${char.name}:`, uploadError);
                 char.image_url = imageUrl;
               }
             }
@@ -158,14 +159,14 @@ export const useInvestigationCreator = () => {
                 const uploadResult = await cloudinaryUploadService.uploadImageFromUrl(imageUrl, publicId);
                 char.dialogue_background_url = uploadResult.secure_url;
               } catch (uploadError) {
-                console.warn(`⚠️ Échec upload dialog ${char.name}:`, uploadError);
+                console.warn(`⚠️ Dialog upload failed for ${char.name}:`, uploadError);
                 char.dialogue_background_url = imageUrl;
               }
             }
           }
         }
 
-        // Images des indices
+        // Clue images
         for (const clue of investigation.clues || []) {
           if (clue.image_prompt && !clue.image_url) {
             const imageUrl = await generateAssetImage({ 
@@ -178,7 +179,7 @@ export const useInvestigationCreator = () => {
                 const uploadResult = await cloudinaryUploadService.uploadImageFromUrl(imageUrl, publicId);
                 clue.image_url = uploadResult.secure_url;
               } catch (uploadError) {
-                console.warn(`⚠️ Échec upload clue ${clue.name}:`, uploadError);
+                console.warn(`⚠️ Clue upload failed for ${clue.name}:`, uploadError);
                 clue.image_url = imageUrl;
               }
             }
@@ -186,7 +187,7 @@ export const useInvestigationCreator = () => {
         }
       }
 
-      // 1. Sauvegarder l'investigation en base
+      // 1. Save investigation to database
       const { data: savedInvestigation, error: invError } = await supabase
         .from('investigations')
         .insert({
@@ -203,11 +204,11 @@ export const useInvestigationCreator = () => {
         .single();
 
       if (invError) {
-        console.error('💥 Erreur sauvegarde investigation:', invError);
+        console.error('💥 Error saving investigation:', invError);
         throw invError;
       }
 
-      // 2. Sauvegarder les personnages
+      // 2. Save characters
       if (investigation.characters && investigation.characters.length > 0) {
         const charactersToInsert = investigation.characters.map(char => ({
           id: char.id,
@@ -227,7 +228,7 @@ export const useInvestigationCreator = () => {
         }));
 
         charactersToInsert.forEach(c => {
-          console.log('Personnage à insérer:', c.name, 'dialogue_background_url:', c.dialogue_background_url);
+          console.log('Character to insert:', c.name, 'dialogue_background_url:', c.dialogue_background_url);
         });
         
         const { error: charError } = await supabase
@@ -235,12 +236,12 @@ export const useInvestigationCreator = () => {
           .insert(charactersToInsert);
 
         if (charError) {
-          console.error('💥 Erreur sauvegarde personnages:', charError);
+          console.error('💥 Error saving characters:', charError);
           throw charError;
         }
       }
 
-      // 3. Sauvegarder les indices s'il y en a
+      // 3. Save clues if any
       if (investigation.clues && investigation.clues.length > 0) {
         const cluesToInsert = investigation.clues.map(clue => ({
           id: clue.id,
@@ -251,33 +252,33 @@ export const useInvestigationCreator = () => {
           image_url: clue.image_url
         }));
 
-        console.log('🔍 Sauvegarde des indices:', cluesToInsert.length);
+        console.log('🔍 Saving clues:', cluesToInsert.length);
         
         const { error: clueError } = await supabase
           .from('clues')
           .insert(cluesToInsert);
 
         if (clueError) {
-          console.error('💥 Erreur sauvegarde indices:', clueError);
+          console.error('💥 Error saving clues:', clueError);
           throw clueError;
         }
       }
 
-      // 4. Charger l'investigation dans le contexte du jeu
+      // 4. Load investigation into game context
       dispatch({
         type: 'SET_INVESTIGATION',
         payload: investigation
       });
 
-      console.log('✅ Jeu démarré avec succès');
-      toast.success('Enquête créée et jeu démarré !');
+      console.log('✅ Game started successfully');
+      toast.success('Investigation created and game started!');
       
-      // Naviguer vers le jeu avec l'ID de l'investigation
+      // Navigate to game with investigation ID
       navigate(`/game/${investigation.id}`);
       
     } catch (error) {
-      console.error('💥 Erreur lors du démarrage du jeu:', error);
-      toast.error(`Erreur: ${error.message}`);
+      console.error('💥 Error starting game:', error);
+      toast.error(`Error: ${error.message}`);
     } finally {
       setIsStartingGame(false);
     }
