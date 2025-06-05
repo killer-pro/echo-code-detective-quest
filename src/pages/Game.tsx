@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useGame } from '../context/GameContext';
@@ -28,7 +29,7 @@ const Game: React.FC = () => {
   const [showAccusationModal, setShowAccusationModal] = useState(false);
   const { makeAccusation, isAccusing } = useAccusation();
 
-  // Charger l'investigation si un ID est fourni
+  // Load investigation if ID is provided
   useEffect(() => {
     if (investigationId && (!state.currentInvestigation || state.currentInvestigation.id !== investigationId)) {
       loadInvestigation(investigationId);
@@ -38,7 +39,7 @@ const Game: React.FC = () => {
   const loadInvestigation = async (id: string) => {
     setIsLoading(true);
     try {
-      console.log('📖 Chargement de l\'investigation:', id);
+      console.log('📖 Loading investigation:', id);
       
       const { data, error } = await supabase
         .from('investigations')
@@ -51,10 +52,10 @@ const Game: React.FC = () => {
         .single();
 
       if (error) {
-        console.error('💥 Erreur chargement investigation:', error);
+        console.error('💥 Error loading investigation:', error);
         
         if (error.code === 'PGRST116') {
-          console.log('Investigation non trouvée, redirection vers l\'accueil');
+          console.log('Investigation not found, redirecting to home');
           navigate('/');
           return;
         }
@@ -63,23 +64,23 @@ const Game: React.FC = () => {
       }
 
       if (!data) {
-        console.error('💥 Aucune donnée retournée pour l\'investigation:', id);
+        console.error('💥 No data returned for investigation:', id);
         navigate('/');
         return;
       }
 
       const investigation = convertSupabaseInvestigation(data);
       
-      // Ajouter l'image du joueur par défaut si pas définie
+      // Add default player image if not defined
       if (!investigation.player_image_url) {
         investigation.player_image_url = 'https://res.cloudinary.com/dyvgd3xak/image/upload/v1748974162/bb1ac672-1096-498c-9287-dd7626326b26/character/D%C3%A9tective_1748974160161.jpg';
       }
       
       dispatch({ type: 'SET_INVESTIGATION', payload: investigation });
       
-      console.log('✅ Investigation chargée:', investigation.title);
+      console.log('✅ Investigation loaded:', investigation.title);
     } catch (error) {
-      console.error('💥 Erreur:', error);
+      console.error('💥 Error:', error);
       navigate('/');
     } finally {
       setIsLoading(false);
@@ -93,7 +94,7 @@ const Game: React.FC = () => {
 
   const handleSaveGame = async () => {
     if (!state.currentInvestigation) {
-      toast.error('Aucune enquête en cours');
+      toast.error('No investigation in progress');
       return;
     }
 
@@ -113,12 +114,12 @@ const Game: React.FC = () => {
         charactersAlerted
       );
 
-      toast.success('Partie sauvegardée avec succès !', {
-        description: 'Vous pouvez reprendre votre enquête plus tard.'
+      toast.success('Game saved successfully!', {
+        description: 'You can resume your investigation later.'
       });
     } catch (error) {
-      console.error('Erreur sauvegarde:', error);
-      toast.error('Erreur lors de la sauvegarde');
+      console.error('Save error:', error);
+      toast.error('Error saving game');
     } finally {
       setIsSaving(false);
     }
@@ -138,7 +139,7 @@ const Game: React.FC = () => {
       });
       
       setIsMenuOpen(false);
-      toast.success('Partie chargée avec succès !');
+      toast.success('Game loaded successfully!');
     }
   };
 
@@ -173,10 +174,10 @@ const Game: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-400 mx-auto mb-4"></div>
-          <h1 className="text-2xl font-bold text-white mb-4">Chargement de l'enquête...</h1>
+          <div className="animate-spin rounded-full h-16 w-16 md:h-32 md:w-32 border-b-2 border-blue-400 mx-auto mb-4"></div>
+          <h1 className="text-xl md:text-2xl font-bold text-white mb-4">Loading investigation...</h1>
         </div>
       </div>
     );
@@ -184,14 +185,14 @@ const Game: React.FC = () => {
 
   if (!state.currentInvestigation) {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-white mb-4">Aucune enquête active</h1>
+          <h1 className="text-xl md:text-2xl font-bold text-white mb-4">No active investigation</h1>
           <button 
             onClick={() => navigate('/')} 
-            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg"
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 md:px-6 py-2 rounded-lg text-sm md:text-base"
           >
-            Retour à l'accueil
+            Back to home
           </button>
         </div>
       </div>
@@ -226,15 +227,15 @@ const Game: React.FC = () => {
             gameResult={gameResult}
           />
 
-          {/* Layout principal */}
-          <div className="flex h-[calc(100vh-140px)] relative">
-            {/* Zone de jeu */}
+          {/* Main layout */}
+          <div className="flex h-[calc(100vh-100px)] md:h-[calc(100vh-140px)] relative">
+            {/* Game area */}
             {assetsInitialized ? (
               <GameCanvas
                 characters={state.currentInvestigation.characters}
                 onCharacterClick={(character: Character) => {
                   if (isGameFinished) {
-                    toast.info('L\'enquête est terminée. Impossible d\'interagir.');
+                    toast.info('Investigation is complete. Cannot interact.');
                     return;
                   }
                   handleCharacterClick(character);
@@ -246,21 +247,21 @@ const Game: React.FC = () => {
                 isDialogueOpen={isDialogueOpen}
               />
             ) : (
-              <div className="flex-1 flex items-center justify-center text-white text-center">
+              <div className="flex-1 flex items-center justify-center text-white text-center p-4">
                 <div>
-                  <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-400 mx-auto mb-4"></div>
-                  <p className="text-lg mb-2">Génération des assets...</p>
-                  <p className="text-sm text-gray-400">
-                    Création des personnages et arrière-plans avec IA
+                  <div className="animate-spin rounded-full h-16 w-16 md:h-32 md:w-32 border-b-2 border-blue-400 mx-auto mb-4"></div>
+                  <p className="text-base md:text-lg mb-2">Generating assets...</p>
+                  <p className="text-xs md:text-sm text-gray-400">
+                    Creating characters and backgrounds with AI
                   </p>
                   {error && (
-                    <p className="text-red-400 text-sm mt-2">{error}</p>
+                    <p className="text-red-400 text-xs md:text-sm mt-2">{error}</p>
                   )}
                 </div>
               </div>
             )}
 
-            {/* Modal d'accusation */}
+            {/* Accusation modal */}
             {showAccusationModal && !isGameFinished && (
               <AccusationModal
                 investigation={state.currentInvestigation}
@@ -271,7 +272,7 @@ const Game: React.FC = () => {
               />
             )}
 
-            {/* Overlay de dialogue immersif */}
+            {/* Immersive dialogue overlay */}
             {state.activeCharacter && (
               <DialogueOverlay
                 character={state.activeCharacter}
@@ -280,11 +281,11 @@ const Game: React.FC = () => {
               />
             )}
 
-            {/* Panneau latéral pour journal et menu */}
+            {/* Side panel for journal and menu */}
             {(isJournalOpen || isMenuOpen) && !isDialogueOpen && (
-              <div className="absolute top-0 right-0 w-1/3 min-w-[400px] h-full bg-gradient-to-b from-slate-800 to-slate-900 border-l border-slate-700 shadow-2xl z-40 overflow-hidden">
+              <div className="absolute top-0 right-0 w-full md:w-1/3 md:min-w-[400px] h-full bg-gradient-to-b from-slate-800 to-slate-900 border-l border-slate-700 shadow-2xl z-40 overflow-hidden">
                 {isJournalOpen && (
-                  <div className="h-full p-4">
+                  <div className="h-full p-2 md:p-4">
                     <Journal
                       dialogHistory={state.dialogHistory}
                       discoveredLeads={state.discoveredLeads}
@@ -295,16 +296,16 @@ const Game: React.FC = () => {
                 )}
 
                 {isMenuOpen && (
-                  <div className="h-full p-4 overflow-y-auto">
+                  <div className="h-full p-2 md:p-4 overflow-y-auto">
                     <GameSaveManager onLoadGame={handleLoadGame} />
                   </div>
                 )}
               </div>
             )}
 
-            {/* DialogueBox intégré dans l'overlay pour le mode dialogue */}
+            {/* DialogueBox integrated in overlay for dialogue mode */}
             {isDialogueOpen && state.activeCharacter && !isGameFinished && (
-              <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 w-full max-w-4xl z-50 px-4">
+              <div className="absolute bottom-2 md:bottom-4 left-1/2 transform -translate-x-1/2 w-full max-w-xs md:max-w-4xl z-50 px-2 md:px-4">
                 <div className="bg-black/80 backdrop-blur-sm rounded-xl border border-white/20">
                   <DialogueBox
                     character={state.activeCharacter}

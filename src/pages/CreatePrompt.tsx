@@ -38,31 +38,31 @@ const CreatePrompt: React.FC = () => {
 
   const examplePrompts = [
     {
-      category: "Mystère Classique",
-      title: "Meurtre au Manoir",
-      prompt: "Un riche héritier est retrouvé mort dans sa bibliothèque lors d'une soirée familiale. Les invités sont sa sœur jalouse, son neveu endetté, et le majordome fidèle.",
-      complexity: "Facile",
+      category: "Classic Mystery",
+      title: "Manor Murder",
+      prompt: "A wealthy heir is found dead in his library during a family gathering. The guests are his jealous sister, his indebted nephew, and the loyal butler.",
+      complexity: "Easy",
       characters: 3
     },
     {
-      category: "Crime Moderne",
-      title: "Vol en Entreprise", 
-      prompt: "Des documents confidentiels ont disparu d'une startup technologique. Enquêtez parmi l'équipe : le fondateur stressé, la développeuse ambitieuse, et l'investisseur mystérieux.",
-      complexity: "Moyen",
+      category: "Modern Crime",
+      title: "Corporate Theft", 
+      prompt: "Confidential documents have disappeared from a tech startup. Investigate among the team: the stressed founder, the ambitious developer, and the mysterious investor.",
+      complexity: "Medium",
       characters: 3
     },
     {
-      category: "Mystère Scolaire",
-      title: "Sabotage au Lycée",
-      prompt: "Le projet scientifique gagnant du concours a été sabotage la veille de la finale. Interrogez l'élève perfectionniste, le rival jaloux, et le professeur partial.",
-      complexity: "Facile", 
+      category: "School Mystery",
+      title: "High School Sabotage",
+      prompt: "The winning science project for the competition was sabotaged the night before the finale. Question the perfectionist student, the jealous rival, and the biased teacher.",
+      complexity: "Easy", 
       characters: 3
     },
     {
-      category: "Intrigue Historique",
-      title: "Trahison à la Cour",
-      prompt: "Des secrets d'État ont été vendus à l'ennemi dans un château du 18ème siècle. Soupçonnez la dame de compagnie ambitieuse, le garde loyal, et le diplomate étranger.",
-      complexity: "Difficile",
+      category: "Historical Intrigue",
+      title: "Court Betrayal",
+      prompt: "State secrets have been sold to the enemy in an 18th-century castle. Suspect the ambitious lady-in-waiting, the loyal guard, and the foreign diplomat.",
+      complexity: "Hard",
       characters: 3
     }
   ];
@@ -74,19 +74,19 @@ const CreatePrompt: React.FC = () => {
   };
 
   const handleInvestigationGenerated = (investigation: Investigation) => {
-    console.log('📋 Investigation générée:', investigation);
+    console.log('📋 Investigation generated:', investigation);
     setGeneratedInvestigation(investigation);
   };
 
   const handleAssetsGenerated = (assets: any[]) => {
-    console.log('🎨 Assets générés:', assets);
+    console.log('🎨 Assets generated:', assets);
     setGeneratedAssets(assets);
   };
 
   const handleStartGame = async () => {
     if (!generatedInvestigation) return;
     
-    console.log('🚀 Démarrage du jeu avec:', {
+    console.log('🚀 Starting game with:', {
       investigation: generatedInvestigation.title,
       assets: generatedAssets.length
     });
@@ -96,38 +96,38 @@ const CreatePrompt: React.FC = () => {
 
   const getComplexityColor = (complexity: string) => {
     switch (complexity) {
-      case 'Facile': return 'bg-green-500';
-      case 'Moyen': return 'bg-yellow-500';
-      case 'Difficile': return 'bg-red-500';
+      case 'Easy': return 'bg-green-500';
+      case 'Medium': return 'bg-yellow-500';
+      case 'Hard': return 'bg-red-500';
       default: return 'bg-gray-500';
     }
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-blue-900">
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-4 md:py-8">
         {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-white mb-4 flex items-center justify-center gap-3">
-            <Brain className="w-10 h-10 text-blue-400" />
-            Créateur d'Enquêtes IA
+        <div className="text-center mb-6 md:mb-8">
+          <h1 className="text-2xl md:text-4xl font-bold text-white mb-2 md:mb-4 flex items-center justify-center gap-2 md:gap-3">
+            <Brain className="w-6 h-6 md:w-10 md:h-10 text-blue-400" />
+            AI Investigation Creator
           </h1>
-          <p className="text-xl text-gray-300 max-w-2xl mx-auto">
-            Décrivez votre enquête et laissez l'IA créer un mystère immersif avec des personnages uniques et une intrigue captivante.
+          <p className="text-base md:text-xl text-gray-300 max-w-2xl mx-auto px-4">
+            Describe your investigation and let AI create an immersive mystery with unique characters and captivating plot.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-7xl mx-auto">
-          {/* Panneau de création */}
-          <div className="space-y-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-8 max-w-7xl mx-auto">
+          {/* Creation panel */}
+          <div className="space-y-4 md:space-y-6">
             {!generatedInvestigation ? (
               <>
-                {/* Générateur de prompt IA */}
+                {/* AI prompt generator */}
                 <Card className="bg-slate-800/80 backdrop-blur border-slate-700">
-                  <CardHeader>
-                    <CardTitle className="text-white flex items-center gap-2">
-                      <Wand2 className="w-5 h-5 text-purple-400" />
-                      Générateur IA d'Enquêtes
+                  <CardHeader className="pb-3 md:pb-6">
+                    <CardTitle className="text-white flex items-center gap-2 text-base md:text-lg">
+                      <Wand2 className="w-4 h-4 md:w-5 md:h-5 text-purple-400" />
+                      AI Investigation Generator
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -138,46 +138,46 @@ const CreatePrompt: React.FC = () => {
                   </CardContent>
                 </Card>
 
-                {/* Création simple */}
+                {/* Quick creation */}
                 <Card className="bg-slate-800/80 backdrop-blur border-slate-700">
-                  <CardHeader>
-                    <CardTitle className="text-white flex items-center gap-2">
-                      <Sparkles className="w-5 h-5 text-purple-400" />
-                      Ou Créer Rapidement
+                  <CardHeader className="pb-3 md:pb-6">
+                    <CardTitle className="text-white flex items-center gap-2 text-base md:text-lg">
+                      <Sparkles className="w-4 h-4 md:w-5 md:h-5 text-purple-400" />
+                      Or Create Quickly
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-6">
+                  <CardContent className="space-y-4 md:space-y-6">
                     <div>
                       <label className="block text-sm font-medium text-gray-300 mb-2">
-                        Décrivez votre enquête rapidement
+                        Describe your investigation quickly
                       </label>
                       <Textarea
                         value={prompt}
                         onChange={(e) => setPrompt(e.target.value)}
-                        placeholder="Ex: Un vol mystérieux dans un musée d'art. Les suspects incluent le gardien de nuit, la conservatrice ambitieuse, et un collectionneur privé..."
-                        className="bg-slate-700 border-slate-600 text-white placeholder-gray-400 min-h-[120px]"
-                        rows={6}
+                        placeholder="Ex: A mysterious theft in an art museum. Suspects include the night guard, the ambitious curator, and a private collector..."
+                        className="bg-slate-700 border-slate-600 text-white placeholder-gray-400 min-h-[100px] md:min-h-[120px] text-sm"
+                        rows={5}
                       />
-                      <p className="text-sm text-gray-400 mt-2">
-                        💡 Incluez le contexte, les personnages potentiels, et l'intrigue de base
+                      <p className="text-xs md:text-sm text-gray-400 mt-2">
+                        💡 Include context, potential characters, and basic plot
                       </p>
                     </div>
 
                     <Button
                       onClick={handleCreateInvestigation}
                       disabled={!prompt.trim() || isStartingGame}
-                      className="w-full bg-purple-600 hover:bg-purple-700 text-white py-3 text-lg"
+                      className="w-full bg-purple-600 hover:bg-purple-700 text-white py-2 md:py-3 text-sm md:text-lg"
                       size="lg"
                     >
                       {isStartingGame ? (
                         <div className="flex items-center gap-2">
-                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                          Création en cours...
+                          <div className="animate-spin rounded-full h-4 w-4 md:h-5 md:w-5 border-b-2 border-white"></div>
+                          Creating...
                         </div>
                       ) : (
                         <div className="flex items-center gap-2">
-                          <Play className="w-5 h-5" />
-                          Créer et Jouer Rapidement
+                          <Play className="w-4 h-4 md:w-5 md:h-5" />
+                          Create and Play Quickly
                         </div>
                       )}
                     </Button>
@@ -185,21 +185,21 @@ const CreatePrompt: React.FC = () => {
                 </Card>
               </>
             ) : (
-              // Affichage de l'enquête générée + générateur d'assets
-              <div className="space-y-6">
+              // Display generated investigation + asset generator
+              <div className="space-y-4 md:space-y-6">
                 <Card className="bg-green-900/20 border-green-700">
-                  <CardHeader>
-                    <CardTitle className="text-white flex items-center gap-2">
-                      ✅ Enquête Générée
-                      <Badge className="bg-green-600">Prêt</Badge>
+                  <CardHeader className="pb-3 md:pb-6">
+                    <CardTitle className="text-white flex items-center gap-2 text-base md:text-lg">
+                      ✅ Investigation Generated
+                      <Badge className="bg-green-600 text-xs">Ready</Badge>
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <h3 className="text-xl font-bold text-green-300 mb-2">{generatedInvestigation.title}</h3>
-                    <p className="text-gray-300 text-sm mb-3">{generatedInvestigation.description}</p>
-                    <div className="text-xs text-gray-400">
-                      <p>👥 {generatedInvestigation.characters.length} personnages</p>
-                      <p>🔍 {generatedInvestigation.clues?.length || 0} indices</p>
+                    <h3 className="text-lg md:text-xl font-bold text-green-300 mb-2">{generatedInvestigation.title}</h3>
+                    <p className="text-gray-300 text-xs md:text-sm mb-3 leading-relaxed">{generatedInvestigation.description}</p>
+                    <div className="text-xs text-gray-400 space-y-1">
+                      <p>👥 {generatedInvestigation.characters.length} characters</p>
+                      <p>🔍 {generatedInvestigation.clues?.length || 0} clues</p>
                     </div>
                   </CardContent>
                 </Card>
@@ -211,22 +211,22 @@ const CreatePrompt: React.FC = () => {
 
                 {generatedAssets.length > 0 && (
                   <Card className="bg-blue-900/20 border-blue-700">
-                    <CardContent className="p-6">
+                    <CardContent className="p-4 md:p-6">
                       <Button
                         onClick={handleStartGame}
                         disabled={isStartingGame}
-                        className="w-full bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white py-4 text-lg"
+                        className="w-full bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white py-3 md:py-4 text-sm md:text-lg"
                         size="lg"
                       >
                         {isStartingGame ? (
                           <div className="flex items-center gap-2">
-                            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                            Démarrage du jeu...
+                            <div className="animate-spin rounded-full h-4 w-4 md:h-5 md:w-5 border-b-2 border-white"></div>
+                            Starting game...
                           </div>
                         ) : (
                           <div className="flex items-center gap-2">
-                            <Play className="w-6 h-6" />
-                            Commencer l'Enquête ({generatedAssets.length} assets prêts)
+                            <Play className="w-4 h-4 md:w-6 md:h-6" />
+                            Begin Investigation ({generatedAssets.length} assets ready)
                           </div>
                         )}
                       </Button>
@@ -236,39 +236,39 @@ const CreatePrompt: React.FC = () => {
               </div>
             )}
 
-            {/* Bouton exemples */}
+            {/* Examples button */}
             {!generatedInvestigation && (
               <Button
                 onClick={() => setShowExamples(!showExamples)}
                 variant="outline"
-                className="w-full border-slate-600 text-slate-300 hover:bg-slate-700"
+                className="w-full border-slate-600 text-slate-300 hover:bg-slate-700 text-sm"
               >
                 <Lightbulb className="w-4 h-4 mr-2" />
-                {showExamples ? 'Masquer' : 'Voir'} les exemples d'enquêtes
+                {showExamples ? 'Hide' : 'Show'} investigation examples
               </Button>
             )}
           </div>
 
-          {/* Panneau d'exemples */}
-          <div className="space-y-6">
+          {/* Examples panel */}
+          <div className="space-y-4 md:space-y-6">
             {showExamples && !generatedInvestigation && (
               <Card className="bg-slate-800/80 backdrop-blur border-slate-700">
-                <CardHeader>
-                  <CardTitle className="text-white flex items-center gap-2">
-                    <Search className="w-5 h-5 text-yellow-400" />
-                    Exemples d'Enquêtes
+                <CardHeader className="pb-3 md:pb-6">
+                  <CardTitle className="text-white flex items-center gap-2 text-base md:text-lg">
+                    <Search className="w-4 h-4 md:w-5 md:h-5 text-yellow-400" />
+                    Investigation Examples
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
+                  <div className="space-y-3 md:space-y-4">
                     {examplePrompts.map((example, index) => (
                       <div 
                         key={index}
-                        className="p-4 bg-slate-700/50 rounded-lg border border-slate-600 hover:border-slate-500 transition-colors cursor-pointer"
+                        className="p-3 md:p-4 bg-slate-700/50 rounded-lg border border-slate-600 hover:border-slate-500 transition-colors cursor-pointer"
                         onClick={() => setPrompt(example.prompt)}
                       >
-                        <div className="flex items-center justify-between mb-2">
-                          <Badge variant="outline" className="text-blue-400 border-blue-400">
+                        <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
+                          <Badge variant="outline" className="text-blue-400 border-blue-400 text-xs">
                             {example.category}
                           </Badge>
                           <div className="flex items-center gap-2">
@@ -281,8 +281,8 @@ const CreatePrompt: React.FC = () => {
                             </div>
                           </div>
                         </div>
-                        <h4 className="font-semibold text-white mb-2">{example.title}</h4>
-                        <p className="text-sm text-gray-300 leading-relaxed">
+                        <h4 className="font-semibold text-white mb-2 text-sm md:text-base">{example.title}</h4>
+                        <p className="text-xs md:text-sm text-gray-300 leading-relaxed">
                           {example.prompt}
                         </p>
                       </div>
@@ -292,42 +292,42 @@ const CreatePrompt: React.FC = () => {
               </Card>
             )}
 
-            {/* Informations sur les fonctionnalités */}
+            {/* Game features info */}
             <Card className="bg-slate-800/80 backdrop-blur border-slate-700">
-              <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
-                  <Sparkles className="w-5 h-5 text-purple-400" />
-                  Fonctionnalités du Jeu
+              <CardHeader className="pb-3 md:pb-6">
+                <CardTitle className="text-white flex items-center gap-2 text-base md:text-lg">
+                  <Sparkles className="w-4 h-4 md:w-5 md:h-5 text-purple-400" />
+                  Game Features
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 gap-4">
+                <div className="grid grid-cols-1 gap-3 md:gap-4">
                   <div className="flex items-start gap-3">
-                    <Users className="w-5 h-5 text-blue-400 mt-0.5" />
+                    <Users className="w-4 h-4 md:w-5 md:h-5 text-blue-400 mt-0.5 flex-shrink-0" />
                     <div>
-                      <h4 className="font-semibold text-white">Personnages IA</h4>
-                      <p className="text-sm text-gray-300">Chaque personnage a une personnalité unique et réagit différemment selon vos questions</p>
+                      <h4 className="font-semibold text-white text-sm md:text-base">AI Characters</h4>
+                      <p className="text-xs md:text-sm text-gray-300 leading-relaxed">Each character has a unique personality and reacts differently to your questions</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
-                    <Search className="w-5 h-5 text-yellow-400 mt-0.5" />
+                    <Search className="w-4 h-4 md:w-5 md:h-5 text-yellow-400 mt-0.5 flex-shrink-0" />
                     <div>
-                      <h4 className="font-semibold text-white">Détection d'Indices</h4>
-                      <p className="text-sm text-gray-300">L'IA détecte automatiquement les indices importants dans les conversations</p>
+                      <h4 className="font-semibold text-white text-sm md:text-base">Clue Detection</h4>
+                      <p className="text-xs md:text-sm text-gray-300 leading-relaxed">AI automatically detects important clues in conversations</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
-                    <Target className="w-5 h-5 text-red-400 mt-0.5" />
+                    <Target className="w-4 h-4 md:w-5 md:h-5 text-red-400 mt-0.5 flex-shrink-0" />
                     <div>
-                      <h4 className="font-semibold text-white">Accusation Finale</h4>
-                      <p className="text-sm text-gray-300">Une seule chance d'accuser le coupable - choisissez bien !</p>
+                      <h4 className="font-semibold text-white text-sm md:text-base">Final Accusation</h4>
+                      <p className="text-xs md:text-sm text-gray-300 leading-relaxed">One chance to accuse the culprit - choose wisely!</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
-                    <MapPin className="w-5 h-5 text-green-400 mt-0.5" />
+                    <MapPin className="w-4 h-4 md:w-5 md:h-5 text-green-400 mt-0.5 flex-shrink-0" />
                     <div>
-                      <h4 className="font-semibold text-white">Environnement Immersif</h4>
-                      <p className="text-sm text-gray-300">Explorez des lieux générés par IA avec des personnages animés</p>
+                      <h4 className="font-semibold text-white text-sm md:text-base">Immersive Environment</h4>
+                      <p className="text-xs md:text-sm text-gray-300 leading-relaxed">Explore AI-generated locations with animated characters</p>
                     </div>
                   </div>
                 </div>

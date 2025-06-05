@@ -14,13 +14,21 @@ interface CharacterDescriptionSectionProps {
   onStartGame: () => void;
 }
 
+interface EditForm {
+  name?: string;
+  role?: string;
+  personality?: string;
+  location_description?: string;
+  reputation_score?: number;
+}
+
 const CharacterDescriptionSection: React.FC<CharacterDescriptionSectionProps> = ({
   characters,
   onCharacterUpdate,
   onStartGame
 }) => {
   const [editingCharacter, setEditingCharacter] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState<Partial<Character>>({});
+  const [editForm, setEditForm] = useState<EditForm>({});
 
   const handleEdit = (character: Character) => {
     setEditingCharacter(character.id);
@@ -28,7 +36,6 @@ const CharacterDescriptionSection: React.FC<CharacterDescriptionSectionProps> = 
       name: character.name,
       role: character.role,
       personality: character.personality,
-      secret: character.secret,
       location_description: character.location_description,
       reputation_score: character.reputation_score
     });
@@ -54,24 +61,24 @@ const CharacterDescriptionSection: React.FC<CharacterDescriptionSectionProps> = 
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       <div className="text-center">
-        <h2 className="text-2xl font-bold text-white mb-2 flex items-center justify-center gap-2">
-          <Users className="w-6 h-6" />
+        <h2 className="text-xl md:text-2xl font-bold text-white mb-2 flex items-center justify-center gap-2">
+          <Users className="w-5 h-5 md:w-6 md:h-6" />
           Investigation Characters
         </h2>
-        <p className="text-gray-400">
+        <p className="text-sm md:text-base text-gray-400 px-4">
           Review and modify the characters before starting your investigation
         </p>
       </div>
 
-      <div className="grid gap-4">
+      <div className="grid gap-3 md:gap-4">
         {characters.map((character) => (
           <Card key={character.id} className="bg-slate-800/50 border-slate-700/50">
             <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
+              <div className="flex items-start md:items-center justify-between flex-col md:flex-row gap-3 md:gap-0">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-gradient-to-r from-purple-600/20 to-blue-600/20 rounded-lg flex items-center justify-center">
+                  <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-r from-purple-600/20 to-blue-600/20 rounded-lg flex items-center justify-center flex-shrink-0">
                     {character.image_url ? (
                       <img
                         src={character.image_url}
@@ -79,14 +86,14 @@ const CharacterDescriptionSection: React.FC<CharacterDescriptionSectionProps> = 
                         className="w-full h-full rounded-lg object-cover"
                       />
                     ) : (
-                      <span className="text-purple-400 font-bold">
+                      <span className="text-purple-400 font-bold text-sm md:text-base">
                         {character.name.charAt(0)}
                       </span>
                     )}
                   </div>
-                  <div>
-                    <CardTitle className="text-white text-lg">{character.name}</CardTitle>
-                    <div className="flex items-center gap-2 mt-1">
+                  <div className="min-w-0">
+                    <CardTitle className="text-white text-base md:text-lg truncate">{character.name}</CardTitle>
+                    <div className="flex items-center gap-2 mt-1 flex-wrap">
                       <Badge variant="secondary" className="text-xs">
                         {character.role}
                       </Badge>
@@ -98,17 +105,17 @@ const CharacterDescriptionSection: React.FC<CharacterDescriptionSectionProps> = 
                 </div>
                 
                 {editingCharacter === character.id ? (
-                  <div className="flex gap-2">
-                    <Button size="sm" onClick={handleSave} className="bg-green-600 hover:bg-green-700">
+                  <div className="flex gap-2 w-full md:w-auto">
+                    <Button size="sm" onClick={handleSave} className="bg-green-600 hover:bg-green-700 flex-1 md:flex-none">
                       <Save className="w-3 h-3 mr-1" />
                       Save
                     </Button>
-                    <Button size="sm" variant="outline" onClick={handleCancel}>
+                    <Button size="sm" variant="outline" onClick={handleCancel} className="flex-1 md:flex-none">
                       <X className="w-3 h-3" />
                     </Button>
                   </div>
                 ) : (
-                  <Button size="sm" variant="outline" onClick={() => handleEdit(character)}>
+                  <Button size="sm" variant="outline" onClick={() => handleEdit(character)} className="w-full md:w-auto">
                     <Edit3 className="w-3 h-3 mr-1" />
                     Edit
                   </Button>
@@ -119,13 +126,13 @@ const CharacterDescriptionSection: React.FC<CharacterDescriptionSectionProps> = 
             <CardContent className="space-y-3">
               {editingCharacter === character.id ? (
                 <div className="space-y-3">
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div>
                       <label className="text-xs text-gray-400 mb-1 block">Name</label>
                       <Input
                         value={editForm.name || ''}
                         onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                        className="bg-slate-700/50 border-slate-600"
+                        className="bg-slate-700/50 border-slate-600 text-sm"
                       />
                     </div>
                     <div>
@@ -133,7 +140,7 @@ const CharacterDescriptionSection: React.FC<CharacterDescriptionSectionProps> = 
                       <Input
                         value={editForm.role || ''}
                         onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}
-                        className="bg-slate-700/50 border-slate-600"
+                        className="bg-slate-700/50 border-slate-600 text-sm"
                       />
                     </div>
                   </div>
@@ -143,17 +150,7 @@ const CharacterDescriptionSection: React.FC<CharacterDescriptionSectionProps> = 
                     <Textarea
                       value={editForm.personality || ''}
                       onChange={(e) => setEditForm({ ...editForm, personality: e.target.value })}
-                      className="bg-slate-700/50 border-slate-600 resize-none"
-                      rows={2}
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="text-xs text-gray-400 mb-1 block">Secret</label>
-                    <Textarea
-                      value={editForm.secret || ''}
-                      onChange={(e) => setEditForm({ ...editForm, secret: e.target.value })}
-                      className="bg-slate-700/50 border-slate-600 resize-none"
+                      className="bg-slate-700/50 border-slate-600 resize-none text-sm"
                       rows={2}
                     />
                   </div>
@@ -163,7 +160,7 @@ const CharacterDescriptionSection: React.FC<CharacterDescriptionSectionProps> = 
                     <Input
                       value={editForm.location_description || ''}
                       onChange={(e) => setEditForm({ ...editForm, location_description: e.target.value })}
-                      className="bg-slate-700/50 border-slate-600"
+                      className="bg-slate-700/50 border-slate-600 text-sm"
                     />
                   </div>
                   
@@ -175,7 +172,7 @@ const CharacterDescriptionSection: React.FC<CharacterDescriptionSectionProps> = 
                       max="100"
                       value={editForm.reputation_score || 50}
                       onChange={(e) => setEditForm({ ...editForm, reputation_score: parseInt(e.target.value) || 50 })}
-                      className="bg-slate-700/50 border-slate-600"
+                      className="bg-slate-700/50 border-slate-600 text-sm"
                     />
                   </div>
                 </div>
@@ -183,18 +180,13 @@ const CharacterDescriptionSection: React.FC<CharacterDescriptionSectionProps> = 
                 <div className="space-y-2 text-sm">
                   <div>
                     <span className="text-gray-400">Personality:</span>
-                    <p className="text-gray-300 mt-1">{character.personality}</p>
-                  </div>
-                  
-                  <div>
-                    <span className="text-gray-400">Secret:</span>
-                    <p className="text-gray-300 mt-1">{character.secret}</p>
+                    <p className="text-gray-300 mt-1 text-sm leading-relaxed">{character.personality}</p>
                   </div>
                   
                   {character.location_description && (
                     <div>
                       <span className="text-gray-400">Location:</span>
-                      <p className="text-gray-300 mt-1">{character.location_description}</p>
+                      <p className="text-gray-300 mt-1 text-sm">{character.location_description}</p>
                     </div>
                   )}
                 </div>
@@ -204,11 +196,11 @@ const CharacterDescriptionSection: React.FC<CharacterDescriptionSectionProps> = 
         ))}
       </div>
 
-      <div className="text-center pt-6">
+      <div className="text-center pt-4 md:pt-6">
         <Button
           onClick={onStartGame}
           size="lg"
-          className="bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 px-8 py-3"
+          className="bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 px-6 md:px-8 py-3 w-full md:w-auto"
         >
           Start Investigation
         </Button>
