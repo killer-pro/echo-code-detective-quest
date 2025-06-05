@@ -1,8 +1,22 @@
 import { useState } from 'react';
-import { type Investigation, type GeneratedAsset } from '../../types';
+import { type Investigation, type GeneratedAsset, type AssetType } from '../../types';
+import { generateAssetImage, type GenerateImageParams, getValidImageStyle } from '../../../utils/imageGenerator';
+import { v4 as uuidv4 } from 'uuid';
 
 interface UseAssetGenerationProps {
   investigation: Investigation;
+}
+
+interface AssetToGenerate {
+  id: string;
+  investigation_id: string;
+  asset_type: AssetType;
+  asset_name: string;
+  description: string;
+  prompt: string;
+  characterId?: string;
+  style?: GenerateImageParams['style'];
+  locationContext?: string;
 }
 
 export const useAssetGeneration = ({ investigation }: UseAssetGenerationProps) => {
@@ -15,75 +29,100 @@ export const useAssetGeneration = ({ investigation }: UseAssetGenerationProps) =
     setError(null);
 
     try {
-      const newAssets: GeneratedAsset[] = [];
+      const initialAssets: AssetToGenerate[] = [];
+      const investigationId = investigation.id;
 
-      // Generate background asset
       if (investigation.background_prompt) {
-        console.log(`🎯 Generating asset for background: ${investigation.title}`);
+        console.log(`🎯 Collecting prompt for background: ${investigation.title}`);
 
-        const assetData = {
-          asset_type: 'background' as const,
+        initialAssets.push({
+          id: uuidv4(),
+          investigation_id: investigationId,
+          asset_type: 'background',
           asset_name: 'main_background',
           description: investigation.background_prompt,
-          characterId: undefined,
-        };
-
-        newAssets.push(assetData);
+          prompt: investigation.background_prompt,
+          style: 'cartoon',
+          locationContext: 'Main investigation area'
+        });
       }
 
-      // Generate assets for each character
       if (investigation.characters && investigation.characters.length > 0) {
         for (const character of investigation.characters) {
           if (character.portrait_prompt) {
-            console.log(`🎯 Generating asset for character: ${character.name}`);
+            console.log(`🎯 Collecting prompt for character portrait: ${character.name}`);
 
-            const assetData = {
-              asset_type: 'character' as const,
+            initialAssets.push({
+              id: uuidv4(),
+              investigation_id: investigationId,
+              asset_type: 'character',
               asset_name: `${character.name}_portrait`,
               description: character.portrait_prompt,
+              prompt: character.portrait_prompt,
               characterId: character.id,
-            };
-
-            newAssets.push(assetData);
+              style: 'cartoon',
+              locationContext: character.location_description
+            });
           }
 
           if (character.dialog_background_prompt) {
-            console.log(`🎯 Generating dialog background for character: ${character.name}`);
+            console.log(`🎯 Collecting prompt for character dialog background: ${character.name}`);
 
-            const assetData = {
-              asset_type: 'character' as const,
+            initialAssets.push({
+              id: uuidv4(),
+              investigation_id: investigationId,
+              asset_type: 'background',
               asset_name: `${character.name}_dialog_bg`,
               description: character.dialog_background_prompt,
+              prompt: character.dialog_background_prompt,
               characterId: character.id,
-            };
-
-            newAssets.push(assetData);
+              style: 'cartoon',
+              locationContext: character.location_description
+            });
           }
         }
       }
 
-      // Generate assets for each clue
       if (investigation.clues && investigation.clues.length > 0) {
         for (const clue of investigation.clues) {
           if (clue.image_prompt) {
-            console.log(`🎯 Generating asset for clue: ${clue.name}`);
-            
-            const assetData = {
-              asset_type: 'prop' as const,
+            console.log(`🎯 Collecting prompt for clue: ${clue.name}`);
+
+            initialAssets.push({
+              id: uuidv4(),
+              investigation_id: investigationId,
+              asset_type: 'prop',
               asset_name: clue.name,
               description: clue.image_prompt,
-              characterId: undefined,
-              // Remove clueId since it doesn't exist in GeneratedAsset type
-            };
-
-            newAssets.push(assetData);
+              prompt: clue.image_prompt,
+              style: 'cartoon',
+              locationContext: clue.location
+            });
           }
         }
       }
 
-      setAssets(newAssets);
+      console.log(`✨ Generating images for ${initialAssets.length} assets...`);
+
+      const generatedAssetsWithUrls: GeneratedAsset[] = await Promise.all(initialAssets.map(async (assetData) => {
+        const imageUrl = await generateAssetImage({
+          description: assetData.description,
+          type: assetData.asset_type as GenerateImageParams['type'],
+          style: getValidImageStyle(assetData.style)
+        });
+
+        return {
+          ...assetData,
+          image_url: imageUrl || '',
+        } as GeneratedAsset;
+      }));
+
+      setAssets(generatedAssetsWithUrls);
+      console.log('✅ Assets generated with URLs:', generatedAssetsWithUrls);
     } catch (err) {
+      console.error('💥 Error during asset generation:', err);
       setError(err instanceof Error ? err.message : 'Failed to generate assets');
+      setAssets([]);
     } finally {
       setIsLoading(false);
     }
