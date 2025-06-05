@@ -4,8 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Image, Palette } from 'lucide-react';
 import AssetCard from './scene-generator/AssetCard';
 import { useAssetGeneration } from './scene-generator/hooks/useAssetGeneration';
-import { type Investigation, type GeneratedAsset } from '../types';
+import { type Investigation, type GeneratedAsset, type AssetType } from '../types';
+import { toast } from 'sonner';
 import { RefreshCw } from 'lucide-react';
+import { type GenerateImageParams, getValidImageStyle } from '../utils/imageGenerator';
 
 interface SceneGeneratorProps {
   investigation: Investigation;
@@ -17,17 +19,35 @@ const SceneGenerator: React.FC<SceneGeneratorProps> = ({ investigation, onAssets
     isLoading,
     assets: generatedAssets,
     generateAssets,
-    error
+    error,
+    regeneratingAssetId,
+    regenerateAsset,
   } = useAssetGeneration({ investigation });
 
   useEffect(() => {
-    if (!isLoading && generatedAssets.length > 0 && onAssetsGenerated) {
+    if (!isLoading && generatedAssets.length > 0 && onAssetsGenerated && !regeneratingAssetId) {
       onAssetsGenerated(generatedAssets);
     }
-  }, [generatedAssets, isLoading, onAssetsGenerated]);
+  }, [generatedAssets, isLoading, onAssetsGenerated, regeneratingAssetId]);
 
   const handleGenerateAssets = () => {
     generateAssets();
+  };
+
+  const handleRegenerateAsset = (assetId: string, prompt: string, assetType: AssetType, style?: GenerateImageParams['style']) => {
+    if (!regeneratingAssetId) {
+      regenerateAsset(assetId, prompt, assetType, style);
+    }
+  };
+
+  const handleImageError = (asset: GeneratedAsset, index: number) => {
+    console.error(`💥 Erreur de chargement pour ${asset.asset_name}:`, asset.image_url);
+    toast.error(`Erreur de chargement de l'image "${asset.asset_name}"`);
+    if (asset.id && asset.prompt && asset.asset_type) {
+      handleRegenerateAsset(asset.id, asset.prompt, asset.asset_type, getValidImageStyle(asset.style));
+    } else {
+      console.error('Cannot regenerate asset: Missing ID, prompt, or type', asset);
+    }
   };
 
   return (
@@ -99,10 +119,13 @@ const SceneGenerator: React.FC<SceneGeneratorProps> = ({ investigation, onAssets
             
             {generatedAssets.map((asset, index) => (
               <AssetCard
-                key={index}
+                key={asset.id}
                 asset={asset}
                 index={index}
+                regeneratingAsset={regeneratingAssetId === asset.id ? asset.asset_name : null}
                 onViewAsset={(url) => window.open(url, '_blank')}
+                onRegenerateAsset={() => handleRegenerateAsset(asset.id, asset.prompt, asset.asset_type, getValidImageStyle(asset.style))}
+                onImageError={() => handleImageError(asset, index)}
               />
             ))}
             
@@ -110,7 +133,7 @@ const SceneGenerator: React.FC<SceneGeneratorProps> = ({ investigation, onAssets
               onClick={handleGenerateAssets}
               variant="outline"
               className="w-full mt-4"
-              disabled={isLoading}
+              disabled={isLoading || !!regeneratingAssetId}
             >
               <Palette className="w-4 h-4 mr-2" />
               Regénérer Aperçu Assets

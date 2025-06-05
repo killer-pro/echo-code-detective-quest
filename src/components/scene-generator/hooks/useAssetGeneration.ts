@@ -23,10 +23,12 @@ export const useAssetGeneration = ({ investigation }: UseAssetGenerationProps) =
   const [assets, setAssets] = useState<GeneratedAsset[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [regeneratingAssetId, setRegeneratingAssetId] = useState<string | null>(null);
 
   const generateAssets = async () => {
     setIsLoading(true);
     setError(null);
+    setRegeneratingAssetId(null);
 
     try {
       const initialAssets: AssetToGenerate[] = [];
@@ -128,10 +130,40 @@ export const useAssetGeneration = ({ investigation }: UseAssetGenerationProps) =
     }
   };
 
+  const regenerateAsset = async (assetId: string, prompt: string, assetType: AssetType, style?: GenerateImageParams['style']) => {
+    setRegeneratingAssetId(assetId);
+    setError(null);
+
+    try {
+      console.log(`🔁 Regenerating asset with ID: ${assetId}`);
+      const imageUrl = await generateAssetImage({
+        description: prompt,
+        type: assetType as GenerateImageParams['type'],
+        style: getValidImageStyle(style),
+      });
+
+      setAssets(prevAssets =>
+        prevAssets.map(asset =>
+          asset.id === assetId ? { ...asset, image_url: imageUrl || '' } : asset
+        )
+      );
+
+      console.log(`✅ Asset ${assetId} regenerated.`);
+
+    } catch (err) {
+      console.error(`💥 Error regenerating asset ${assetId}:`, err);
+      setError(`Failed to regenerate asset ${assetId}`);
+    } finally {
+      setRegeneratingAssetId(null);
+    }
+  };
+
   return {
     assets,
     isLoading,
     error,
+    regeneratingAssetId,
     generateAssets,
+    regenerateAsset,
   };
 };
