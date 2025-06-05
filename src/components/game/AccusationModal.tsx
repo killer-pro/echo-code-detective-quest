@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '../ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
@@ -31,11 +30,11 @@ const AccusationModal: React.FC<AccusationModalProps> = ({
         <CardHeader className="text-center border-b border-slate-700">
           <div className="flex items-center justify-center gap-2 mb-2">
             <Target className="w-6 h-6 text-red-500" />
-            <CardTitle className="text-2xl text-white">Accusation Finale</CardTitle>
+            <CardTitle className="text-2xl text-white">Final Accusation</CardTitle>
           </div>
           <div className="flex items-center justify-center gap-2 text-yellow-400">
             <AlertTriangle className="w-5 h-5" />
-            <p className="text-sm">Attention : Vous n'avez qu'une seule chance !</p>
+            <p className="text-sm">Warning: You only have one chance!</p>
           </div>
         </CardHeader>
 
@@ -43,7 +42,7 @@ const AccusationModal: React.FC<AccusationModalProps> = ({
           <div className="mb-6">
             <h3 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
               <Users className="w-5 h-5" />
-              Choisissez le coupable :
+              Choose the culprit:
             </h3>
             <div className="grid grid-cols-1 gap-3">
               {suspects.map((character) => (
@@ -74,7 +73,7 @@ const AccusationModal: React.FC<AccusationModalProps> = ({
                           {character.role}
                         </Badge>
                         <span className="text-sm text-gray-400">
-                          Réputation: {character.reputation_score}%
+                          Reputation: {character.reputation_score}%
                         </span>
                       </div>
                     </div>
@@ -90,12 +89,12 @@ const AccusationModal: React.FC<AccusationModalProps> = ({
           </div>
 
           <div className="bg-slate-700/50 p-4 rounded-lg mb-6">
-            <h4 className="font-semibold text-white mb-2">Règles de l'accusation :</h4>
+            <h4 className="font-semibold text-white mb-2">Accusation Rules:</h4>
             <ul className="text-sm text-gray-300 space-y-1">
-              <li>• Vous ne pouvez accuser qu'une seule fois</li>
-              <li>• Si vous trouvez le vrai coupable, vous gagnez l'enquête</li>
-              <li>• Si vous vous trompez, vous perdez l'enquête</li>
-              <li>• Analysez bien tous les indices avant de décider</li>
+              <li>• You can only accuse once</li>
+              <li>• If you find the real culprit, you win the investigation</li>
+              <li>• If you are wrong, you lose the investigation</li>
+              <li>• Analyze all clues before deciding</li>
             </ul>
           </div>
 
@@ -106,14 +105,14 @@ const AccusationModal: React.FC<AccusationModalProps> = ({
               className="flex-1"
               disabled={isLoading}
             >
-              Annuler
+              Cancel
             </Button>
             <Button
               onClick={() => selectedCharacter && onAccuse(selectedCharacter)}
               disabled={!selectedCharacter || isLoading}
               className="flex-1 bg-red-600 hover:bg-red-700"
             >
-              {isLoading ? 'Accusation...' : 'Accuser ce personnage'}
+              {isLoading ? 'Accusing...' : 'Accuse this character'}
             </Button>
           </div>
         </CardContent>

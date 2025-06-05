@@ -8,7 +8,7 @@ import { geminiAPI } from '../api/gemini';
 import { type Investigation, type Character, type AssetPrompt, type CharacterRole, type ExpressionState } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 
-// Interfaces pour les réponses Gemini
+// Interfaces for Gemini responses
 interface GeminiCharacter {
   name: string;
   role: string;
@@ -43,9 +43,9 @@ interface PromptGeneratorProps {
   prompt: string;
 }
 
-// Constantes pour la validation
-const validRoles: CharacterRole[] = ['témoin', 'suspect', 'enquêteur', 'innocent'];
-const validExpressionStates: ExpressionState[] = ['neutre', 'nerveux', 'en_colère', 'coopératif', 'méfiant'];
+// Constants for validation
+const validRoles: CharacterRole[] = ['witness', 'suspect', 'investigator', 'innocent'];
+const validExpressionStates: ExpressionState[] = ['neutral', 'nervous', 'angry', 'cooperative', 'suspicious'];
 
 const PromptGenerator: React.FC<PromptGeneratorProps> = ({
   onPromptUpdate,
@@ -67,25 +67,25 @@ const PromptGenerator: React.FC<PromptGeneratorProps> = ({
       id: 'manor',
       title: 'Manor Mystery',
       description: 'Theft in a large property with suspicious characters',
-      prompt: 'Un bijou précieux a été volé lors d\'une réception dans un manoir victorien. Les invités et le personnel sont tous suspects.'
+      prompt: 'A precious jewel was stolen during a reception in a Victorian manor. Guests and staff are all suspects.'
     },
     {
       id: 'office',
       title: 'Corporate Crime',
       description: 'Investigation in a modern corporate environment',
-      prompt: 'Des documents confidentiels ont disparu d\'une entreprise de technologie. L\'espionnage industriel est suspecté.'
+      prompt: 'Confidential documents have disappeared from a tech company. Industrial espionage is suspected.'
     },
     {
       id: 'school',
       title: 'School Incident',
       description: 'Mystery in an educational institution',
-      prompt: 'Un objet de valeur a disparu du bureau du directeur d\'un lycée prestigieux pendant les examens.'
+      prompt: 'A valuable object disappeared from the headmaster\'s office of a prestigious high school during exams.'
     },
     {
       id: 'village',
       title: 'Village Secret',
       description: 'Investigation in a small rural community',
-      prompt: 'Un événement étrange perturbe la tranquillité d\'un petit village où tout le monde se connaît.'
+      prompt: 'A strange event disrupts the tranquility of a small village where everyone knows each other.'
     }
   ];
 
@@ -100,93 +100,93 @@ const PromptGenerator: React.FC<PromptGeneratorProps> = ({
     onPromptUpdate(value);
   };
 
-  // Premier prompt : Investigation de base avec personnages et indices
+  // Base prompt: Basic investigation with characters and clues
   const baseInvestigationPrompt = `
-Crée une enquête procédurale basée sur ce prompt: "${prompt}"
+Create a procedural investigation based on this prompt: "${prompt}"
 
-RÉPONDS UNIQUEMENT EN JSON VALIDE avec cette structure EXACTE:
+RESPOND ONLY IN VALID JSON with this EXACT structure:
 {
-  "title": "Titre de l'enquête",
-  "description": "Description détaillée du mystère à résoudre",
-  "context": "Contexte narratif initial expliquant la situation de départ",
-  "background_prompt": "2D game background, side view, [description du lieu principal], cartoon style, flat design, game environment",
+  "title": "Investigation Title",
+  "description": "Detailed description of the mystery to solve",
+  "context": "Initial narrative context explaining the starting situation",
+  "background_prompt": "2D game background, side view, [description of the main location], cartoon style, flat design, game environment",
   "characters": [
     {
-      "name": "Nom du personnage",
-      "role": "témoin|suspect|innocent",
+      "name": "Character Name",
+      "role": "witness|suspect|innocent",
       "personality": { // Using Record<string, any> because the structure of personality traits is dynamic and depends on AI output
         "traits": ["trait1", "trait2"],
-        "secrets": "secrets du personnage",
-        "motivations": "motivations du personnage",
-        "appearance": "description physique détaillée du personnage"
+        "secrets": "character's secrets",
+        "motivations": "character's motivations",
+        "appearance": "detailed physical description of the character"
       },
-      "knowledge": "Ce que le personnage sait sur l'enquête",
+      "knowledge": "What the character knows about the investigation",
       "position": {"x": 200, "y": 150},
       "reputation_score": 50,
-      "location_description": "Description du lieu où se trouve ce personnage",
-      "portrait_prompt": "2D character sprite, front view, [description physique détaillée], cartoon style, game character, flat design, simple shapes",
-      "dialog_background_prompt": "2D game background, [lieu du personnage], cartoon style, interior/exterior scene, flat design"
+      "location_description": "Description of the location where this character is",
+      "portrait_prompt": "2D character sprite, front view, [detailed physical description], cartoon style, game character, flat design, simple shapes",
+      "dialog_background_prompt": "2D game background, [character's location], cartoon style, interior/exterior scene, flat design"
     }
   ],
   "clues": [
     {
-      "name": "Nom de l'indice",
-      "description": "Description détaillée de l'indice et son importance",
-      "location": "Où se trouve cet indice",
-      "image_prompt": "2D game object, [description de l'objet], simple flat design, cartoon style, game prop"
+      "name": "Clue Name",
+      "description": "Detailed description of the clue and its importance",
+      "location": "Where this clue is located",
+      "image_prompt": "2D game object, [description of the object], simple flat design, cartoon style, game prop"
     }
   ]
 }
 
-RÈGLES:
-- Crée EXACTEMENT 3-5 personnages avec des rôles variés
-- Crée EXACTEMENT 2-4 indices importants
-- Les positions doivent être entre x:100-700 et y:100-500
-- Chaque personnage doit avoir un lieu différent (salon, cuisine, bureau, jardin, etc.)
-- Les indices doivent être cohérents avec l'histoire
-- TOUS les prompts d'images doivent utiliser "2D", "cartoon style", "flat design"
+RULES:
+- Create EXACTLY 3-5 characters with varied roles
+- Create EXACTLY 2-4 important clues
+- Positions must be between x:100-700 and y:100-500
+- Each character must have a different location (living room, kitchen, office, garden, etc.)
+- Clues must be consistent with the story
+- ALL image prompts must use "2D", "cartoon style", "flat design"
 `;
 
   const handleGenerate = async () => {
     if (!prompt.trim() || isGenerating) return;
 
     setIsGenerating(true);
-    setGenerationStep('Génération de l\'enquête complète...');
+    setGenerationStep('Generating complete investigation...');
     
     try {
-      // Génération de l'enquête avec tous les prompts en une seule fois
+      // Generating the investigation with all prompts at once
       const investigationResponse = await geminiAPI.generateInvestigation(baseInvestigationPrompt) as GeminiInvestigationData;
       
-      setGenerationStep('Assemblage de l\'enquête...');
+      setGenerationStep('Assembling the investigation...');
 
       const investigationId = uuidv4();
       
-      // Assemblage final de l'investigation
+      // Final assembly of the investigation
       const formattedInvestigation: Investigation = {
         id: investigationId,
-        title: investigationResponse.title || 'Nouvelle Enquête Générée',
-        description: investigationResponse.description || 'Aucune description.',
-        context: investigationResponse.context || 'Aucun contexte.',
+        title: investigationResponse.title || 'New Generated Investigation',
+        description: investigationResponse.description || 'No description.',
+        context: investigationResponse.context || 'No context.',
         prompt: prompt.trim(),
         characters: investigationResponse.characters.map((char: GeminiCharacter, index: number) => {
           return {
             id: uuidv4(),
             investigation_id: investigationId,
-            name: char.name || 'Personnage sans nom',
-            role: validRoles.includes(char.role as CharacterRole) ? char.role as CharacterRole : 'témoin',
+            name: char.name || 'Unnamed Character',
+            role: validRoles.includes(char.role as CharacterRole) ? char.role as CharacterRole : 'witness', // Translate role value
             personality: char.personality || {},
             knowledge: char.knowledge || '',
             reputation_score: char.reputation_score || 50,
             position: char.position || { x: Math.random() * 600 + 100, y: Math.random() * 400 + 100 },
             sprite: 'character',
-            expression_state: 'neutre' as ExpressionState,
+            expression_state: 'neutral' as ExpressionState, // Translate state value
             alerted: false,
             portrait_prompt: char.portrait_prompt || `2D character sprite, front view, ${char.name}, cartoon style, game character`,
-            dialog_background_prompt: char.dialog_background_prompt || `2D game background, ${char.location_description || 'lieu générique'}, cartoon style`,
-            location_description: char.location_description || `Lieu de ${char.name}`,
+            dialog_background_prompt: char.dialog_background_prompt || `2D game background, ${char.location_description || 'generic location'}, cartoon style`,
+            location_description: char.location_description || `Location of ${char.name}`,
           };
         }),
-        status: 'en_cours',
+        status: 'en_cours', // Keep French status value for internal logic, as per ActiveInvestigations.tsx
         assetPrompts: [],
         clues: investigationResponse.clues?.map((clue: GeminiClue) => {
           return {
@@ -198,18 +198,18 @@ RÈGLES:
             location: clue.location || '',
           };
         }) || [],
-        background_prompt: investigationResponse.background_prompt || `2D game background, enquête générique, cartoon style, flat design`,
+        background_prompt: investigationResponse.background_prompt || `2D game background, generic investigation, cartoon style, flat design`,
       };
 
-      console.log('✅ Investigation générée:', formattedInvestigation);
+      console.log('✅ Investigation generated:', formattedInvestigation);
 
       setGeneratedInvestigation(formattedInvestigation);
       if (onInvestigationGenerated) {
         onInvestigationGenerated(formattedInvestigation);
       }
     } catch (error) {
-      console.error('Erreur lors de la génération:', error);
-      alert(`Erreur: ${error.message}`);
+      console.error('Error during generation:', error);
+      alert(`Error: ${error.message}`);
     } finally {
       setIsGenerating(false);
       setGenerationStep('');
@@ -218,9 +218,9 @@ RÈGLES:
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-      {/* Templates prédéfinis */}
+      {/* Predefined Templates */}
       <div>
-        <h3 className="text-lg font-semibold text-white mb-4">Scénarios prédéfinis</h3>
+        <h3 className="text-lg font-semibold text-white mb-4">Predefined Scenarios</h3>
         <div className="grid md:grid-cols-2 gap-4">
           {templates.map((template) => (
             <Card 
@@ -242,7 +242,7 @@ RÈGLES:
                 <p className="text-gray-400 text-xs mb-2">{template.description}</p>
                 <Badge variant="outline" className="text-xs">
                   <Users className="w-3 h-3 mr-1" />
-                  3-5 personnages
+                  3-5 characters
                 </Badge>
               </CardContent>
             </Card>
@@ -250,7 +250,7 @@ RÈGLES:
         </div>
       </div>
 
-      {/* Zone de saisie personnalisée */}
+      {/* Custom Input Area */}
       <div>
         <h3 className="text-lg font-semibold text-white mb-4">Or Create Your Own Scenario</h3>
         <Card className="bg-slate-800 border-slate-700">
@@ -285,12 +285,12 @@ RÈGLES:
                 {isGenerating ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    {generationStep || 'Génération...'}
+                    {generationStep || 'Generating...'}
                   </>
                 ) : (
                   <>
                     <Wand2 className="w-4 h-4 mr-2" />
-                    Générer l'enquête
+                    Generate Investigation
                   </>
                 )}
               </Button>
@@ -299,7 +299,7 @@ RÈGLES:
         </Card>
       </div>
 
-      {/* Informations sur le processus */}
+      {/* Process Information */}
       <Card className="bg-slate-800/50 border-slate-700">
         <CardContent className="p-4">
           <div className="grid md:grid-cols-3 gap-4 text-center">
@@ -322,11 +322,11 @@ RÈGLES:
         </CardContent>
       </Card>
 
-      {/* Affichage de l'enquête générée */}
+      {/* Display Generated Investigation */}
       {generatedInvestigation && (
         <Card className="bg-slate-700 border-slate-600">
           <CardHeader>
-            <CardTitle className="text-white">Enquête générée</CardTitle>
+            <CardTitle className="text-white">Generated Investigation</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
@@ -336,12 +336,12 @@ RÈGLES:
             </div>
             
             <div>
-              <h5 className="text-blue-300 font-bold mb-2">🎨 Arrière-plan principal:</h5>
+              <h5 className="text-blue-300 font-bold mb-2">🎨 Main Background:</h5>
               <p className="text-gray-300 text-xs bg-slate-600 p-2 rounded">{generatedInvestigation.background_prompt}</p>
             </div>
             
             <div>
-              <h5 className="text-green-300 font-bold mb-2">👥 Personnages ({generatedInvestigation.characters.length}):</h5>
+              <h5 className="text-green-300 font-bold mb-2">👥 Characters ({generatedInvestigation.characters.length}):</h5>
               {generatedInvestigation.characters.map((char) => (
                 <div key={char.id} className="ml-4 mt-2 p-3 bg-slate-600 rounded">
                   <div className="flex items-center gap-2 mb-2">
@@ -351,8 +351,8 @@ RÈGLES:
                   <p className="text-gray-400 text-xs mb-2">{char.knowledge}</p>
                   <div className="text-xs text-gray-500 space-y-1">
                     <div><strong>Portrait:</strong> {char.portrait_prompt}</div>
-                    <div><strong>Arrière-plan:</strong> {char.dialog_background_prompt}</div>
-                    <div><strong>Lieu:</strong> {char.location_description}</div>
+                    <div><strong>Dialog Background:</strong> {char.dialog_background_prompt}</div>
+                    <div><strong>Location:</strong> {char.location_description}</div>
                   </div>
                 </div>
               ))}
@@ -360,13 +360,13 @@ RÈGLES:
 
             {generatedInvestigation.clues && generatedInvestigation.clues.length > 0 && (
               <div>
-                <h5 className="text-yellow-300 font-bold mb-2">🔍 Indices ({generatedInvestigation.clues.length}):</h5>
+                <h5 className="text-yellow-300 font-bold mb-2">🔍 Clues ({generatedInvestigation.clues.length}):</h5>
                 {generatedInvestigation.clues.map((clue) => (
                   <div key={clue.id} className="ml-4 mt-2 p-3 bg-slate-600 rounded">
                     <div className="font-bold text-yellow-300 mb-1">{clue.name}</div>
                     <p className="text-gray-400 text-xs mb-2">{clue.description}</p>
                     <div className="text-xs text-gray-500">
-                      <div><strong>Lieu:</strong> {clue.location}</div>
+                      <div><strong>Location:</strong> {clue.location}</div>
                       <div><strong>Image:</strong> {clue.image_prompt}</div>
                     </div>
                   </div>

@@ -24,22 +24,22 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
   const [backgroundImage, setBackgroundImage] = useState<HTMLImageElement | null>(null);
   const [playerImage, setPlayerImage] = useState<HTMLImageElement | null>(null);
 
-  // Dimensions du canvas
+  // Canvas Dimensions
   const CANVAS_WIDTH = 800;
   const CANVAS_HEIGHT = 600;
 
-  // Charger l'image de fond
+  // Load Background Image
   useEffect(() => {
     if (backgroundUrl) {
       const img = new Image();
       img.crossOrigin = 'anonymous';
       img.onload = () => setBackgroundImage(img);
-      img.onerror = () => console.warn('Erreur chargement background:', backgroundUrl);
+      img.onerror = () => console.warn('Background loading error:', backgroundUrl);
       img.src = backgroundUrl;
     }
   }, [backgroundUrl]);
 
-  // Charger les images des personnages
+  // Load Character Images
   useEffect(() => {
     const loadCharacterImages = async () => {
       const newImages = new Map<string, HTMLImageElement>();
@@ -55,7 +55,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
               resolve();
             };
             img.onerror = () => {
-              console.warn(`Erreur chargement image ${character.name}:`, character.image_url);
+              console.warn(`Image loading error ${character.name}:`, character.image_url);
               resolve();
             };
             img.src = character.image_url!;
@@ -71,7 +71,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     }
   }, [characters]);
 
-  // Charger l'image du joueur
+  // Load Player Image
   useEffect(() => {
     if (state.currentInvestigation?.player_image_url) {
       const img = new Image();
@@ -82,7 +82,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     }
   }, [state.currentInvestigation?.player_image_url]);
 
-  // Gestion du clavier
+  // Keyboard Handling
   useEffect(() => {
     if (isDialogueOpen) return;
 
@@ -122,7 +122,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     };
   }, [characters, playerPosition, onCharacterClick, isDialogueOpen]);
 
-  // Animation du joueur
+  // Player Animation
   useEffect(() => {
     if (isDialogueOpen) return;
 
@@ -147,7 +147,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     return () => clearInterval(interval);
   }, [keys, isDialogueOpen]);
 
-  // Rendu du canvas
+  // Canvas Rendering
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -155,10 +155,10 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Effacer le canvas
+    // Clear Canvas
     ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
-    // Dessiner le fond
+    // Draw Background
     if (backgroundImage) {
       ctx.drawImage(backgroundImage, 0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
     } else {
@@ -170,7 +170,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
     }
 
-    // Dessiner les personnages
+    // Draw Characters
     characters.forEach((character) => {
       const charImage = characterImages.get(character.id);
       const isHovered = hoveredCharacter === character.id;
@@ -180,7 +180,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       );
       const isInRange = distance < 80;
 
-      // Zone d'interaction
+      // Interaction Zone
       if (isInRange) {
         ctx.beginPath();
         ctx.arc(character.position.x, character.position.y, 80, 0, 2 * Math.PI);
@@ -191,13 +191,13 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
         ctx.setLineDash([]);
       }
 
-      // Ombre
+      // Shadow
       ctx.beginPath();
       ctx.ellipse(character.position.x, character.position.y + 40, 25, 8, 0, 0, 2 * Math.PI);
       ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
       ctx.fill();
 
-      // Image ou rectangle du personnage
+      // Character Image or Rectangle
       if (charImage) {
         const size = isHovered ? 70 : 60;
         ctx.drawImage(
@@ -220,7 +220,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
         );
       }
 
-      // Nom et état
+      // Name and Status
       if (isHovered || isInRange) {
         ctx.fillStyle = 'white';
         ctx.strokeStyle = 'black';
@@ -234,12 +234,12 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
         if (isInRange) {
           ctx.font = '12px Arial';
           ctx.fillStyle = '#fbbf24';
-          ctx.strokeText('ESPACE pour interagir', character.position.x, character.position.y - 70);
-          ctx.fillText('ESPACE pour interagir', character.position.x, character.position.y - 70);
+          ctx.strokeText('SPACE to interact', character.position.x, character.position.y - 70);
+          ctx.fillText('SPACE to interact', character.position.x, character.position.y - 70);
         }
       }
 
-      // Indicateur d'état
+      // Status Indicator
       const stateColor = character.alerted ? '#ef4444' : '#10b981';
       ctx.beginPath();
       ctx.arc(character.position.x + 20, character.position.y - 20, 6, 0, 2 * Math.PI);
@@ -247,7 +247,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       ctx.fill();
     });
 
-    // Dessiner le joueur
+    // Draw Player
     ctx.beginPath();
     ctx.arc(playerPosition.x, playerPosition.y + 25, 20, 0, Math.PI, false);
     ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
