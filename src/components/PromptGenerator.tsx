@@ -7,7 +7,8 @@ import { investigationAgents } from '../utils/investigationAgents';
 import { supabase } from '../integrations/supabase/client';
 import { Investigation } from '../types';
 import { toast } from 'sonner';
-import { imageGenerator } from '../utils/imageGenerator';
+import { generateAssetImage } from '../utils/imageGenerator';
+import { v4 as uuidv4 } from 'uuid';
 
 interface PromptGeneratorProps {
   prompt: string;
@@ -84,8 +85,6 @@ const PromptGenerator: React.FC<PromptGeneratorProps> = ({
         sprite: 'character',
         expression_state: 'neutre',
         alerted: false,
-        portrait_prompt: char.portrait_prompt,
-        dialog_background_prompt: char.dialog_background_prompt,
         location_description: char.location_description,
         is_culprit: char.is_culprit || false
       }));
@@ -132,11 +131,11 @@ const PromptGenerator: React.FC<PromptGeneratorProps> = ({
       // Sauvegarder les indices
       if (investigation.clues && investigation.clues.length > 0) {
         const cluesToSave = investigation.clues.map(clue => ({
+          id: uuidv4(),
           investigation_id: savedInvestigation.id,
           name: clue.name,
           description: clue.description,
-          location: clue.location,
-          image_prompt: clue.image_prompt
+          location: clue.location
         }));
 
         const { error: cluesError } = await supabase
@@ -155,50 +154,48 @@ const PromptGenerator: React.FC<PromptGeneratorProps> = ({
       // Générer les assets avec retry
       try {
         // Background principal
-        const backgroundUrl = await imageGenerator.generateAndUploadImage(
-          investigation.background_prompt || '2D game background, mystery scene, cartoon style',
-          'background',
-          savedInvestigation.id
-        );
+        const backgroundUrl = await generateAssetImage({
+          description: investigation.background_prompt || '2D game background, mystery scene, cartoon style',
+          type: 'background',
+          style: 'cartoon'
+        });
 
         // Portraits des personnages
         for (const character of savedCharacters) {
-          if (character.portrait_prompt) {
-            try {
-              const portraitUrl = await imageGenerator.generateAndUploadImage(
-                character.portrait_prompt,
-                'character',
-                savedInvestigation.id,
-                character.id
-              );
+          try {
+            const portraitUrl = await generateAssetImage({
+              description: `2D character sprite, ${character.name}, ${character.role}, cartoon style`,
+              type: 'character',
+              style: 'cartoon'
+            });
 
-              const dialogBgUrl = await imageGenerator.generateAndUploadImage(
-                character.dialog_background_prompt || `2D game background, ${character.location_description}, cartoon style`,
-                'dialogue_bg',
-                savedInvestigation.id,
-                character.id
-              );
+            const dialogBgUrl = await generateAssetImage({
+              description: `2D game background, ${character.location_description}, cartoon style`,
+              type: 'background',
+              style: 'cartoon'
+            });
 
-              // Mettre à jour le personnage avec les URLs
-              await supabase
-                .from('characters')
-                .update({
-                  image_url: portraitUrl,
-                  dialog_background_url: dialogBgUrl
-                })
-                .eq('id', character.id);
+            // Mettre à jour le personnage avec les URLs
+            await supabase
+              .from('characters')
+              .update({
+                image_url: portraitUrl,
+                dialog_background_url: dialogBgUrl
+              })
+              .eq('id', character.id);
 
-            } catch (error) {
-              console.warn(`⚠️ Erreur génération asset pour ${character.name}:`, error);
-            }
+          } catch (error) {
+            console.warn(`⚠️ Erreur génération asset pour ${character.name}:`, error);
           }
         }
 
         // Mettre à jour l'enquête avec le background
-        await supabase
-          .from('investigations')
-          .update({ background_url: backgroundUrl })
-          .eq('id', savedInvestigation.id);
+        if (backgroundUrl) {
+          await supabase
+            .from('investigations')
+            .update({ background_url: backgroundUrl })
+            .eq('id', savedInvestigation.id);
+        }
 
       } catch (error) {
         console.warn('⚠️ Erreur génération assets:', error);
@@ -216,7 +213,8 @@ const PromptGenerator: React.FC<PromptGeneratorProps> = ({
           position: char.position || { x: 0, y: 0 },
           personality: char.personality || {},
           alerted: false,
-          expression_state: (char.expression_state as any) || 'neutre'
+          expression_state: (char.expression_state as any) || 'neutre',
+          role: char.role as any
         })),
         clues: [],
         culprit_character_id: culpritId
@@ -241,13 +239,13 @@ const PromptGenerator: React.FC<PromptGeneratorProps> = ({
   };
 
   return (
-    <Card className="w-full max-w-2xl mx-auto">
+    <Card className="w-full bg-slate-800/80 backdrop-blur border-slate-700">
       <CardHeader>
-        <CardTitle>Générateur d'Enquête IA</CardTitle>
+        <CardTitle className="text-white">Générateur d'Enquête IA</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div>
-          <label htmlFor="prompt" className="block text-sm font-medium mb-2">
+          <label htmlFor="prompt" className="block text-sm font-medium mb-2 text-gray-300">
             Décrivez votre enquête
           </label>
           <Textarea
@@ -255,7 +253,7 @@ const PromptGenerator: React.FC<PromptGeneratorProps> = ({
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             placeholder="Décrivez le type d'enquête que vous souhaitez créer..."
-            className="min-h-[100px]"
+            className="min-h-[100px] bg-slate-700 border-slate-600 text-white placeholder-gray-400"
             disabled={isGenerating}
           />
         </div>
@@ -263,17 +261,17 @@ const PromptGenerator: React.FC<PromptGeneratorProps> = ({
         <Button 
           onClick={generateInvestigation} 
           disabled={isGenerating || !prompt.trim()}
-          className="w-full"
+          className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
         >
           {isGenerating ? 'Génération en cours...' : 'Générer l\'Enquête'}
         </Button>
 
         {generationSteps.length > 0 && (
-          <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-            <h4 className="font-medium mb-2">Progression :</h4>
+          <div className="mt-4 p-4 bg-slate-700/50 rounded-lg border border-slate-600">
+            <h4 className="font-medium mb-2 text-white">Progression :</h4>
             <div className="space-y-1">
               {generationSteps.map((step, index) => (
-                <div key={index} className="text-sm text-gray-600">
+                <div key={index} className="text-sm text-gray-300">
                   {step}
                 </div>
               ))}

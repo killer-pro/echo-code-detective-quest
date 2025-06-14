@@ -1,4 +1,3 @@
-
 import { geminiAPI } from '../api/gemini';
 import { Character, Investigation, Clue, CharacterRole } from '../types';
 import { v4 as uuidv4 } from 'uuid';
@@ -93,7 +92,7 @@ class InvestigationAgents {
         title: response.title || 'Enquête mystérieuse',
         description: response.description || 'Une enquête à résoudre',
         context: response.context || 'Contexte de l\'enquête',
-        background_prompt: response.background_prompt || '2D game background, mysterious scene, cartoon style'
+        background_prompt: response.assetPrompts?.[0]?.prompt || '2D game background, mysterious scene, cartoon style'
       };
     });
 
@@ -115,7 +114,7 @@ class InvestigationAgents {
     return {
       ...baseStory,
       characters: updatedCharacters,
-      clues,
+      clues: clues,
       status: 'en_cours'
     } as Investigation;
   }
@@ -204,7 +203,7 @@ class InvestigationAgents {
       }
     `);
     
-    const cluesData = response.clues || [];
+    const cluesData = response.assetPrompts?.filter(asset => asset.type === 'prop') || response.clues || [];
     return cluesData.map((clue: any) => ({
       id: uuidv4(),
       investigation_id: '',

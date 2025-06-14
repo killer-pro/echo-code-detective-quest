@@ -1,8 +1,7 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
-import { Input } from '../components/ui/input';
-import { Textarea } from '../components/ui/textarea';
 import { Badge } from '../components/ui/badge';
 import { 
   Brain, 
@@ -22,13 +21,12 @@ import PromptGenerator from '../components/PromptGenerator';
 import SceneGenerator from '../components/SceneGenerator';
 import { useInvestigationCreator } from '../components/create-prompt/hooks/useInvestigationCreator';
 import { useAIInvestigationSuggestions } from '../components/create-prompt/hooks/useAIInvestigationSuggestions';
-import { type Investigation, type Asset, type GeneratedAsset } from '../types';
+import { type Investigation, type GeneratedAsset } from '../types';
 
 const CreatePrompt: React.FC = () => {
   const navigate = useNavigate();
   const {
     isStartingGame,
-    createSimpleInvestigation,
     startGame,
   } = useInvestigationCreator();
 
@@ -40,24 +38,16 @@ const CreatePrompt: React.FC = () => {
   } = useAIInvestigationSuggestions();
 
   const [prompt, setPrompt] = React.useState('');
-  const [showExamples, setShowExamples] = React.useState(true); // Show by default
+  const [showExamples, setShowExamples] = React.useState(true);
   const [generatedInvestigation, setGeneratedInvestigation] = React.useState<Investigation | null>(null);
-  const [generatedAssets, setGeneratedAssets] = React.useState<GeneratedAsset[]>([]); // Using GeneratedAsset[] as the exact structure of generated assets
-
-  // Note: The investigation ID is generated here in PromptGenerator before being passed to the hook.
-  // This might cause issues if the startGame hook expects to generate the ID or handle potential duplicates.
-  const handleCreateInvestigation = async () => {
-    if (!prompt.trim()) return;
-    
-    await createSimpleInvestigation(prompt);
-  };
+  const [generatedAssets, setGeneratedAssets] = React.useState<GeneratedAsset[]>([]);
 
   const handleInvestigationGenerated = (investigation: Investigation) => {
     console.log('📋 Investigation generated:', investigation);
     setGeneratedInvestigation(investigation);
   };
 
-  const handleAssetsGenerated = (assets: GeneratedAsset[]) => { // Using GeneratedAsset[] as the exact structure of generated assets
+  const handleAssetsGenerated = (assets: GeneratedAsset[]) => {
     console.log('🎨 Assets generated:', assets);
     setGeneratedAssets(assets);
   };
@@ -71,6 +61,10 @@ const CreatePrompt: React.FC = () => {
     });
     
     await startGame(generatedInvestigation, generatedAssets);
+  };
+
+  const handleSuggestionClick = (suggestionPrompt: string) => {
+    setPrompt(suggestionPrompt);
   };
 
   const getComplexityColor = (complexity: string) => {
@@ -102,21 +96,11 @@ const CreatePrompt: React.FC = () => {
             {!generatedInvestigation ? (
               <>
                 {/* AI prompt generator */}
-                <Card className="bg-slate-800/80 backdrop-blur border-slate-700">
-                  <CardHeader className="pb-3 md:pb-6">
-                    <CardTitle className="text-white flex items-center gap-2 text-base md:text-lg">
-                      <Wand2 className="w-4 h-4 md:w-5 md:h-5 text-purple-400" />
-                      AI Investigation Generator
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <PromptGenerator
-                      onPromptUpdate={setPrompt}
-                      onInvestigationGenerated={handleInvestigationGenerated}
-                      prompt={prompt}
-                    />
-                  </CardContent>
-                </Card>
+                <PromptGenerator
+                  prompt={prompt}
+                  setPrompt={setPrompt}
+                  onInvestigationGenerated={handleInvestigationGenerated}
+                />
               </>
             ) : (
               // Display generated investigation + asset generator
@@ -232,8 +216,8 @@ const CreatePrompt: React.FC = () => {
                       {suggestions.map((example, index) => (
                         <div 
                           key={index}
-                          className="p-3 md:p-4 bg-slate-700/50 rounded-lg border border-slate-600 hover:border-slate-500 transition-colors cursor-pointer"
-                          onClick={() => setPrompt(example.prompt)}
+                          className="p-3 md:p-4 bg-slate-700/50 rounded-lg border border-slate-600 hover:border-slate-500 transition-colors cursor-pointer hover:bg-slate-700/70"
+                          onClick={() => handleSuggestionClick(example.prompt)}
                         >
                           <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
                             <Badge variant="outline" className="text-blue-400 border-blue-400 text-xs">
