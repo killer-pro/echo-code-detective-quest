@@ -21,14 +21,30 @@ export const useAccusation = () => {
         return { success: false, result: 'ongoing' };
       }
 
+      // Récupérer les informations du coupable depuis la base de données
+      const { data: investigationData, error: fetchError } = await supabase
+        .from('investigations')
+        .select(`
+          *,
+          characters!characters_investigation_id_fkey(*)
+        `)
+        .eq('id', investigation.id)
+        .single();
+
+      if (fetchError) {
+        console.error('💥 Erreur récupération enquête:', fetchError);
+        throw fetchError;
+      }
+
       // Trouver le vrai coupable et le personnage accusé
-      const culprit = investigation.characters.find(char => char.is_culprit === true);
-      const accusedCharacter = investigation.characters.find(char => char.id === accusedCharacterId);
+      const culprit = investigationData.characters.find((char: any) => char.is_culprit === true);
+      const accusedCharacter = investigationData.characters.find((char: any) => char.id === accusedCharacterId);
       
       console.log('🔍 Détails de l\'accusation:', { 
         culprit: culprit ? { id: culprit.id, name: culprit.name, is_culprit: culprit.is_culprit } : 'NON TROUVÉ',
         accused: accusedCharacter ? { id: accusedCharacter.id, name: accusedCharacter.name } : 'NON TROUVÉ',
-        allCharacters: investigation.characters.map(c => ({ id: c.id, name: c.name, is_culprit: c.is_culprit }))
+        culpritFromDb: investigationData.culprit_character_id,
+        allCharacters: investigationData.characters.map((c: any) => ({ id: c.id, name: c.name, is_culprit: c.is_culprit }))
       });
 
       if (!accusedCharacter) {
@@ -55,7 +71,8 @@ export const useAccusation = () => {
           accused_character_id: accusedCharacterId,
           accusation_made: true,
           game_result: result,
-          accusation_timestamp: new Date().toISOString()
+          accusation_timestamp: new Date().toISOString(),
+          culprit_character_id: culprit?.id || investigationData.culprit_character_id
         })
         .eq('id', investigation.id);
 

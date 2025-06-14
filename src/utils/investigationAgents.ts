@@ -15,7 +15,7 @@ interface AgentContext {
   }>;
 }
 
-interface GeminiInvestigationResponse {
+interface InvestigationData {
   title: string;
   description: string;
   context: string;
@@ -229,12 +229,13 @@ class InvestigationAgents {
         "motive": "Motif du crime",
         "method": "Comment le crime a été commis"
       }
-    `);
+    `) as unknown as CulpritResponse;
     
-    const culpritData = response as CulpritResponse;
+    console.log('🎯 Coupable désigné par l\'IA:', response.culprit_name);
+    
     return characters.map(char => ({
       ...char,
-      is_culprit: char.name === culpritData.culprit_name
+      is_culprit: char.name === response.culprit_name
     }));
   }
 
