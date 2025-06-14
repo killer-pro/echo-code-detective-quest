@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
@@ -8,11 +9,10 @@ import { investigationAgents } from '../utils/investigationAgents';
 import { type Investigation, type Character, type CharacterRole, type ExpressionState } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 
-// Interfaces for Gemini responses
 interface GeminiCharacter {
   name: string;
   role: string;
-  personality?: Record<string, any>; // Using Record<string, any> because the structure of personality traits is dynamic and depends on AI output
+  personality?: Record<string, any>;
   knowledge?: string;
   reputation_score?: number;
   position?: { x: number; y: number };
@@ -43,7 +43,6 @@ interface PromptGeneratorProps {
   prompt: string;
 }
 
-// Constants for validation
 const validRoles: CharacterRole[] = ['témoin', 'suspect', 'enquêteur', 'innocent'];
 const validExpressionStates: ExpressionState[] = ['neutre', 'nerveux', 'en_colère', 'coopératif', 'méfiant'];
 
@@ -67,25 +66,25 @@ const PromptGenerator: React.FC<PromptGeneratorProps> = ({
       id: 'manor',
       title: 'Manor Mystery',
       description: 'Theft in a large property with suspicious characters',
-      prompt: 'A precious jewel was stolen during a reception in a Victorian manor. Guests and staff are all suspects.'
+      prompt: 'A precious jewel was stolen during a reception in a Victorian manor. Guests and staff are all suspects with complex relationships.'
     },
     {
       id: 'office',
       title: 'Corporate Crime',
       description: 'Investigation in a modern corporate environment',
-      prompt: 'Confidential documents have disappeared from a tech company. Industrial espionage is suspected.'
+      prompt: 'Confidential documents have disappeared from a tech company. Industrial espionage is suspected among the employees.'
     },
     {
       id: 'school',
       title: 'School Incident',
       description: 'Mystery in an educational institution',
-      prompt: 'A valuable object disappeared from the headmaster\'s office of a prestigious high school during exams.'
+      prompt: 'A valuable object disappeared from the headmaster\'s office during exams. Students and teachers are involved.'
     },
     {
       id: 'village',
       title: 'Village Secret',
       description: 'Investigation in a small rural community',
-      prompt: 'A strange event disrupts the tranquility of a small village where everyone knows each other.'
+      prompt: 'A strange event disrupts the tranquility of a small village where everyone knows each other and has secrets.'
     }
   ];
 
@@ -99,53 +98,6 @@ const PromptGenerator: React.FC<PromptGeneratorProps> = ({
     setPrompt(value);
     onPromptUpdate(value);
   };
-
-  // Base prompt: Basic investigation with characters and clues
-  const baseInvestigationPrompt = `
-Create a procedural investigation based on this prompt: "${prompt}"
-
-RESPOND ONLY IN VALID JSON with this EXACT structure:
-{
-  "title": "Investigation Title",
-  "description": "Detailed description of the mystery to solve",
-  "context": "Initial narrative context explaining the starting situation",
-  "background_prompt": "2D game background, side view, [description of the main location], cartoon style, flat design, game environment",
-  "characters": [
-    {
-      "name": "Character Name",
-      "role": "témoin|suspect|innocent",
-      "personality": { // Using Record<string, any> because the structure of personality traits is dynamic and depends on AI output
-        "traits": ["trait1", "trait2"],
-        "secrets": "character's secrets",
-        "motivations": "character's motivations",
-        "appearance": "detailed physical description of the character"
-      },
-      "knowledge": "What the character knows about the investigation",
-      "position": {"x": 200, "y": 150},
-      "reputation_score": 50,
-      "location_description": "Description of the location where this character is",
-      "portrait_prompt": "2D character sprite, front view, [detailed physical description], cartoon style, game character, flat design",
-      "dialog_background_prompt": "2D game background, [character's location], cartoon style, interior/exterior scene, flat design"
-    }
-  ],
-  "clues": [
-    {
-      "name": "Clue Name",
-      "description": "Detailed description of the clue and its importance",
-      "location": "Where this clue is located",
-      "image_prompt": "2D game object, [description of the object], simple flat design, cartoon style, game prop"
-    }
-  ]
-}
-
-RULES:
-- Create EXACTLY 3-5 characters with varied roles
-- Create EXACTLY 2-4 important clues
-- Positions must be between x:100-700 and y:100-500
-- Each character must have a different location (living room, kitchen, office, garden, etc.)
-- Clues must be consistent with the story
-- ALL image prompts must use "2D", "cartoon style", "flat design"
-`;
 
   const handleGenerate = async () => {
     if (!prompt.trim() || isGenerating) return;
@@ -165,7 +117,6 @@ RULES:
       
       setGenerationStep('Agent logique: Vérification de la cohérence...');
       
-      // Utiliser le nouveau système d'agents
       const baseInvestigation = await investigationAgents.generateInvestigationWithAgents(prompt);
       
       setGenerationStep('Finalisation de l\'enquête...');
@@ -178,7 +129,7 @@ RULES:
         description: baseInvestigation.description || 'Pas de description.',
         context: baseInvestigation.context || 'Pas de contexte.',
         prompt: prompt.trim(),
-        characters: baseInvestigation.characters.map((char: any, index: number) => {
+        characters: baseInvestigation.characters.map((char: any) => {
           return {
             id: uuidv4(),
             investigation_id: investigationId,
@@ -229,9 +180,9 @@ RULES:
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-      {/* Predefined Templates */}
+      {/* AI Generated Templates */}
       <div>
-        <h3 className="text-lg font-semibold text-white mb-4">Scénarios Prédéfinis</h3>
+        <h3 className="text-lg font-semibold text-white mb-4">AI-Generated Investigation Scenarios</h3>
         <div className="grid md:grid-cols-2 gap-4">
           {templates.map((template) => (
             <Card 
@@ -251,10 +202,12 @@ RULES:
               </CardHeader>
               <CardContent>
                 <p className="text-gray-400 text-xs mb-2">{template.description}</p>
-                <Badge variant="outline" className="text-xs">
-                  <Users className="w-3 h-3 mr-1" />
-                  3-5 personnages
-                </Badge>
+                <div className="flex flex-wrap gap-1">
+                  <Badge variant="outline" className="text-xs">
+                    <Users className="w-3 h-3 mr-1" />
+                    5-6 characters
+                  </Badge>
+                </div>
               </CardContent>
             </Card>
           ))}
@@ -263,45 +216,45 @@ RULES:
 
       {/* Custom Input Area */}
       <div>
-        <h3 className="text-lg font-semibold text-white mb-4">Ou Créez Votre Propre Scénario</h3>
+        <h3 className="text-lg font-semibold text-white mb-4">Or Create Your Own Scenario</h3>
         <Card className="bg-slate-800 border-slate-700">
           <CardHeader>
             <CardTitle className="text-white flex items-center gap-2">
               <Zap className="w-5 h-5" />
-              Décrivez Votre Enquête
+              Describe Your Investigation
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <Textarea
               value={prompt}
               onChange={(e) => handlePromptChange(e.target.value)}
-              placeholder="Décrivez le mystère que vous voulez créer... Par exemple: 'Un meurtre dans un train de nuit avec 6 passagers suspects' ou 'Vol dans une galerie d'art moderne pendant un vernissage'"
+              placeholder="Describe the mystery you want to create... For example: 'A murder on a night train with 6 suspicious passengers' or 'Theft in a modern art gallery during an opening'"
               className="min-h-[120px] bg-slate-700 border-slate-600 text-white placeholder-gray-400"
               disabled={isGenerating}
             />
             
-            {/* Modified div for responsiveness */}
-            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between md:gap-8">
+            <div className="flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between">
               <div className="text-sm text-gray-400">
-                <p>🤖 <strong>Nouveau:</strong> Système d'agents IA pour plus de cohérence</p>
-                <p>🔄 Retry automatique en cas d'erreur</p>
-                <p>🧠 Contexte partagé entre personnages</p>
+                <p>🤖 <strong>New:</strong> AI Agent System for enhanced coherence</p>
+                <p>🔄 Automatic retry on errors</p>
+                <p>🧠 Shared context between characters</p>
+                <p>👥 Minimum 5 characters with strict relationships</p>
               </div>
               
               <Button
                 onClick={handleGenerate}
                 disabled={!prompt.trim() || isGenerating}
-                className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 whitespace-nowrap"
               >
                 {isGenerating ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    {generationStep || 'Génération...'}
+                    <span className="truncate">{generationStep || 'Generating...'}</span>
                   </>
                 ) : (
                   <>
                     <Wand2 className="w-4 h-4 mr-2" />
-                    Générer avec Agents IA
+                    Generate with AI Agents
                   </>
                 )}
               </Button>
@@ -316,18 +269,18 @@ RULES:
           <div className="grid md:grid-cols-3 gap-4 text-center">
             <div>
               <Users className="w-8 h-8 text-purple-400 mx-auto mb-2" />
-              <h4 className="text-white font-medium">Personnages Cohérents</h4>
-              <p className="text-gray-400 text-sm">Système d'agents pour des relations logiques entre personnages</p>
+              <h4 className="text-white font-medium">Coherent Characters</h4>
+              <p className="text-gray-400 text-sm">AI agent system for logical relationships between 5-6 characters</p>
             </div>
             <div>
               <MapPin className="w-8 h-8 text-blue-400 mx-auto mb-2" />
-              <h4 className="text-white font-medium">Contexte Partagé</h4>
-              <p className="text-gray-400 text-sm">Les personnages connaissent les déclarations des autres</p>
+              <h4 className="text-white font-medium">Shared Context</h4>
+              <p className="text-gray-400 text-sm">Characters know about other characters' statements</p>
             </div>
             <div>
               <Zap className="w-8 h-8 text-green-400 mx-auto mb-2" />
-              <h4 className="text-white font-medium">Retry Automatique</h4>
-              <p className="text-gray-400 text-sm">Système robuste avec gestion d'erreurs avancée</p>
+              <h4 className="text-white font-medium">Auto Retry</h4>
+              <p className="text-gray-400 text-sm">Robust system with advanced error handling</p>
             </div>
           </div>
         </CardContent>
@@ -337,7 +290,7 @@ RULES:
       {generatedInvestigation && (
         <Card className="bg-slate-700 border-slate-600">
           <CardHeader>
-            <CardTitle className="text-white">Investigation Générée par Agents IA</CardTitle>
+            <CardTitle className="text-white">Investigation Generated by AI Agents</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
@@ -347,17 +300,17 @@ RULES:
             </div>
             
             <div>
-              <h5 className="text-green-300 font-bold mb-2">👥 Personnages ({generatedInvestigation.characters.length}):</h5>
+              <h5 className="text-green-300 font-bold mb-2">👥 Characters ({generatedInvestigation.characters.length}):</h5>
               {generatedInvestigation.characters.map((char) => (
                 <div key={char.id} className="ml-4 mt-2 p-3 bg-slate-600 rounded">
-                  <div className="flex items-center gap-2 mb-2">
+                  <div className="flex flex-wrap items-center gap-2 mb-2">
                     <span className="font-bold text-purple-300">{char.name}</span>
                     <Badge variant="outline" className="text-xs">{char.role}</Badge>
-                    {char.is_culprit && <Badge className="bg-red-600 text-xs">COUPABLE</Badge>}
+                    {char.is_culprit && <Badge className="bg-red-600 text-xs">CULPRIT</Badge>}
                   </div>
                   <p className="text-gray-400 text-xs mb-2">{char.knowledge}</p>
                   <div className="text-xs text-gray-500 space-y-1">
-                    <div><strong>Localisation:</strong> {char.location_description}</div>
+                    <div><strong>Location:</strong> {char.location_description}</div>
                     {char.personality.alibi && <div><strong>Alibi:</strong> {char.personality.alibi}</div>}
                   </div>
                 </div>
@@ -366,13 +319,13 @@ RULES:
 
             {generatedInvestigation.clues && generatedInvestigation.clues.length > 0 && (
               <div>
-                <h5 className="text-yellow-300 font-bold mb-2">🔍 Indices ({generatedInvestigation.clues.length}):</h5>
+                <h5 className="text-yellow-300 font-bold mb-2">🔍 Clues ({generatedInvestigation.clues.length}):</h5>
                 {generatedInvestigation.clues.map((clue) => (
                   <div key={clue.id} className="ml-4 mt-2 p-3 bg-slate-600 rounded">
                     <div className="font-bold text-yellow-300 mb-1">{clue.name}</div>
                     <p className="text-gray-400 text-xs mb-2">{clue.description}</p>
                     <div className="text-xs text-gray-500">
-                      <div><strong>Localisation:</strong> {clue.location}</div>
+                      <div><strong>Location:</strong> {clue.location}</div>
                     </div>
                   </div>
                 ))}

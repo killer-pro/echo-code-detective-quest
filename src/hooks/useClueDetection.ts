@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { supabase } from '../integrations/supabase/client';
 import { DiscoveredClue, ClueType } from '../types';
 import { toast } from 'sonner';
+import { v4 as uuidv4 } from 'uuid';
 
 export const useClueDetection = () => {
   const [isProcessing, setIsProcessing] = useState(false);
@@ -29,6 +30,7 @@ export const useClueDetection = () => {
       const { data, error } = await supabase
         .from('clues')
         .insert({
+          id: uuidv4(),
           investigation_id: investigationId,
           name: `Indice #${Date.now()}`,
           description: clueData.text,
