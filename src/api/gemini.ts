@@ -21,14 +21,13 @@ interface InvestigationData {
     id: string;
     name: string;
     role: string;
-    personality: Record<string, any>; // Using Record<string, any> because the structure of personality traits is dynamic and depends on AI output
+    personality: Record<string, any>;
     knowledge: string;
     position: { x: number; y: number };
     reputation_score: number;
   }>;
 }
 
-// New interface for investigation suggestions
 interface InvestigationSuggestion {
   category: string;
   title: string;
@@ -41,43 +40,63 @@ const GEMINI_API_KEY = "AIzaSyDTz4uts8cIeNp9D2IxK1Zyk8sfu2X_Ybo";
 const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
 
 class GeminiAPI {
-  private async makeRequest(prompt: string): Promise<string> {
-    try {
-      const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          contents: [{
-            parts: [{
-              text: prompt
-            }]
-          }],
-          generationConfig: {
-            temperature: 0.7,
-            topK: 40,
-            topP: 0.95,
-            maxOutputTokens: 2048,
+  private async makeRequest(prompt: string, maxRetries: number = 3): Promise<string> {
+    let lastError: Error;
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        console.log(`🤖 Gemini API attempt ${attempt}/${maxRetries}`);
+        
+        const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            contents: [{
+              parts: [{
+                text: prompt
+              }]
+            }],
+            generationConfig: {
+              temperature: 0.7,
+              topK: 40,
+              topP: 0.95,
+              maxOutputTokens: 2048,
+            }
+          })
+        });
+
+        if (!response.ok) {
+          if (response.status === 503 && attempt < maxRetries) {
+            console.warn(`⚠️ Gemini API temporarily unavailable (503), retrying in ${attempt * 2} seconds...`);
+            await new Promise(resolve => setTimeout(resolve, attempt * 2000));
+            continue;
           }
-        })
-      });
+          throw new Error(`API Error: ${response.status} ${response.statusText}`);
+        }
 
-      if (!response.ok) {
-        throw new Error(`API Error: ${response.status} ${response.statusText}`);
+        const data = await response.json();
+        if (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0]) {
+          console.log(`✅ Gemini API successful on attempt ${attempt}`);
+          return data.candidates[0].content.parts[0].text;
+        } else {
+          throw new Error('Unexpected API response format');
+        }
+      } catch (error) {
+        console.error(`💥 Gemini API attempt ${attempt} failed:`, error);
+        lastError = error instanceof Error ? error : new Error(String(error));
+        
+        if (attempt < maxRetries && (error.message.includes('503') || error.message.includes('temporarily'))) {
+          console.log(`🔄 Retrying in ${attempt * 2} seconds...`);
+          await new Promise(resolve => setTimeout(resolve, attempt * 2000));
+          continue;
+        }
       }
-
-      const data = await response.json();
-      // Assuming the API response structure is { candidates: [{ content: { parts: [{ text: "..." }] } }] }
-      if (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0]) {
-         return data.candidates[0].content.parts[0].text;
-      } else {
-         throw new Error('Unexpected API response format');
-      }
-    } catch (error) {
-      console.error('Error calling Gemini API:', error);
-      throw error;
     }
+    
+    console.error(`💥 All Gemini API attempts failed after ${maxRetries} tries`);
+    throw lastError;
   }
 
   async generateInvestigation(userPrompt: string): Promise<InvestigationData> {
@@ -180,17 +199,14 @@ Positions must be between x:100-700 and y:100-500.
     }
   }
 
-  // New method to generate investigation suggestions
   async generateInvestigationSuggestions(prompt: string): Promise<InvestigationSuggestion[]> {
     try {
       const responseText = await this.makeRequest(prompt);
-      // The hook expects a JSON array directly
-      const jsonMatch = responseText.match(/\[[\s\S]*\]/); // Match JSON array
+      const jsonMatch = responseText.match(/\[[\s\S]*\]/);
       
       if (jsonMatch) {
         return JSON.parse(jsonMatch[0]);
       } else {
-        // If no JSON array is found, try parsing the whole response as JSON
         try {
              return JSON.parse(responseText) as InvestigationSuggestion[];
         } catch (parseError) {
@@ -200,7 +216,6 @@ Positions must be between x:100-700 and y:100-500.
       }
     } catch (error) {
       console.error('Error generating investigation suggestions:', error);
-      // Fallback suggestions (same as in the hook currently)
       return [
         {
           category: "Classic Mystery",
@@ -223,7 +238,7 @@ Positions must be between x:100-700 and y:100-500.
   async generateCharacterResponse(
     characterName: string,
     role: string,
-    personality: Record<string, any>, // Using Record<string, any> because the structure of personality traits is dynamic and depends on AI output
+    personality: Record<string, any>,
     knowledge: string,
     reputation: number,
     userMessage: string,
@@ -258,7 +273,7 @@ Rules:
 
     try {
       const responseText = await this.makeRequest(prompt);
-      const jsonMatch = responseText.match(/\{[\s\S]*\}/); // Match JSON object
+      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
         throw new Error('Invalid character JSON response');
       }
@@ -266,6 +281,9 @@ Rules:
       return JSON.parse(jsonMatch[0]);
     } catch (error) {
       console.error('Error generating response:', error);
+      if (error.message.includes('503') || error.message.includes('temporarily')) {
+        throw new Error('AI service is temporarily unavailable. Please try again in a few moments.');
+      }
       return {
         text: "I cannot answer you now...",
         keywords: ["silence", "mystery"],

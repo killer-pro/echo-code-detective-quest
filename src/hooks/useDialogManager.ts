@@ -115,22 +115,22 @@ export const useDialogManager = () => {
 
   const handleSendMessage = async (message: string) => {
     if (!state.activeCharacter || !state.currentInvestigation) {
-      console.warn('⚠️ Pas de personnage actif ou d\'investigation');
+      console.warn('⚠️ No active character or investigation');
       return;
     }
 
-    console.log('💬 Envoi message à:', state.activeCharacter.name, '- Message:', message);
+    console.log('💬 Sending message to:', state.activeCharacter.name, '- Message:', message);
     setIsLoading(true);
     
     try {
       const characterHistory = state.dialogHistory
         .filter(d => d.character_id === state.activeCharacter!.id)
-        .map(d => `Vous: ${d.user_input}\n${state.activeCharacter!.name}: ${d.character_reply}`)
+        .map(d => `You: ${d.user_input}\n${state.activeCharacter!.name}: ${d.character_reply}`)
         .slice(-5);
 
-      console.log('📚 Historique du personnage:', characterHistory.length, 'entrées');
+      console.log('📚 Character history:', characterHistory.length, 'entries');
 
-      console.log('🤖 Appel API Gemini...');
+      console.log('🤖 Calling Gemini API...');
       const response = await geminiAPI.generateCharacterResponse(
         state.activeCharacter.name,
         state.activeCharacter.role,
@@ -141,7 +141,7 @@ export const useDialogManager = () => {
         characterHistory
       );
 
-      console.log('✅ Réponse Gemini reçue:', response);
+      console.log('✅ Gemini response received:', response);
 
       const dialogEntry: DialogEntry = {
         id: `dialog_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -158,7 +158,7 @@ export const useDialogManager = () => {
       await saveDialogToDatabase(dialogEntry);
       
       if (response.reputationImpact !== 0) {
-        console.log('📊 Impact réputation:', response.reputationImpact);
+        console.log('📊 Reputation impact:', response.reputationImpact);
         dispatch({ 
           type: 'UPDATE_CHARACTER_REPUTATION', 
           payload: { 
@@ -168,7 +168,6 @@ export const useDialogManager = () => {
         });
       }
 
-      // Détecter et sauvegarder les indices automatiquement
       if (state.currentInvestigation.id !== 'demo-investigation-001') {
         await detectAndSaveClue(
           state.currentInvestigation.id,
@@ -183,25 +182,43 @@ export const useDialogManager = () => {
         const lead = {
           id: `lead_${Date.now()}`,
           investigation_id: state.currentInvestigation.id,
-          description: `Information obtenue de ${state.activeCharacter.name}: ${response.text.substring(0, 100)}...`,
+          description: `Information obtained from ${state.activeCharacter.name}: ${response.text.substring(0, 100)}...`,
           source_pnj: state.activeCharacter.id,
           confidence_level: response.truthLikelihood,
           resolved: false,
           discovered_at: new Date().toLocaleString(),
         };
         
-        console.log('🔍 Nouvel indice généré:', lead);
+        console.log('🔍 New lead generated:', lead);
         dispatch({ type: 'ADD_LEAD', payload: lead });
       }
 
     } catch (error) {
-      console.error('💥 Erreur lors de la génération de réponse:', error);
+      console.error('💥 Error during response generation:', error);
+      
+      // Handle specific Gemini errors
+      if (error.message && error.message.includes('temporarily unavailable')) {
+        toast.error('AI service temporarily unavailable', {
+          description: 'Please try again in a few moments.',
+          duration: 4000
+        });
+      } else if (error.message && error.message.includes('503')) {
+        toast.error('Service temporarily overloaded', {
+          description: 'The AI service is busy. Retrying automatically...',
+          duration: 3000
+        });
+      } else {
+        toast.error('Error generating response', {
+          description: 'Please try again.',
+          duration: 3000
+        });
+      }
       
       const fallbackDialog: DialogEntry = {
         id: `dialog_${Date.now()}_fallback`,
         character_id: state.activeCharacter.id,
         user_input: message,
-        character_reply: "Désolé, je ne peux pas vous répondre maintenant. Revenez me voir plus tard.",
+        character_reply: "Sorry, I can't answer you right now. Come back and see me later.",
         timestamp: new Date().toISOString(),
         clickable_keywords: [],
         reputation_impact: -1,
