@@ -25,16 +25,14 @@ export const useClueDetection = () => {
 
       console.log('🕵️ Indice détecté:', clueData);
 
-      // Sauvegarder l'indice en base
+      // Sauvegarder l'indice en base en utilisant la table clues existante
       const { data, error } = await supabase
-        .from('discovered_clues')
+        .from('clues')
         .insert({
           investigation_id: investigationId,
-          character_id: characterId,
-          dialog_id: dialogId,
-          clue_text: clueData.text,
-          importance_level: clueData.importance,
-          clue_type: clueData.type,
+          name: `Indice #${Date.now()}`,
+          description: clueData.text,
+          location: `Dialogue avec ${characterId}`,
         })
         .select()
         .single();
@@ -48,7 +46,17 @@ export const useClueDetection = () => {
         description: clueData.text.substring(0, 50) + '...'
       });
 
-      return data as DiscoveredClue;
+      // Retourner un DiscoveredClue compatible
+      return {
+        id: data.id,
+        investigation_id: investigationId,
+        character_id: characterId,
+        dialog_id: dialogId,
+        clue_text: clueData.text,
+        importance_level: clueData.importance,
+        clue_type: clueData.type,
+        discovered_at: new Date().toISOString()
+      } as DiscoveredClue;
     } catch (error) {
       console.error('💥 Erreur détection indice:', error);
       return null;

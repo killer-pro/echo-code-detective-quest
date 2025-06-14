@@ -1,8 +1,7 @@
-
 import { useState } from 'react';
 import { useGame } from '../context/GameContext';
 import { Character, DialogEntry } from '../types';
-import { geminiAPI } from '../api/gemini';
+import { investigationAgents } from '../utils/investigationAgents';
 import { supabase } from '../integrations/supabase/client';
 import { toast } from 'sonner';
 import { DemoService } from '../utils/demoService';
@@ -119,29 +118,31 @@ export const useDialogManager = () => {
       return;
     }
 
-    console.log('💬 Sending message to:', state.activeCharacter.name, '- Message:', message);
+    console.log('💬 Envoi message avec contexte amélioré:', state.activeCharacter.name, '- Message:', message);
     setIsLoading(true);
     
     try {
-      const characterHistory = state.dialogHistory
-        .filter(d => d.character_id === state.activeCharacter!.id)
-        .map(d => `You: ${d.user_input}\n${state.activeCharacter!.name}: ${d.character_reply}`)
-        .slice(-5);
+      // Construire le contexte global pour le système d'agents
+      const agentContext = {
+        investigation: state.currentInvestigation,
+        characters: state.currentInvestigation.characters,
+        clues: state.currentInvestigation.clues || [],
+        dialogHistory: state.dialogHistory.map(d => ({
+          character_id: d.character_id,
+          user_input: d.user_input,
+          character_reply: d.character_reply,
+          timestamp: d.timestamp
+        }))
+      };
 
-      console.log('📚 Character history:', characterHistory.length, 'entries');
-
-      console.log('🤖 Calling Gemini API...');
-      const response = await geminiAPI.generateCharacterResponse(
-        state.activeCharacter.name,
-        state.activeCharacter.role,
-        state.activeCharacter.personality,
-        state.activeCharacter.knowledge,
-        state.reputation[state.activeCharacter.id] || 50,
+      console.log('🤖 Utilisation du système d\'agents avec contexte global...');
+      const response = await investigationAgents.generateContextualResponse(
+        state.activeCharacter,
         message,
-        characterHistory
+        agentContext
       );
 
-      console.log('✅ Gemini response received:', response);
+      console.log('✅ Réponse générée avec contexte:', response);
 
       const dialogEntry: DialogEntry = {
         id: `dialog_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -149,16 +150,16 @@ export const useDialogManager = () => {
         user_input: message,
         character_reply: response.text,
         timestamp: new Date().toISOString(),
-        clickable_keywords: response.keywords,
-        reputation_impact: response.reputationImpact,
-        truth_likelihood: response.truthLikelihood,
+        clickable_keywords: response.keywords || [],
+        reputation_impact: response.reputationImpact || 0,
+        truth_likelihood: response.truthLikelihood || 0.5,
       };
 
       dispatch({ type: 'ADD_DIALOG', payload: dialogEntry });
       await saveDialogToDatabase(dialogEntry);
       
       if (response.reputationImpact !== 0) {
-        console.log('📊 Reputation impact:', response.reputationImpact);
+        console.log('📊 Impact réputation:', response.reputationImpact);
         dispatch({ 
           type: 'UPDATE_CHARACTER_REPUTATION', 
           payload: { 
@@ -174,42 +175,41 @@ export const useDialogManager = () => {
           state.activeCharacter.id,
           dialogEntry.id,
           response.text,
-          response.truthLikelihood
+          response.truthLikelihood || 0.5
         );
       }
 
-      if (response.truthLikelihood > 0.6 && Math.random() > 0.7) {
+      if ((response.truthLikelihood || 0) > 0.6 && Math.random() > 0.7) {
         const lead = {
           id: `lead_${Date.now()}`,
           investigation_id: state.currentInvestigation.id,
-          description: `Information obtained from ${state.activeCharacter.name}: ${response.text.substring(0, 100)}...`,
+          description: `Information obtenue de ${state.activeCharacter.name}: ${response.text.substring(0, 100)}...`,
           source_pnj: state.activeCharacter.id,
-          confidence_level: response.truthLikelihood,
+          confidence_level: response.truthLikelihood || 0.5,
           resolved: false,
           discovered_at: new Date().toLocaleString(),
         };
         
-        console.log('🔍 New lead generated:', lead);
+        console.log('🔍 Nouveau lead généré:', lead);
         dispatch({ type: 'ADD_LEAD', payload: lead });
       }
 
     } catch (error) {
-      console.error('💥 Error during response generation:', error);
+      console.error('💥 Erreur lors de la génération de réponse:', error);
       
-      // Handle specific Gemini errors
       if (error.message && error.message.includes('temporarily unavailable')) {
-        toast.error('AI service temporarily unavailable', {
-          description: 'Please try again in a few moments.',
+        toast.error('Service IA temporairement indisponible', {
+          description: 'Veuillez réessayer dans quelques instants.',
           duration: 4000
         });
       } else if (error.message && error.message.includes('503')) {
-        toast.error('Service temporarily overloaded', {
-          description: 'The AI service is busy. Retrying automatically...',
+        toast.error('Service temporairement surchargé', {
+          description: 'Le service IA est occupé. Nouveau tentative automatique...',
           duration: 3000
         });
       } else {
-        toast.error('Error generating response', {
-          description: 'Please try again.',
+        toast.error('Erreur lors de la génération de réponse', {
+          description: 'Veuillez réessayer.',
           duration: 3000
         });
       }
@@ -218,7 +218,7 @@ export const useDialogManager = () => {
         id: `dialog_${Date.now()}_fallback`,
         character_id: state.activeCharacter.id,
         user_input: message,
-        character_reply: "Sorry, I can't answer you right now. Come back and see me later.",
+        character_reply: "Désolé, je ne peux pas vous répondre en ce moment. Revenez me voir plus tard.",
         timestamp: new Date().toISOString(),
         clickable_keywords: [],
         reputation_impact: -1,
