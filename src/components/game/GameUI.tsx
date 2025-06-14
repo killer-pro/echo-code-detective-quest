@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Button } from '../ui/button';
 import { ArrowLeft, Book, Save, Settings, Target } from 'lucide-react';
@@ -48,10 +49,16 @@ const GameUI: React.FC<GameUIProps> = ({
   };
 
   const getGameStatusText = () => {
-    switch (gameResult) {
-      case 'won': return '🎉 Investigation solved!';
-      case 'lost': return '❌ Investigation failed';
-      default: return assetsInitialized ? 'Investigation active' : 'Loading assets...';
+    if (gameResult === 'won') {
+      const culprit = investigation.characters?.find(char => char.is_culprit);
+      const accused = investigation.characters?.find(char => char.id === investigation.accused_character_id);
+      return `🎉 Enquête résolue ! Coupable: ${culprit?.name || 'Inconnu'}`;
+    } else if (gameResult === 'lost') {
+      const culprit = investigation.characters?.find(char => char.is_culprit);
+      const accused = investigation.characters?.find(char => char.id === investigation.accused_character_id);
+      return `❌ Enquête échouée. Accusé: ${accused?.name || 'Inconnu'}, Vrai coupable: ${culprit?.name || 'Inconnu'}`;
+    } else {
+      return assetsInitialized ? 'Enquête en cours' : 'Chargement des assets...';
     }
   };
 
@@ -64,10 +71,10 @@ const GameUI: React.FC<GameUIProps> = ({
             <Button
               variant="ghost"
               onClick={onNavigateHome}
-              className="text-gray-300 hover:text-white hover:bg-slate-600 transition-colors"
+              className="text-gray-300 hover:text-white hover: transition-colors"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Back
+              Retour
             </Button>
             <div className="border-l border-slate-600 pl-4">
               <h1 className="text-xl font-bold text-white">{investigation.title}</h1>
@@ -92,17 +99,17 @@ const GameUI: React.FC<GameUIProps> = ({
                   className="bg-green-600 hover:bg-green-700 text-white border-green-600"
                 >
                   <Save className="w-4 h-4 mr-2" />
-                  {isSaving ? 'Saving...' : 'Save'}
+                  {isSaving ? 'Sauvegarde...' : 'Sauver'}
                 </Button>
 
                 <Button
                   onClick={onShowAccusation}
                   disabled={playerStats.dialogCount < 3}
                   className="bg-red-600 hover:bg-red-700 text-white border-red-600"
-                  title={playerStats.dialogCount < 3 ? 'Interrogate at least 3 characters before accusing' : 'Accuse the culprit'}
+                  title={playerStats.dialogCount < 3 ? 'Interrogez au moins 3 personnages avant d\'accuser' : 'Accuser le coupable'}
                 >
                   <Target className="w-4 h-4 mr-2" />
-                  Accuse
+                  Accuser
                 </Button>
               </>
             )}

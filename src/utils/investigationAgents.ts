@@ -70,7 +70,7 @@ class InvestigationAgents {
     
     // Agent 1: Création de l'histoire de base avec minimum 5 personnages
     const baseStory = await this.retryWithBackoff(async () => {
-      return await geminiAPI.generateInvestigation(`
+      const response = await geminiAPI.generateInvestigation(`
         Créez une histoire d'enquête basée sur: "${prompt}"
         
         RÈGLES STRICTES:
@@ -88,6 +88,13 @@ class InvestigationAgents {
           "background_prompt": "2D game background, description de la scène principale, cartoon style, flat design"
         }
       `);
+      
+      return {
+        title: response.title || 'Enquête mystérieuse',
+        description: response.description || 'Une enquête à résoudre',
+        context: response.context || 'Contexte de l\'enquête',
+        background_prompt: response.background_prompt || '2D game background, mysterious scene, cartoon style'
+      };
     });
 
     // Agent 2: Création des personnages avec cohérence stricte
@@ -146,9 +153,10 @@ class InvestigationAgents {
           }
         ]
       }
-    `) as GeminiInvestigationResponse;
+    `);
     
-    return response.characters.map((char, index) => ({
+    const charactersData = response.characters || [];
+    return charactersData.map((char: any, index: number) => ({
       id: uuidv4(),
       investigation_id: '',
       name: char.name,
@@ -194,9 +202,10 @@ class InvestigationAgents {
           }
         ]
       }
-    `) as { clues: any[] };
+    `);
     
-    return response.clues.map(clue => ({
+    const cluesData = response.clues || [];
+    return cluesData.map((clue: any) => ({
       id: uuidv4(),
       investigation_id: '',
       name: clue.name,
@@ -220,11 +229,12 @@ class InvestigationAgents {
         "motive": "Motif du crime",
         "method": "Comment le crime a été commis"
       }
-    `) as CulpritResponse;
+    `);
     
+    const culpritData = response as CulpritResponse;
     return characters.map(char => ({
       ...char,
-      is_culprit: char.name === response.culprit_name
+      is_culprit: char.name === culpritData.culprit_name
     }));
   }
 
